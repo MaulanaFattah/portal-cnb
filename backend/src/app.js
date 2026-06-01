@@ -5,7 +5,6 @@ const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const kegiatanRoutes = require("./routes/kegiatanRoutes");
 
-
 const app = express();
 
 app.use(cors({
@@ -26,5 +25,6 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/kegiatan", kegiatanRoutes);
+
 
 module.exports = app;

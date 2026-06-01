@@ -1,34 +1,38 @@
-import { Link, NavLink } from "react-router-dom";
+import { Link } from "react-router-dom";
 
-function Navbar() {
+function Footer() {
   return (
-    <header className="header">
-      <div className="container nav">
-        <Link to="/" className="brand">
-          <img src="/logo.png" alt="Logo Sekolah" className="brand-logo" />
+    <footer className="footer">
+      <div className="container footer-simple">
 
-          <div>
-            <h1>Cipta Nusa Bakti</h1>
-            <p>Portal Sekolah</p>
-          </div>
-        </Link>
+        <div className="footer-logo-box">
+          <img src="/logo.png" alt="Logo Sekolah" />
+        </div>
 
-        <nav className="menu">
-          <NavLink to="/">Beranda</NavLink>
-          <NavLink to="/profil">Profil</NavLink>
-          <NavLink to="/kegiatan">Kegiatan</NavLink>
-          <NavLink to="/pengumuman">Pengumuman</NavLink>
-          <NavLink to="/galeri">Galeri</NavLink>
-          <NavLink to="/ppdb">PPDB</NavLink>
-          <NavLink to="/kontak">Kontak</NavLink>
-        </nav>
+        <div className="footer-menu">
+          <h3>Menu</h3>
 
-        <Link to="/login" className="login-btn">
-          Login
-        </Link>
+          <Link to="/">Beranda</Link>
+          <Link to="/profil">Profil</Link>
+          <Link to="/kegiatan">Kegiatan</Link>
+          <Link to="/pengumuman">Pengumuman</Link>
+          <Link to="/galeri">Galeri</Link>
+        </div>
+
+        <div className="footer-contact">
+          <h3>Kontak</h3>
+
+          <p>Jl. Pendidikan No. 01</p>
+          <p>0812-0000-0000</p>
+          <p>sekolah@example.com</p>
+        </div>
       </div>
-    </header>
+
+      <div className="container footer-bottom">
+        © 2025 Cipta Nusa Bakti. All rights reserved.
+      </div>
+    </footer>
   );
 }
 
-export default Navbar;
+export default Footer;

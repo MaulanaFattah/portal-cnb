@@ -18,7 +18,6 @@ import LoginOrangTua from "./pages/LoginOrangTua";
 import LupaPassword from "./pages/LupaPassword";
 import AdminKegiatan from "./pages/AdminKegiatan";
 
-
 function App() {
   return (
     <BrowserRouter>
