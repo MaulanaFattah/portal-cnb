@@ -1781,3 +1781,521 @@ main {
 .empty-text {
   color: #64748b;
 }
+/* ============================================================
+   AUDIT FIX: Form controls, focus states & responsiveness
+   ============================================================ */
+
+/* Box-sizing konsisten untuk semua kontrol form */
+input,
+select,
+textarea,
+button {
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 15px;
+}
+
+/* Select di form publik (.form-group) */
+.form-group select,
+.admin-kegiatan-card select {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 12px 40px 12px 14px;
+  background-color: #ffffff;
+  color: #0f172a;
+  cursor: pointer;
+  outline: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+
+.admin-kegiatan-card select {
+  border-radius: 18px;
+  padding: 14px 44px 14px 18px;
+  min-height: 48px;
+}
+
+/* Focus states (aksesibilitas: ring jelas, kontras cukup) */
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus,
+.admin-kegiatan-card input:focus,
+.admin-kegiatan-card select:focus,
+.admin-kegiatan-card textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+}
+
+/* Hover halus pada kontrol */
+.form-group select:hover,
+.admin-kegiatan-card select:hover {
+  border-color: #94a3b8;
+}
+
+/* Opsi dropdown agar tidak menempel */
+.form-group select option,
+.admin-kegiatan-card select option {
+  padding: 8px;
+  color: #0f172a;
+  background: #ffffff;
+}
+
+/* Tombol: target sentuh minimum & cursor */
+button,
+.btn,
+.save-btn,
+.cancel-btn,
+.submit-btn {
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.admin-action button {
+  min-width: 40px;
+  min-height: 40px;
+}
+
+/* Cegah gambar meluap di layar kecil */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ============================================================
+   AUDIT FIX: Responsiveness tablet & mobile
+   ============================================================ */
+
+@media (max-width: 900px) {
+  .admin-kegiatan-card {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .dashboard-layout {
+    padding: 12px;
+    gap: 16px;
+  }
+
+  .dashboard-content,
+  .admin-sidebar-card {
+    padding: 18px;
+    border-radius: 18px;
+  }
+
+  .dashboard-header h1 {
+    font-size: 24px;
+  }
+
+  .dashboard-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .dashboard-actions .btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .button-row {
+    flex-direction: column;
+  }
+
+  .button-row button {
+    width: 100%;
+  }
+
+  .activity-admin-item {
+    flex-wrap: wrap;
+  }
+}
+
+/* Sidebar admin: scroll horizontal di layar sempit agar menu tetap kebaca */
+@media (max-width: 1100px) {
+  .admin-menu {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .admin-menu a {
+    flex: 1 1 auto;
+    text-align: center;
+    white-space: nowrap;
+  }
+}
+
+/* ============================================================
+   AUDIT FIX 2: Halaman publik - fluid typography & responsive
+   ============================================================ */
+
+/* Cegah horizontal scroll global */
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+/* Fluid typography untuk heading besar (skala mulus tanpa overflow) */
+.hero-content h1 {
+  font-size: clamp(32px, 6vw, 60px);
+}
+
+.page-hero h1,
+.page-title h1 {
+  font-size: clamp(28px, 5vw, 48px);
+}
+
+.section h2 {
+  font-size: clamp(24px, 4vw, 40px);
+}
+
+.hero-content p,
+.page-hero p,
+.page-title p {
+  font-size: clamp(15px, 2vw, 18px);
+}
+
+/* Tablet: grid konten publik jadi 2 kolom */
+@media (max-width: 1000px) {
+  .activity-grid,
+  .gallery-page-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Mobile: semua grid konten publik jadi 1 kolom */
+@media (max-width: 640px) {
+  .container {
+    width: min(1180px, calc(100% - 24px));
+  }
+
+  .activity-grid,
+  .gallery-page-grid,
+  .cards,
+  .login-grid,
+  .ppdb-grid,
+  .contact-grid,
+  .announcement-list {
+    grid-template-columns: 1fr;
+  }
+
+  .hero,
+  .page-section,
+  .section {
+    padding-top: 32px;
+    padding-bottom: 32px;
+  }
+
+  .hero-buttons,
+  .hero-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .hero-buttons a,
+  .hero-actions .btn,
+  .primary-btn,
+  .secondary-btn {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .info-card,
+  .contact-card,
+  .ppdb-card,
+  .announcement-card {
+    padding: 18px;
+  }
+}
+
+/* HP kecil: rapatkan menu header agar tidak terpotong */
+@media (max-width: 480px) {
+  .menu a {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .brand h1 {
+    font-size: 17px;
+  }
+
+  .brand-logo {
+    width: 46px;
+    height: 46px;
+  }
+}
+
+/* Konsistensi: gambar kartu tidak gepeng & punya rasio stabil */
+.activity-card img,
+.gallery-photo img {
+  width: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Link fokus terlihat (aksesibilitas keyboard) */
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   AUDIT FIX 3: Halaman Admin Login
+   ============================================================ */
+
+.admin-login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #f1f5f9;
+}
+
+.admin-login-card {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 24px;
+  padding: 40px;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+}
+
+.admin-login-logo {
+  display: block;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 20px;
+  object-fit: contain;
+}
+
+.admin-login-card h1 {
+  font-size: 28px;
+  font-weight: 900;
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.admin-login-card > p {
+  text-align: center;
+  color: #64748b;
+  margin-bottom: 26px;
+}
+
+.admin-login-card .form-group {
+  margin-bottom: 18px;
+}
+
+.admin-login-card .form-group input {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 13px 16px;
+}
+
+/* Fix tombol Login: sebelumnya mengkerut jadi bulat kecil
+   karena .submit-btn global pakai grid-column + radius 999px */
+.admin-login-card .submit-btn {
+  width: 100%;
+  grid-column: auto;
+  border-radius: 12px;
+  margin-top: 6px;
+  font-size: 16px;
+  transition: background 0.2s ease;
+}
+
+.admin-login-card .submit-btn:hover {
+  background: #0f172a;
+}
+
+@media (max-width: 480px) {
+  .admin-login-card {
+    padding: 28px 20px;
+    border-radius: 18px;
+  }
+}
+
+/* ============================================================
+   AUDIT FIX 4: Form alert & Verifikasi PPDB
+   ============================================================ */
+
+.form-alert {
+  grid-column: 1 / -1;
+  border-radius: 12px;
+  padding: 14px 18px;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+
+.form-alert.success {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.form-alert.error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+/* Filter status */
+.ppdb-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.ppdb-filter button {
+  border: 1px solid #dbe2ea;
+  background: #ffffff;
+  color: #475569;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ppdb-filter button:hover {
+  border-color: #94a3b8;
+}
+
+.ppdb-filter button.active {
+  background: #07142f;
+  color: #ffffff;
+  border-color: #07142f;
+}
+
+/* List verifikasi */
+.ppdb-verify-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ppdb-verify-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 18px 20px;
+  background: #ffffff;
+}
+
+.ppdb-verify-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  cursor: pointer;
+}
+
+.ppdb-verify-head h4 {
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.ppdb-verify-head p {
+  color: #64748b;
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+/* Status badge */
+.status-badge {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.status-badge.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge.diterima {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-badge.ditolak {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Detail grid */
+.ppdb-verify-detail {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin: 18px 0;
+  padding: 18px;
+  background: #f8fafc;
+  border-radius: 14px;
+}
+
+.ppdb-verify-detail > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ppdb-verify-detail strong {
+  font-size: 12px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.ppdb-verify-detail span {
+  color: #0f172a;
+  font-size: 14px;
+}
+
+/* Action buttons */
+.ppdb-verify-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.ppdb-verify-actions button {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.ppdb-verify-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.verify-accept { background: #16a34a; color: #fff; }
+.verify-reject { background: #dc2626; color: #fff; }
+.verify-pending { background: #e2e8f0; color: #334155; }
+.verify-delete { background: #fff; color: #dc2626; border: 1px solid #fca5a5 !important; }
+
+@media (max-width: 600px) {
+  .ppdb-verify-detail {
+    grid-template-columns: 1fr;
+  }
+
+  .ppdb-verify-actions button {
+    flex: 1 1 auto;
+  }
+}

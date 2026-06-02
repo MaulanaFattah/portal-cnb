@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+﻿import { Link } from "react-router-dom";
 
 function Footer() {
   return (
@@ -6,7 +6,7 @@ function Footer() {
       <div className="container footer-simple">
 
         <div className="footer-logo-box">
-          <img src="/logo.png" alt="Logo Sekolah" />
+          <img src="/logo.svg" alt="Logo Sekolah" />
         </div>
 
         <div className="footer-menu">
@@ -29,7 +29,7 @@ function Footer() {
       </div>
 
       <div className="container footer-bottom">
-        © 2025 Cipta Nusa Bakti. All rights reserved.
+        Â© 2025 Cipta Nusa Bakti. All rights reserved.
       </div>
     </footer>
   );

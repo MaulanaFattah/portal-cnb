@@ -1,7 +1,34 @@
+﻿import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { getPengumuman } from "../services/api";
+
+function formatTanggal(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (isNaN(date)) return value;
+  return date.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  });
+}
 
 function Pengumuman() {
+  const [pengumuman, setPengumuman] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const result = await getPengumuman();
+        if (result.success) setPengumuman(result.data || []);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
   return (
     <>
       <Navbar />
@@ -15,44 +42,27 @@ function Pengumuman() {
 
         <section className="container">
           <div className="announcement-list">
-            <article className="announcement-card">
-              <div>
-                <span className="announcement-label">Pengumuman</span>
-                <h3>PPDB Tahun Ajaran Baru Dibuka</h3>
-                <p>
-                  Pendaftaran peserta didik baru telah dibuka secara online
-                  melalui portal sekolah.
-                </p>
-              </div>
+            {loading ? (
+              <p className="empty-text">Memuat pengumuman...</p>
+            ) : pengumuman.length === 0 ? (
+              <p className="empty-text">Belum ada pengumuman.</p>
+            ) : (
+              pengumuman.map((item) => (
+                <article className="announcement-card" key={item.id}>
+                  <div>
+                    <span className="announcement-label">
+                      {item.category || "Pengumuman"}
+                    </span>
+                    <h3>{item.title}</h3>
+                    <p>{item.content}</p>
+                  </div>
 
-              <span className="announcement-date">24 Mei 2026</span>
-            </article>
-
-            <article className="announcement-card">
-              <div>
-                <span className="announcement-label">Pengumuman</span>
-                <h3>Jadwal Ujian Semester</h3>
-                <p>
-                  Jadwal ujian semester akan diumumkan melalui portal sekolah
-                  dan wali kelas masing-masing.
-                </p>
-              </div>
-
-              <span className="announcement-date">20 Mei 2026</span>
-            </article>
-
-            <article className="announcement-card">
-              <div>
-                <span className="announcement-label">Pengumuman</span>
-                <h3>Rapat Orang Tua Siswa</h3>
-                <p>
-                  Rapat orang tua siswa akan dilaksanakan untuk membahas
-                  perkembangan akademik peserta didik.
-                </p>
-              </div>
-
-              <span className="announcement-date">15 Mei 2026</span>
-            </article>
+                  <span className="announcement-date">
+                    {formatTanggal(item.date)}
+                  </span>
+                </article>
+              ))
+            )}
           </div>
         </section>
       </main>

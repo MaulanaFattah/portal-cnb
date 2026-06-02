@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+﻿import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Home from "./pages/Home";
 import Profil from "./pages/Profil";
@@ -17,6 +17,15 @@ import LoginSiswa from "./pages/LoginSiswa";
 import LoginOrangTua from "./pages/LoginOrangTua";
 import LupaPassword from "./pages/LupaPassword";
 import AdminKegiatan from "./pages/AdminKegiatan";
+import AdminPengumuman from "./pages/AdminPengumuman";
+import AdminGaleri from "./pages/AdminGaleri";
+import AdminPPDB from "./pages/AdminPPDB";
+import AdminGuru from "./pages/AdminGuru";
+import AdminKepalaSekolah from "./pages/AdminKepalaSekolah";
+import AdminKelas from "./pages/AdminKelas";
+import AdminSiswa from "./pages/AdminSiswa";
+import AdminAkunSiswa from "./pages/AdminAkunSiswa";
+import AdminProfilSekolah from "./pages/AdminProfilSekolah";
 
 function App() {
   return (
@@ -39,6 +48,15 @@ function App() {
         <Route path="/login-orangtua" element={<LoginOrangTua />} />
         <Route path="/lupa-password" element={<LupaPassword />} />
         <Route path="/admin/kegiatan" element={<AdminKegiatan />} />
+        <Route path="/admin/pengumuman" element={<AdminPengumuman />} />
+        <Route path="/admin/galeri" element={<AdminGaleri />} />
+        <Route path="/admin/ppdb" element={<AdminPPDB />} />
+        <Route path="/admin/guru" element={<AdminGuru />} />
+        <Route path="/admin/kepala-sekolah" element={<AdminKepalaSekolah />} />
+        <Route path="/admin/kelas" element={<AdminKelas />} />
+        <Route path="/admin/siswa" element={<AdminSiswa />} />
+        <Route path="/admin/akun-siswa" element={<AdminAkunSiswa />} />
+        <Route path="/admin/profil-sekolah" element={<AdminProfilSekolah />} />
       </Routes>
     </BrowserRouter>
   );

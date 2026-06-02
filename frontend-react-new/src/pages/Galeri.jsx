@@ -1,30 +1,23 @@
+﻿import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-
-const galeriData = [
-  {
-    image: "/images/galeri1.jpg",
-    title: "Dokumentasi Sekolah",
-    desc: "Kumpulan foto kegiatan, pembelajaran, dan lingkungan sekolah."
-  },
-  {
-    image: "/images/galeri2.jpg",
-    title: "Kunjungan Edukasi",
-    desc: "Dokumentasi kunjungan edukasi untuk memperluas wawasan siswa."
-  },
-  {
-    image: "/images/galeri3.jpg",
-    title: "Upacara Sekolah",
-    desc: "Dokumentasi kegiatan upacara dan agenda sekolah."
-  },
-  {
-    image: "/images/galeri4.jpg",
-    title: "Peringatan Maulid Nabi",
-    desc: "Dokumentasi peringatan Maulid Nabi Muhammad SAW."
-  }
-];
+import { getGaleri } from "../services/api";
 
 function Galeri() {
+  const [galeri, setGaleri] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const result = await getGaleri();
+        if (result.success) setGaleri(result.data || []);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
   return (
     <>
       <Navbar />
@@ -38,18 +31,24 @@ function Galeri() {
 
         <section className="container">
           <div className="gallery-page-grid">
-            {galeriData.map((item, index) => (
-              <article className="gallery-card" key={index}>
-                <div className="gallery-photo">
-                  <img src={item.image} alt={item.title} />
-                </div>
+            {loading ? (
+              <p className="empty-text">Memuat galeri...</p>
+            ) : galeri.length === 0 ? (
+              <p className="empty-text">Belum ada galeri.</p>
+            ) : (
+              galeri.map((item) => (
+                <article className="gallery-card" key={item.id}>
+                  <div className="gallery-photo">
+                    <img src={item.image || "/logo.svg"} alt={item.title} />
+                  </div>
 
-                <div className="gallery-info">
-                  <h3>{item.title}</h3>
-                  <p>{item.desc}</p>
-                </div>
-              </article>
-            ))}
+                  <div className="gallery-info">
+                    <h3>{item.title}</h3>
+                    <p>{item.description}</p>
+                  </div>
+                </article>
+              ))
+            )}
           </div>
         </section>
       </main>

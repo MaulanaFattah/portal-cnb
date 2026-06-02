@@ -1,0 +1,8 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" fill="none">
+  <rect width="120" height="120" rx="28" fill="#07142f"/>
+  <path d="M60 24L92 38v22c0 19-13.5 31.5-32 37-18.5-5.5-32-18-32-37V38L60 24z" fill="#1d4ed8" opacity="0.18"/>
+  <path d="M60 30L86 41v19c0 16-11 26.5-26 31-15-4.5-26-15-26-31V41L60 30z" stroke="#60a5fa" stroke-width="2.5" fill="none"/>
+  <path d="M40 54h18v4H40zM40 62h18v4H40zM40 70h13v4H40z" fill="#ffffff"/>
+  <path d="M64 50h16v26l-8-5-8 5V50z" fill="#facc15"/>
+  <text x="60" y="100" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="800" fill="#ffffff" letter-spacing="2">CNB</text>
+</svg>

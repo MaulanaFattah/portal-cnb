@@ -1,8 +1,38 @@
+﻿import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { getKegiatan, getPengumuman, getGaleri } from "../services/api";
+
+function formatTanggal(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (isNaN(date)) return value;
+  return date.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  });
+}
 
 function Home() {
+  const [kegiatan, setKegiatan] = useState([]);
+  const [pengumuman, setPengumuman] = useState([]);
+  const [galeri, setGaleri] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      const [k, p, g] = await Promise.all([
+        getKegiatan(),
+        getPengumuman(),
+        getGaleri()
+      ]);
+      if (k.success) setKegiatan((k.data || []).slice(0, 3));
+      if (p.success) setPengumuman((p.data || []).slice(0, 3));
+      if (g.success) setGaleri((g.data || []).slice(0, 2));
+    })();
+  }, []);
+
   return (
     <>
       <Navbar />
@@ -24,18 +54,13 @@ function Home() {
             </p>
 
             <div className="hero-actions">
-              <Link to="/ppdb" className="btn primary">
-                Daftar PPDB
-              </Link>
-
-              <Link to="/profil" className="btn secondary">
-                Profil Sekolah
-              </Link>
+              <Link to="/ppdb" className="btn primary">Daftar PPDB</Link>
+              <Link to="/profil" className="btn secondary">Profil Sekolah</Link>
             </div>
           </div>
 
           <div className="hero-image">
-            <img src="/logo.png" alt="Logo Sekolah" />
+            <img src="/logo.svg" alt="Logo Sekolah" />
           </div>
         </section>
 
@@ -61,32 +86,20 @@ function Home() {
           </div>
 
           <div className="activity-grid">
-            <div className="activity-card">
-              <img src="/logo.png" alt="Kegiatan Sekolah" />
-              <div className="activity-content">
-                <span className="activity-date">20 Juli 2025</span>
-                <h3>Upacara Sekolah</h3>
-                <p>Kegiatan rutin untuk meningkatkan disiplin siswa.</p>
-              </div>
-            </div>
-
-            <div className="activity-card">
-              <img src="/logo.png" alt="Kegiatan Sekolah" />
-              <div className="activity-content">
-                <span className="activity-date">18 Juli 2025</span>
-                <h3>Lomba Siswa</h3>
-                <p>Kompetisi antar siswa dalam bidang akademik dan kreativitas.</p>
-              </div>
-            </div>
-
-            <div className="activity-card">
-              <img src="/logo.png" alt="Kegiatan Sekolah" />
-              <div className="activity-content">
-                <span className="activity-date">15 Juli 2025</span>
-                <h3>Kegiatan Pramuka</h3>
-                <p>Pelatihan karakter, kerja sama, dan kemandirian siswa.</p>
-              </div>
-            </div>
+            {kegiatan.length === 0 ? (
+              <p className="empty-text">Belum ada kegiatan.</p>
+            ) : (
+              kegiatan.map((item) => (
+                <div className="activity-card" key={item.id}>
+                  <img src={item.image || "/logo.svg"} alt={item.title} />
+                  <div className="activity-content">
+                    <span className="activity-date">{formatTanggal(item.date)}</span>
+                    <h3>{item.title}</h3>
+                    <p>{item.description}</p>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </section>
 
@@ -97,23 +110,17 @@ function Home() {
           </div>
 
           <div className="cards">
-            <div className="card">
-              <small>12 Juli 2025</small>
-              <h3>PPDB Dibuka</h3>
-              <p>Pendaftaran peserta didik baru telah dibuka secara online.</p>
-            </div>
-
-            <div className="card">
-              <small>10 Juli 2025</small>
-              <h3>Jadwal MPLS</h3>
-              <p>Jadwal kegiatan MPLS dapat dilihat melalui portal sekolah.</p>
-            </div>
-
-            <div className="card">
-              <small>08 Juli 2025</small>
-              <h3>Rapat Orang Tua</h3>
-              <p>Rapat wali murid akan dilaksanakan minggu depan.</p>
-            </div>
+            {pengumuman.length === 0 ? (
+              <p className="empty-text">Belum ada pengumuman.</p>
+            ) : (
+              pengumuman.map((item) => (
+                <div className="card" key={item.id}>
+                  <small>{formatTanggal(item.date)}</small>
+                  <h3>{item.title}</h3>
+                  <p>{item.content}</p>
+                </div>
+              ))
+            )}
           </div>
         </section>
 
@@ -124,25 +131,21 @@ function Home() {
           </div>
 
           <div className="gallery-page-grid">
-            <div className="gallery-card">
-              <div className="gallery-photo">
-                <img src="/logo.png" alt="Galeri Sekolah" />
-              </div>
-              <div className="gallery-info">
-                <h3>Kegiatan Belajar</h3>
-                <p>Dokumentasi kegiatan belajar siswa di sekolah.</p>
-              </div>
-            </div>
-
-            <div className="gallery-card">
-              <div className="gallery-photo">
-                <img src="/logo.png" alt="Galeri Sekolah" />
-              </div>
-              <div className="gallery-info">
-                <h3>Acara Sekolah</h3>
-                <p>Momen kebersamaan siswa, guru, dan orang tua.</p>
-              </div>
-            </div>
+            {galeri.length === 0 ? (
+              <p className="empty-text">Belum ada galeri.</p>
+            ) : (
+              galeri.map((item) => (
+                <div className="gallery-card" key={item.id}>
+                  <div className="gallery-photo">
+                    <img src={item.image || "/logo.svg"} alt={item.title} />
+                  </div>
+                  <div className="gallery-info">
+                    <h3>{item.title}</h3>
+                    <p>{item.description}</p>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </section>
 

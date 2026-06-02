@@ -1,33 +1,34 @@
 ﻿import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  getKegiatan,
-  createKegiatan,
-  updateKegiatan,
-  deleteKegiatan,
+  getPengumuman,
+  createPengumuman,
+  updatePengumuman,
+  deletePengumuman,
   logout
 } from "../services/api";
 
-function AdminKegiatan() {
+function AdminPengumuman() {
   const navigate = useNavigate();
-  const [kegiatan, setKegiatan] = useState([]);
+  const [pengumuman, setPengumuman] = useState([]);
   const [editId, setEditId] = useState(null);
 
   const [formData, setFormData] = useState({
     title: "",
     date: "",
-    description: "",
+    content: "",
+    category: "",
     image: ""
   });
 
-  const loadKegiatan = async () => {
-    const result = await getKegiatan();
-    if (result.success) setKegiatan(result.data);
+  const loadPengumuman = async () => {
+    const result = await getPengumuman();
+    if (result.success) setPengumuman(result.data);
   };
 
   useEffect(() => {
     (async () => {
-      await loadKegiatan();
+      await loadPengumuman();
     })();
   }, []);
 
@@ -48,15 +49,15 @@ function AdminKegiatan() {
 
   const resetForm = () => {
     setEditId(null);
-    setFormData({ title: "", date: "", description: "", image: "" });
+    setFormData({ title: "", date: "", content: "", category: "", image: "" });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const result = editId
-      ? await updateKegiatan(editId, formData)
-      : await createKegiatan(formData);
+      ? await updatePengumuman(editId, formData)
+      : await createPengumuman(formData);
 
     if (!result.success) {
       alert(result.message);
@@ -65,7 +66,7 @@ function AdminKegiatan() {
 
     alert(result.message);
     resetForm();
-    loadKegiatan();
+    loadPengumuman();
   };
 
   const handleEdit = (item) => {
@@ -73,16 +74,17 @@ function AdminKegiatan() {
     setFormData({
       title: item.title,
       date: item.date,
-      description: item.description,
+      content: item.content,
+      category: item.category || "",
       image: item.image || ""
     });
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Yakin ingin menghapus kegiatan ini?")) return;
-    const result = await deleteKegiatan(id);
+    if (!confirm("Yakin ingin menghapus pengumuman ini?")) return;
+    const result = await deletePengumuman(id);
     alert(result.message);
-    loadKegiatan();
+    loadPengumuman();
   };
 
   const handleLogout = () => {
@@ -98,8 +100,8 @@ function AdminKegiatan() {
 
         <nav className="admin-menu">
           <Link to="/dashboard-admin">Dashboard</Link>
-          <Link className="active" to="/admin/kegiatan">Kegiatan</Link>
-          <Link to="/admin/pengumuman">Pengumuman</Link>
+          <Link to="/admin/kegiatan">Kegiatan</Link>
+          <Link className="active" to="/admin/pengumuman">Pengumuman</Link>
           <Link to="/admin/galeri">Galeri</Link>
           <Link to="/admin/ppdb">PPDB</Link>
           <Link to="/admin/guru">Guru</Link>
@@ -114,8 +116,8 @@ function AdminKegiatan() {
       <main className="dashboard-content">
         <div className="dashboard-header">
           <div>
-            <h1>Kegiatan</h1>
-            <p>Kelola data kegiatan sekolah.</p>
+            <h1>Pengumuman</h1>
+            <p>Kelola data pengumuman sekolah.</p>
           </div>
 
           <div className="dashboard-actions">
@@ -126,7 +128,7 @@ function AdminKegiatan() {
 
         <section className="admin-kegiatan-card">
           <div className="kegiatan-form-area">
-            <h2>{editId ? "Edit Kegiatan" : "Tambah Kegiatan"}</h2>
+            <h2>{editId ? "Edit Pengumuman" : "Tambah Pengumuman"}</h2>
 
             <form onSubmit={handleSubmit}>
               <div className="form-group">
@@ -134,7 +136,7 @@ function AdminKegiatan() {
                 <input
                   type="text"
                   name="title"
-                  placeholder="Masukkan judul kegiatan"
+                  placeholder="Masukkan judul pengumuman"
                   value={formData.title}
                   onChange={handleChange}
                   required
@@ -153,24 +155,36 @@ function AdminKegiatan() {
               </div>
 
               <div className="form-group">
-                <label>Deskripsi</label>
-                <textarea
-                  name="description"
-                  placeholder="Masukkan deskripsi kegiatan"
-                  value={formData.description}
+                <label>Kategori</label>
+                <input
+                  type="text"
+                  name="category"
+                  placeholder="Masukkan kategori (opsional)"
+                  value={formData.category}
                   onChange={handleChange}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Konten</label>
+                <textarea
+                  name="content"
+                  placeholder="Masukkan konten pengumuman"
+                  value={formData.content}
+                  onChange={handleChange}
+                  rows="5"
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label>Foto Kegiatan</label>
+                <label>Gambar (opsional)</label>
                 <label className="upload-box">
                   {formData.image ? (
                     <img src={formData.image} alt="Preview" />
                   ) : (
                     <div>
-                      <strong>Upload Foto</strong>
+                      <strong>Upload Gambar</strong>
                       <span>JPG / PNG</span>
                     </div>
                   )}
@@ -192,19 +206,19 @@ function AdminKegiatan() {
           </div>
 
           <div className="kegiatan-list-area">
-            <h2>Daftar Kegiatan</h2>
+            <h2>Daftar Pengumuman</h2>
 
             <div className="activity-admin-list">
-              {kegiatan.length === 0 ? (
-                <p className="empty-text">Belum ada kegiatan.</p>
+              {pengumuman.length === 0 ? (
+                <p className="empty-text">Belum ada pengumuman.</p>
               ) : (
-                kegiatan.map((item, index) => (
+                pengumuman.map((item, index) => (
                   <div className="activity-admin-item" key={item.id}>
                     <span>{index + 1}</span>
                     <img src={item.image || "/logo.svg"} alt={item.title} />
                     <div>
                       <h4>{item.title}</h4>
-                      <p>{item.date}</p>
+                      <p>{item.date} {item.category && `• ${item.category}`}</p>
                     </div>
                     <div className="admin-action">
                       <button onClick={() => handleEdit(item)}>✎</button>
@@ -221,4 +235,4 @@ function AdminKegiatan() {
   );
 }
 
-export default AdminKegiatan;
+export default AdminPengumuman;

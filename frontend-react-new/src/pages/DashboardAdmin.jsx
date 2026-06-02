@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getAdminDashboard, logout } from "../services/api";
 
@@ -43,15 +43,15 @@ function DashboardAdmin() {
                 <nav className="admin-menu">
                     <Link className="active" to="/dashboard-admin">Dashboard</Link>
                     <Link to="/admin/kegiatan">Kegiatan</Link>
-                    <Link to="#">Pengumuman</Link>
-                    <Link to="#">Galeri</Link>
-                    <Link to="#">PPDB</Link>
-                    <Link to="#">Guru</Link>
-                    <Link to="#">Kepala Sekolah</Link>
-                    <Link to="#">Kelas</Link>
-                    <Link to="#">Siswa</Link>
-                    <Link to="#">Akun Siswa</Link>
-                    <Link to="#">Profil Sekolah</Link>
+                    <Link to="/admin/pengumuman">Pengumuman</Link>
+                    <Link to="/admin/galeri">Galeri</Link>
+                    <Link to="/admin/ppdb">PPDB</Link>
+                    <Link to="/admin/guru">Guru</Link>
+                    <Link to="/admin/kepala-sekolah">Kepala Sekolah</Link>
+                    <Link to="/admin/kelas">Kelas</Link>
+                    <Link to="/admin/siswa">Siswa</Link>
+                    <Link to="/admin/akun-siswa">Akun Siswa</Link>
+                    <Link to="/admin/profil-sekolah">Profil Sekolah</Link>
                 </nav>
             </aside>
 

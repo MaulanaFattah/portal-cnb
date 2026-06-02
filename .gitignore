@@ -1,0 +1,30 @@
+﻿# Dependencies
+node_modules/
+*/node_modules/
+
+# Environment variables (SECRET - jangan commit)
+.env
+*/.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+build/
+*/dist/
+*/build/
+
+# Logs
+*.log
+npm-debug.log*
+logs/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Misc
+*.tmp
+coverage/

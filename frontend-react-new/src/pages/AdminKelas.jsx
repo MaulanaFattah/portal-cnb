@@ -1,33 +1,35 @@
 ﻿import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  getKegiatan,
-  createKegiatan,
-  updateKegiatan,
-  deleteKegiatan,
+  getKelas,
+  createKelas,
+  updateKelas,
+  deleteKelas,
   logout
 } from "../services/api";
 
-function AdminKegiatan() {
+function AdminKelas() {
   const navigate = useNavigate();
-  const [kegiatan, setKegiatan] = useState([]);
+  const [kelas, setKelas] = useState([]);
   const [editId, setEditId] = useState(null);
 
   const [formData, setFormData] = useState({
-    title: "",
-    date: "",
-    description: "",
-    image: ""
+    nama_kelas: "",
+    tingkat: "",
+    wali_kelas: "",
+    tahun_ajaran: "",
+    jumlah_siswa: 0,
+    ruangan: ""
   });
 
-  const loadKegiatan = async () => {
-    const result = await getKegiatan();
-    if (result.success) setKegiatan(result.data);
+  const loadKelas = async () => {
+    const result = await getKelas();
+    if (result.success) setKelas(result.data);
   };
 
   useEffect(() => {
     (async () => {
-      await loadKegiatan();
+      await loadKelas();
     })();
   }, []);
 
@@ -35,28 +37,24 @@ function AdminKegiatan() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleImage = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData({ ...formData, image: reader.result });
-    };
-    reader.readAsDataURL(file);
-  };
-
   const resetForm = () => {
     setEditId(null);
-    setFormData({ title: "", date: "", description: "", image: "" });
+    setFormData({
+      nama_kelas: "",
+      tingkat: "",
+      wali_kelas: "",
+      tahun_ajaran: "",
+      jumlah_siswa: 0,
+      ruangan: ""
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const result = editId
-      ? await updateKegiatan(editId, formData)
-      : await createKegiatan(formData);
+      ? await updateKelas(editId, formData)
+      : await createKelas(formData);
 
     if (!result.success) {
       alert(result.message);
@@ -65,24 +63,19 @@ function AdminKegiatan() {
 
     alert(result.message);
     resetForm();
-    loadKegiatan();
+    loadKelas();
   };
 
   const handleEdit = (item) => {
     setEditId(item.id);
-    setFormData({
-      title: item.title,
-      date: item.date,
-      description: item.description,
-      image: item.image || ""
-    });
+    setFormData({ ...item });
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Yakin ingin menghapus kegiatan ini?")) return;
-    const result = await deleteKegiatan(id);
+    if (!confirm("Yakin ingin menghapus data kelas ini?")) return;
+    const result = await deleteKelas(id);
     alert(result.message);
-    loadKegiatan();
+    loadKelas();
   };
 
   const handleLogout = () => {
@@ -98,13 +91,13 @@ function AdminKegiatan() {
 
         <nav className="admin-menu">
           <Link to="/dashboard-admin">Dashboard</Link>
-          <Link className="active" to="/admin/kegiatan">Kegiatan</Link>
+          <Link to="/admin/kegiatan">Kegiatan</Link>
           <Link to="/admin/pengumuman">Pengumuman</Link>
           <Link to="/admin/galeri">Galeri</Link>
           <Link to="/admin/ppdb">PPDB</Link>
           <Link to="/admin/guru">Guru</Link>
           <Link to="/admin/kepala-sekolah">Kepala Sekolah</Link>
-          <Link to="/admin/kelas">Kelas</Link>
+          <Link className="active" to="/admin/kelas">Kelas</Link>
           <Link to="/admin/siswa">Siswa</Link>
           <Link to="/admin/akun-siswa">Akun Siswa</Link>
           <Link to="/admin/profil-sekolah">Profil Sekolah</Link>
@@ -114,8 +107,8 @@ function AdminKegiatan() {
       <main className="dashboard-content">
         <div className="dashboard-header">
           <div>
-            <h1>Kegiatan</h1>
-            <p>Kelola data kegiatan sekolah.</p>
+            <h1>Kelas</h1>
+            <p>Kelola data kelas.</p>
           </div>
 
           <div className="dashboard-actions">
@@ -126,56 +119,75 @@ function AdminKegiatan() {
 
         <section className="admin-kegiatan-card">
           <div className="kegiatan-form-area">
-            <h2>{editId ? "Edit Kegiatan" : "Tambah Kegiatan"}</h2>
+            <h2>{editId ? "Edit Data Kelas" : "Tambah Data Kelas"}</h2>
 
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label>Judul</label>
+                <label>Nama Kelas</label>
                 <input
                   type="text"
-                  name="title"
-                  placeholder="Masukkan judul kegiatan"
-                  value={formData.title}
+                  name="nama_kelas"
+                  placeholder="Contoh: X IPA 1"
+                  value={formData.nama_kelas}
                   onChange={handleChange}
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label>Tanggal</label>
+                <label>Tingkat</label>
                 <input
-                  type="date"
-                  name="date"
-                  value={formData.date}
+                  type="text"
+                  name="tingkat"
+                  placeholder="Contoh: 10"
+                  value={formData.tingkat}
                   onChange={handleChange}
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label>Deskripsi</label>
-                <textarea
-                  name="description"
-                  placeholder="Masukkan deskripsi kegiatan"
-                  value={formData.description}
+                <label>Wali Kelas</label>
+                <input
+                  type="text"
+                  name="wali_kelas"
+                  placeholder="Nama wali kelas"
+                  value={formData.wali_kelas}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Tahun Ajaran</label>
+                <input
+                  type="text"
+                  name="tahun_ajaran"
+                  placeholder="2024/2025"
+                  value={formData.tahun_ajaran}
                   onChange={handleChange}
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label>Foto Kegiatan</label>
-                <label className="upload-box">
-                  {formData.image ? (
-                    <img src={formData.image} alt="Preview" />
-                  ) : (
-                    <div>
-                      <strong>Upload Foto</strong>
-                      <span>JPG / PNG</span>
-                    </div>
-                  )}
-                  <input type="file" accept="image/*" onChange={handleImage} />
-                </label>
+                <label>Jumlah Siswa</label>
+                <input
+                  type="number"
+                  name="jumlah_siswa"
+                  value={formData.jumlah_siswa}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Ruangan</label>
+                <input
+                  type="text"
+                  name="ruangan"
+                  placeholder="Contoh: R.101"
+                  value={formData.ruangan}
+                  onChange={handleChange}
+                />
               </div>
 
               <div className="button-row">
@@ -192,19 +204,18 @@ function AdminKegiatan() {
           </div>
 
           <div className="kegiatan-list-area">
-            <h2>Daftar Kegiatan</h2>
+            <h2>Daftar Kelas</h2>
 
             <div className="activity-admin-list">
-              {kegiatan.length === 0 ? (
-                <p className="empty-text">Belum ada kegiatan.</p>
+              {kelas.length === 0 ? (
+                <p className="empty-text">Belum ada data kelas.</p>
               ) : (
-                kegiatan.map((item, index) => (
+                kelas.map((item, index) => (
                   <div className="activity-admin-item" key={item.id}>
                     <span>{index + 1}</span>
-                    <img src={item.image || "/logo.svg"} alt={item.title} />
                     <div>
-                      <h4>{item.title}</h4>
-                      <p>{item.date}</p>
+                      <h4>{item.nama_kelas}</h4>
+                      <p>Tingkat {item.tingkat} • {item.tahun_ajaran} • {item.jumlah_siswa} siswa</p>
                     </div>
                     <div className="admin-action">
                       <button onClick={() => handleEdit(item)}>✎</button>
@@ -221,4 +232,4 @@ function AdminKegiatan() {
   );
 }
 
-export default AdminKegiatan;
+export default AdminKelas;
