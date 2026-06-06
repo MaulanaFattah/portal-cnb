@@ -1,0 +1,690 @@
+﻿import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  createGuruStudentAccounts,
+  getGuruDashboard,
+  getRekapAbsensiGuru,
+  logout,
+  submitAbsensiGuru
+} from "../services/api";
+
+const ABSENSI_OPTIONS = [
+  { value: "hadir", label: "Hadir" },
+  { value: "izin", label: "Izin" },
+  { value: "sakit", label: "Sakit" },
+  { value: "alpha", label: "Alpha" }
+];
+
+const MENU_ITEMS = [
+  { id: "dashboard", label: "Dashboard" },
+  { id: "jadwal", label: "Jadwal Mengajar" },
+  { id: "absensi", label: "Absensi Harian" },
+  { id: "rekap", label: "Rekapitulasi Absensi" },
+  { id: "akun", label: "Akun Siswa + Orang Tua" }
+];
+
+const emptySummary = { hadir: 0, izin: 0, sakit: 0, alpha: 0, total: 0 };
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function firstDayOfMonthISO() {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
+}
+
+function formatDate(value) {
+  if (!value) return "-";
+  return new Date(value).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function formatTime(value) {
+  return value ? String(value).slice(0, 5) : "-";
+}
+
+function getStatusLabel(value) {
+  return ABSENSI_OPTIONS.find((item) => item.value === value)?.label || value;
+}
+
+function csvSafe(value) {
+  return `"${String(value || "").replace(/"/g, '""')}"`;
+}
+
+function DashboardGuru() {
+  const navigate = useNavigate();
+  const [activeMenu, setActiveMenu] = useState("dashboard");
+  const [dashboard, setDashboard] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [notice, setNotice] = useState(null);
+  const [tanggal, setTanggal] = useState(todayISO());
+  const [jadwalId, setJadwalId] = useState("");
+  const [entries, setEntries] = useState({});
+  const [savingAbsensi, setSavingAbsensi] = useState(false);
+  const [rekapLoading, setRekapLoading] = useState(false);
+  const [rekap, setRekap] = useState({ summary: emptySummary, rows: [] });
+  const [rekapFilter, setRekapFilter] = useState({
+    kelas_id: "",
+    jadwal_id: "",
+    dari: firstDayOfMonthISO(),
+    sampai: todayISO()
+  });
+  const [accountForm, setAccountForm] = useState({
+    kelas_id: "",
+    siswa_id: "",
+    siswa_email: "",
+    siswa_password: "",
+    orangtua_name: "",
+    orangtua_phone: "",
+    orangtua_email: "",
+    orangtua_password: ""
+  });
+  const [savingAccount, setSavingAccount] = useState(false);
+
+  useEffect(() => {
+    const loadDashboard = async () => {
+      const result = await getGuruDashboard();
+
+      if (!result.success) {
+        alert(result.message || "Gagal membuka dashboard guru");
+        navigate("/login-guru");
+        return;
+      }
+
+      const data = result.data;
+      const firstJadwalId = data.jadwal?.[0]?.id ? String(data.jadwal[0].id) : "";
+      const firstClassId = data.kelasAkses?.[0]?.id || data.guruProfile?.kelas_id || "";
+      const firstStudent = (data.siswa || []).find((siswa) => (
+        firstClassId ? Number(siswa.kelas_id) === Number(firstClassId) : true
+      ));
+
+      setJadwalId(firstJadwalId);
+      setRekapFilter((previous) => ({ ...previous, kelas_id: firstClassId ? String(firstClassId) : "" }));
+      setAccountForm((previous) => ({
+        ...previous,
+        kelas_id: firstClassId ? String(firstClassId) : "",
+        siswa_id: firstStudent?.id ? String(firstStudent.id) : ""
+      }));
+      setDashboard(data);
+      setLoading(false);
+    };
+
+    loadDashboard();
+  }, [navigate]);
+
+  const profile = dashboard?.guruProfile;
+  const isWali = profile?.teacher_type === "wali_kelas";
+  const roleLabel = isWali ? "Guru Wali Kelas" : "Guru Mapel";
+
+  const classOptions = useMemo(() => {
+    if (!dashboard) return [];
+    if (dashboard.kelasAkses?.length) return dashboard.kelasAkses.filter(Boolean);
+    return dashboard.guruProfile?.kelas ? [dashboard.guruProfile.kelas] : [];
+  }, [dashboard]);
+
+  const selectedJadwal = useMemo(() => {
+    if (!dashboard || !jadwalId) return null;
+    return (dashboard.jadwal || []).find((item) => Number(item.id) === Number(jadwalId)) || null;
+  }, [dashboard, jadwalId]);
+
+  const attendanceClassId = isWali ? profile?.kelas_id : selectedJadwal?.kelas_id;
+
+  const siswaList = useMemo(() => {
+    if (!dashboard || !attendanceClassId) return [];
+    return (dashboard.siswa || []).filter((siswa) => Number(siswa.kelas_id) === Number(attendanceClassId));
+  }, [dashboard, attendanceClassId]);
+
+  const accountStudents = useMemo(() => {
+    if (!dashboard) return [];
+    return (dashboard.siswa || []).filter((siswa) => (
+      accountForm.kelas_id ? Number(siswa.kelas_id) === Number(accountForm.kelas_id) : true
+    ));
+  }, [dashboard, accountForm.kelas_id]);
+
+  const selectedAccountStudent = useMemo(() => {
+    return accountStudents.find((siswa) => Number(siswa.id) === Number(accountForm.siswa_id)) || null;
+  }, [accountStudents, accountForm.siswa_id]);
+
+  const attendanceSummary = useMemo(() => {
+    return siswaList.reduce((summary, siswa) => {
+      const status = entries[siswa.id]?.status || "hadir";
+      summary[status] += 1;
+      summary.total += 1;
+      return summary;
+    }, { ...emptySummary });
+  }, [siswaList, entries]);
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login-guru");
+  };
+
+  const handleEntry = (id, field, value) => {
+    setEntries((previous) => ({
+      ...previous,
+      [id]: { ...previous[id], siswa_id: id, [field]: value }
+    }));
+  };
+
+  const handleSubmitAbsensi = async (event) => {
+    event.preventDefault();
+    setSavingAbsensi(true);
+    setNotice(null);
+
+    const result = await submitAbsensiGuru({
+      tanggal,
+      kelas_id: attendanceClassId,
+      jadwal_id: isWali ? null : jadwalId,
+      entries: siswaList.map((siswa) => entries[siswa.id] || { siswa_id: siswa.id, status: "hadir", keterangan: "" })
+    });
+
+    setSavingAbsensi(false);
+    setNotice({ type: result.success ? "success" : "error", text: result.message });
+  };
+
+  const handleRekapFilter = (event) => {
+    const { name, value } = event.target;
+    setRekapFilter((previous) => ({
+      ...previous,
+      [name]: value,
+      ...(name === "kelas_id" ? { jadwal_id: "" } : {})
+    }));
+  };
+
+  const loadRekap = async () => {
+    setRekapLoading(true);
+    setNotice(null);
+
+    const result = await getRekapAbsensiGuru(rekapFilter);
+    setRekapLoading(false);
+
+    if (!result.success) {
+      setNotice({ type: "error", text: result.message });
+      return;
+    }
+
+    setRekap(result.data || { summary: emptySummary, rows: [] });
+  };
+
+  const exportRekap = () => {
+    if (!rekap.rows.length) return;
+
+    const header = ["Tanggal", "Nama Siswa", "Kelas", "Mapel", "Status", "Keterangan"];
+    const rows = rekap.rows.map((row) => [
+      row.tanggal,
+      row.siswa?.nama,
+      row.kelas?.nama_kelas,
+      row.mapel || "Wali Kelas",
+      getStatusLabel(row.status),
+      row.keterangan
+    ]);
+    const csv = [header, ...rows].map((row) => row.map(csvSafe).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `rekap-absensi-${rekapFilter.dari || "awal"}-${rekapFilter.sampai || "akhir"}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleAccountChange = (event) => {
+    const { name, value } = event.target;
+
+    setAccountForm((previous) => {
+      if (name !== "kelas_id") return { ...previous, [name]: value };
+
+      const firstStudent = (dashboard?.siswa || []).find((siswa) => Number(siswa.kelas_id) === Number(value));
+      return {
+        ...previous,
+        kelas_id: value,
+        siswa_id: firstStudent?.id ? String(firstStudent.id) : ""
+      };
+    });
+  };
+
+  const handleCreateAccount = async (event) => {
+    event.preventDefault();
+    setSavingAccount(true);
+    setNotice(null);
+
+    const result = await createGuruStudentAccounts(accountForm);
+    setSavingAccount(false);
+    setNotice({ type: result.success ? "success" : "error", text: result.message });
+
+    if (result.success) {
+      setAccountForm((previous) => ({
+        ...previous,
+        siswa_email: "",
+        siswa_password: "",
+        orangtua_name: "",
+        orangtua_phone: "",
+        orangtua_email: "",
+        orangtua_password: ""
+      }));
+    }
+  };
+
+  const renderSummaryCards = (summary) => (
+    <div className="teacher-stats">
+      {ABSENSI_OPTIONS.map((item) => (
+        <div className={`teacher-stat teacher-stat-${item.value}`} key={item.value}>
+          <span>{item.label}</span>
+          <strong>{summary[item.value] || 0}</strong>
+        </div>
+      ))}
+      <div className="teacher-stat teacher-stat-total">
+        <span>Total</span>
+        <strong>{summary.total || 0}</strong>
+      </div>
+    </div>
+  );
+
+  const renderDashboard = () => {
+    const info = dashboard.informasiSekolah;
+    const announcements = dashboard.pengumumanTerbaru || [];
+
+    return (
+      <section className="teacher-panel">
+        <div className="teacher-panel-header">
+          <span>Dashboard</span>
+          <h1>Informasi Sekolah</h1>
+          <p>Ringkasan sekolah, profil guru, dan pengumuman terbaru untuk aktivitas harian.</p>
+        </div>
+
+        <div className="teacher-grid two-columns">
+          <article className="teacher-card profile-card">
+            <div className="teacher-card-title">
+              <span>Ringkasan Profil</span>
+              <strong>{roleLabel}</strong>
+            </div>
+            <h2>{dashboard.user?.name}</h2>
+            <p>{dashboard.user?.profession || profile?.subject || "Guru"}</p>
+            <div className="teacher-profile-list">
+              <div><span>Kelas Akses</span><strong>{classOptions.map((item) => item.nama_kelas).join(", ") || "Belum diset"}</strong></div>
+              <div><span>Mata Pelajaran</span><strong>{profile?.subject || "Umum"}</strong></div>
+              <div><span>Status</span><strong>Aktif Terverifikasi</strong></div>
+            </div>
+          </article>
+
+          <article className="teacher-card school-card">
+            <div className="teacher-card-title">
+              <span>Informasi Sekolah</span>
+              <strong>{info?.akreditasi ? `Akreditasi ${info.akreditasi}` : "CNB"}</strong>
+            </div>
+            <h2>{info?.nama_sekolah || "Profil sekolah belum diisi"}</h2>
+            <p>{info?.alamat || "Alamat sekolah belum tersedia."}</p>
+            <div className="school-mini-grid">
+              <div><span>Telepon</span><strong>{info?.telepon || "-"}</strong></div>
+              <div><span>Email</span><strong>{info?.email || "-"}</strong></div>
+            </div>
+          </article>
+        </div>
+
+        <div className="teacher-grid two-columns lower-grid">
+          <article className="teacher-card vision-card">
+            <h3>Visi & Misi</h3>
+            <p><strong>Visi:</strong> {info?.visi || "Visi sekolah belum diisi admin."}</p>
+            <p><strong>Misi:</strong> {info?.misi || "Misi sekolah belum diisi admin."}</p>
+          </article>
+
+          <article className="teacher-card announcement-card">
+            <h3>Pengumuman Terbaru</h3>
+            {announcements.length === 0 ? (
+              <p className="teacher-empty">Belum ada pengumuman terbaru.</p>
+            ) : (
+              <div className="teacher-announcement-list">
+                {announcements.map((item) => (
+                  <div className="teacher-announcement" key={item.id}>
+                    <span>{formatDate(item.date)}</span>
+                    <strong>{item.title}</strong>
+                    <p>{item.content}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </article>
+        </div>
+      </section>
+    );
+  };
+
+  const renderJadwal = () => (
+    <section className="teacher-panel">
+      <div className="teacher-panel-header compact">
+        <span>Roster Guru</span>
+        <h1>Jadwal Mengajar</h1>
+        <p>{isWali ? "Wali kelas dapat melakukan absensi harian untuk kelas binaan." : "Guru mapel hanya dapat absensi sesuai roster yang disetujui admin."}</p>
+      </div>
+
+      <div className="teacher-table-wrap">
+        <table className="teacher-table">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Nama Mapel</th>
+              <th>Kelas</th>
+              <th>Hari</th>
+              <th>Jam</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isWali ? (
+              <tr>
+                <td>1</td>
+                <td>Wali Kelas</td>
+                <td>{profile?.kelas?.nama_kelas || "Belum diset"}</td>
+                <td>Senin - Sabtu</td>
+                <td>Absensi harian</td>
+                <td><span className="teacher-badge active">Aktif</span></td>
+              </tr>
+            ) : (dashboard.jadwal || []).length === 0 ? (
+              <tr><td colSpan="6" className="teacher-empty-cell">Belum ada jadwal mengajar dari admin.</td></tr>
+            ) : (dashboard.jadwal || []).map((item, index) => (
+              <tr key={item.id}>
+                <td>{index + 1}</td>
+                <td>{item.mapel}</td>
+                <td>{item.kelas?.nama_kelas || "-"}</td>
+                <td>{item.hari}</td>
+                <td>{formatTime(item.jam_mulai)} - {formatTime(item.jam_selesai)}</td>
+                <td><span className="teacher-badge active">Aktif</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+
+  const renderAbsensi = () => (
+    <section className="teacher-panel">
+      <div className="teacher-panel-header compact">
+        <span>Absensi</span>
+        <h1>Absensi Harian</h1>
+        <p>Pilih tanggal dan kelas/jam mengajar, lalu simpan status hadir, izin, sakit, atau alpha.</p>
+      </div>
+
+      <form onSubmit={handleSubmitAbsensi} className="teacher-form-stack">
+        <div className="teacher-form-grid three-columns">
+          <label className="teacher-field">Tanggal
+            <input type="date" value={tanggal} onChange={(event) => setTanggal(event.target.value)} required />
+          </label>
+
+          {isWali ? (
+            <label className="teacher-field">Kelas
+              <input value={profile?.kelas?.nama_kelas || "Kelas belum diset admin"} readOnly />
+            </label>
+          ) : (
+            <label className="teacher-field">Jam / Roster
+              <select value={jadwalId} onChange={(event) => setJadwalId(event.target.value)} required>
+                {(dashboard.jadwal || []).map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.hari} • {formatTime(item.jam_mulai)}-{formatTime(item.jam_selesai)} • {item.mapel} • {item.kelas?.nama_kelas}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          <button type="button" className="teacher-secondary action-height" onClick={() => setNotice({ type: "success", text: "Sesi absensi siap diisi." })}>
+            Buka Sesi
+          </button>
+        </div>
+
+        {renderSummaryCards(attendanceSummary)}
+
+        <div className="teacher-table-wrap">
+          <table className="teacher-table attendance-table">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Nama Siswa</th>
+                <th>NISN</th>
+                <th>Status</th>
+                <th>Keterangan</th>
+              </tr>
+            </thead>
+            <tbody>
+              {siswaList.length === 0 ? (
+                <tr><td colSpan="5" className="teacher-empty-cell">Belum ada siswa untuk kelas ini.</td></tr>
+              ) : siswaList.map((siswa, index) => (
+                <tr key={siswa.id}>
+                  <td>{index + 1}</td>
+                  <td>{siswa.nama}</td>
+                  <td>{siswa.nisn}</td>
+                  <td>
+                    <select value={entries[siswa.id]?.status || "hadir"} onChange={(event) => handleEntry(siswa.id, "status", event.target.value)}>
+                      {ABSENSI_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                    </select>
+                  </td>
+                  <td>
+                    <input value={entries[siswa.id]?.keterangan || ""} onChange={(event) => handleEntry(siswa.id, "keterangan", event.target.value)} placeholder="Contoh: sakit demam" />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="teacher-actions-row">
+          <button className="teacher-primary" type="submit" disabled={savingAbsensi || siswaList.length === 0 || (!isWali && !jadwalId)}>
+            {savingAbsensi ? "Menyimpan..." : "Simpan Absensi"}
+          </button>
+        </div>
+      </form>
+    </section>
+  );
+
+  const renderRekap = () => (
+    <section className="teacher-panel">
+      <div className="teacher-panel-header compact">
+        <span>Rekapitulasi</span>
+        <h1>Rekapitulasi Absensi</h1>
+        <p>Filter berdasarkan kelas dan rentang tanggal, lalu ekspor hasil rekap ke CSV.</p>
+      </div>
+
+      <div className="teacher-form-grid four-columns">
+        <label className="teacher-field">Kelas
+          <select name="kelas_id" value={rekapFilter.kelas_id} onChange={handleRekapFilter}>
+            <option value="">Semua kelas akses</option>
+            {classOptions.map((kelas) => <option key={kelas.id} value={kelas.id}>{kelas.nama_kelas}</option>)}
+          </select>
+        </label>
+
+        {!isWali && (
+          <label className="teacher-field">Roster
+            <select name="jadwal_id" value={rekapFilter.jadwal_id} onChange={handleRekapFilter}>
+              <option value="">Semua roster</option>
+              {(dashboard.jadwal || []).map((item) => (
+                <option key={item.id} value={item.id}>{item.mapel} • {item.kelas?.nama_kelas} • {item.hari}</option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        <label className="teacher-field">Dari
+          <input type="date" name="dari" value={rekapFilter.dari} onChange={handleRekapFilter} />
+        </label>
+
+        <label className="teacher-field">Sampai
+          <input type="date" name="sampai" value={rekapFilter.sampai} onChange={handleRekapFilter} />
+        </label>
+      </div>
+
+      <div className="teacher-actions-row space-between">
+        <button type="button" className="teacher-primary" onClick={loadRekap} disabled={rekapLoading}>
+          {rekapLoading ? "Memuat..." : "Tampilkan"}
+        </button>
+        <button type="button" className="teacher-secondary" onClick={exportRekap} disabled={!rekap.rows.length}>
+          Export CSV
+        </button>
+      </div>
+
+      {renderSummaryCards(rekap.summary || emptySummary)}
+
+      <div className="teacher-table-wrap">
+        <table className="teacher-table">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Tanggal</th>
+              <th>Nama Siswa</th>
+              <th>Kelas</th>
+              <th>Mapel</th>
+              <th>Status</th>
+              <th>Keterangan</th>
+            </tr>
+          </thead>
+          <tbody>
+            {!rekap.rows.length ? (
+              <tr><td colSpan="7" className="teacher-empty-cell">Belum ada data rekap pada filter ini.</td></tr>
+            ) : rekap.rows.map((row, index) => (
+              <tr key={row.id}>
+                <td>{index + 1}</td>
+                <td>{formatDate(row.tanggal)}</td>
+                <td>{row.siswa?.nama || "-"}</td>
+                <td>{row.kelas?.nama_kelas || "-"}</td>
+                <td>{row.mapel || "Wali Kelas"}</td>
+                <td><span className={`teacher-badge status-${row.status}`}>{getStatusLabel(row.status)}</span></td>
+                <td>{row.keterangan || "-"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+
+  const renderAkun = () => (
+    <section className="teacher-panel">
+      <div className="teacher-panel-header compact">
+        <span>Akun</span>
+        <h1>Akun Siswa + Orang Tua</h1>
+        <p>Buat akun login siswa dan orang tua untuk siswa pada kelas yang bisa diakses guru.</p>
+      </div>
+
+      <form onSubmit={handleCreateAccount} className="teacher-form-stack">
+        <div className="teacher-form-grid two-columns">
+          <label className="teacher-field">Kelas
+            <select name="kelas_id" value={accountForm.kelas_id} onChange={handleAccountChange}>
+              {classOptions.map((kelas) => <option key={kelas.id} value={kelas.id}>{kelas.nama_kelas}</option>)}
+            </select>
+          </label>
+          <label className="teacher-field">Siswa
+            <select name="siswa_id" value={accountForm.siswa_id} onChange={handleAccountChange} required>
+              {accountStudents.map((siswa) => <option key={siswa.id} value={siswa.id}>{siswa.nama} • {siswa.nisn}</option>)}
+            </select>
+          </label>
+        </div>
+
+        <div className="teacher-grid two-columns account-grid">
+          <article className="teacher-card account-card">
+            <div className="teacher-card-title">
+              <span>Form Akun Siswa</span>
+              <strong>{selectedAccountStudent?.nama || "Pilih siswa"}</strong>
+            </div>
+            <label className="teacher-field">Email Siswa
+              <input type="email" name="siswa_email" value={accountForm.siswa_email} onChange={handleAccountChange} placeholder="siswa@cnb.sch.id" required />
+            </label>
+            <label className="teacher-field">Password Siswa
+              <input type="password" name="siswa_password" value={accountForm.siswa_password} onChange={handleAccountChange} placeholder="Minimal 6 karakter" minLength="6" required />
+            </label>
+          </article>
+
+          <article className="teacher-card account-card">
+            <div className="teacher-card-title">
+              <span>Form Akun Orang Tua</span>
+              <strong>Opsional</strong>
+            </div>
+            <label className="teacher-field">Nama Orang Tua
+              <input name="orangtua_name" value={accountForm.orangtua_name} onChange={handleAccountChange} placeholder="Nama ayah/ibu/wali" />
+            </label>
+            <label className="teacher-field">No. HP Orang Tua
+              <input name="orangtua_phone" value={accountForm.orangtua_phone} onChange={handleAccountChange} placeholder="08xxxxxxxxxx" />
+            </label>
+            <label className="teacher-field">Email Orang Tua
+              <input type="email" name="orangtua_email" value={accountForm.orangtua_email} onChange={handleAccountChange} placeholder="orangtua@email.com" />
+            </label>
+            <label className="teacher-field">Password Orang Tua
+              <input type="password" name="orangtua_password" value={accountForm.orangtua_password} onChange={handleAccountChange} placeholder="Isi jika membuat akun orang tua" minLength="6" />
+            </label>
+          </article>
+        </div>
+
+        <div className="teacher-actions-row">
+          <button type="submit" className="teacher-primary" disabled={savingAccount || !accountStudents.length}>
+            {savingAccount ? "Membuat..." : "Buat Akun"}
+          </button>
+        </div>
+      </form>
+    </section>
+  );
+
+  const renderActivePanel = () => {
+    if (activeMenu === "jadwal") return renderJadwal();
+    if (activeMenu === "absensi") return renderAbsensi();
+    if (activeMenu === "rekap") return renderRekap();
+    if (activeMenu === "akun") return renderAkun();
+    return renderDashboard();
+  };
+
+  if (loading) {
+    return (
+      <main className="teacher-loading">
+        <div>
+          <span>CNB</span>
+          <p>Memuat dashboard guru...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (!dashboard) return null;
+
+  return (
+    <div className="teacher-shell">
+      <header className="teacher-topbar">
+        <div className="teacher-brand">
+          <span>CNB</span>
+          <div>
+            <strong>Portal Guru</strong>
+            <small>Sistem Informasi Sekolah</small>
+          </div>
+        </div>
+        <button type="button" onClick={handleLogout} className="teacher-logout">Logout</button>
+      </header>
+
+      <div className="teacher-layout">
+        <aside className="teacher-sidebar">
+          <div className="teacher-avatar">
+            <span>{dashboard.user?.name?.slice(0, 1) || "G"}</span>
+          </div>
+          <h2>{dashboard.user?.name}</h2>
+          <p>{roleLabel}</p>
+          <span className="teacher-role-pill">{profile?.subject || profile?.kelas?.nama_kelas || "Guru"}</span>
+
+          <nav className="teacher-menu" aria-label="Menu dashboard guru">
+            {MENU_ITEMS.map((item) => (
+              <button
+                type="button"
+                key={item.id}
+                className={activeMenu === item.id ? "active" : ""}
+                onClick={() => setActiveMenu(item.id)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        <main className="teacher-main">
+          {notice && <div className={`teacher-notice ${notice.type}`}>{notice.text}</div>}
+          {renderActivePanel()}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+export default DashboardGuru;

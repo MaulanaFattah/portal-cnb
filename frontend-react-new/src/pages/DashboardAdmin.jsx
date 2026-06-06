@@ -47,6 +47,7 @@ function DashboardAdmin() {
                     <Link to="/admin/galeri">Galeri</Link>
                     <Link to="/admin/ppdb">PPDB</Link>
                     <Link to="/admin/guru">Guru</Link>
+                    <Link to="/admin/verifikasi-guru">Verifikasi Guru</Link>
                     <Link to="/admin/kepala-sekolah">Kepala Sekolah</Link>
                     <Link to="/admin/kelas">Kelas</Link>
                     <Link to="/admin/siswa">Siswa</Link>

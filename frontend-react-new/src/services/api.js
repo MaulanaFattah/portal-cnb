@@ -483,3 +483,181 @@ export async function deleteUser(id) {
   });
   return response.json();
 }
+
+// ========== GURU VERIFICATION & ATTENDANCE API ==========
+export async function getGuruRegistrations() {
+  const token = localStorage.getItem("token");
+  const response = await fetch("http://localhost:4000/api/admin-guru/registrations", {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.json();
+}
+
+export async function verifyGuruRegistration(userId, data) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`http://localhost:4000/api/admin-guru/registrations/${userId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
+export async function getGuruJadwalAdmin() {
+  const token = localStorage.getItem("token");
+  const response = await fetch("http://localhost:4000/api/admin-guru/jadwal", {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.json();
+}
+
+export async function createGuruJadwal(data) {
+  const token = localStorage.getItem("token");
+  const response = await fetch("http://localhost:4000/api/admin-guru/jadwal", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
+export async function deleteGuruJadwal(id) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`http://localhost:4000/api/admin-guru/jadwal/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.json();
+}
+
+export async function getGuruDashboard() {
+  const token = localStorage.getItem("token");
+  const response = await fetch("http://localhost:4000/api/guru-portal/dashboard", {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.json();
+}
+
+export async function submitAbsensiGuru(data) {
+  const token = localStorage.getItem("token");
+  const response = await fetch("http://localhost:4000/api/guru-portal/absensi", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
+export async function getRekapAbsensiGuru(params = {}) {
+  const token = localStorage.getItem("token");
+  const query = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") query.append(key, value);
+  });
+
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const response = await fetch(`http://localhost:4000/api/guru-portal/rekap${suffix}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.json();
+}
+
+export async function createGuruStudentAccounts(data) {
+  const token = localStorage.getItem("token");
+  const response = await fetch("http://localhost:4000/api/guru-portal/akun-siswa", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
+
+// ========== PORTAL SISWA / ORANG TUA / KEPALA SEKOLAH API ==========
+function buildQuery(params = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") query.append(key, value);
+  });
+  const text = query.toString();
+  return text ? `?${text}` : "";
+}
+
+export async function getSiswaDashboard() {
+  const token = localStorage.getItem("token");
+  const response = await fetch("http://localhost:4000/api/portal/siswa/dashboard", {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.json();
+}
+
+export async function updateSiswaProfile(data) {
+  const token = localStorage.getItem("token");
+  const response = await fetch("http://localhost:4000/api/portal/siswa/profile", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
+export async function getSiswaAbsensi(params = {}) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`http://localhost:4000/api/portal/siswa/absensi${buildQuery(params)}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.json();
+}
+
+export async function getOrangTuaDashboard() {
+  const token = localStorage.getItem("token");
+  const response = await fetch("http://localhost:4000/api/portal/orangtua/dashboard", {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.json();
+}
+
+export async function updateOrangTuaProfile(data) {
+  const token = localStorage.getItem("token");
+  const response = await fetch("http://localhost:4000/api/portal/orangtua/profile", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
+export async function getOrangTuaAbsensi(params = {}) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`http://localhost:4000/api/portal/orangtua/absensi${buildQuery(params)}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.json();
+}
+
+export async function getKepalaSekolahDashboard(params = {}) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`http://localhost:4000/api/portal/kepala-sekolah/dashboard${buildQuery(params)}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.json();
+}

@@ -28,3 +28,7 @@ Thumbs.db
 # Misc
 *.tmp
 coverage/
+
+# Local QA artifacts
+output/
+.playwright-cli/

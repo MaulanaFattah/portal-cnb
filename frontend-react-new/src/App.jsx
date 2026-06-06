@@ -26,6 +26,11 @@ import AdminKelas from "./pages/AdminKelas";
 import AdminSiswa from "./pages/AdminSiswa";
 import AdminAkunSiswa from "./pages/AdminAkunSiswa";
 import AdminProfilSekolah from "./pages/AdminProfilSekolah";
+import AdminVerifikasiGuru from "./pages/AdminVerifikasiGuru";
+import DashboardGuru from "./pages/DashboardGuru";
+import DashboardSiswa from "./pages/DashboardSiswa";
+import DashboardOrangTua from "./pages/DashboardOrangTua";
+import DashboardKepalaSekolah from "./pages/DashboardKepalaSekolah";
 
 function App() {
   return (
@@ -43,6 +48,10 @@ function App() {
         <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/dashboard-admin" element={<DashboardAdmin />} />
         <Route path="/login-guru" element={<LoginGuru />} />
+        <Route path="/dashboard-guru" element={<DashboardGuru />} />
+        <Route path="/dashboard-siswa" element={<DashboardSiswa />} />
+        <Route path="/dashboard-orangtua" element={<DashboardOrangTua />} />
+        <Route path="/dashboard-kepala-sekolah" element={<DashboardKepalaSekolah />} />
         <Route path="/register-guru" element={<RegisterGuru />} />
         <Route path="/login-siswa" element={<LoginSiswa />} />
         <Route path="/login-orangtua" element={<LoginOrangTua />} />
@@ -57,6 +66,7 @@ function App() {
         <Route path="/admin/siswa" element={<AdminSiswa />} />
         <Route path="/admin/akun-siswa" element={<AdminAkunSiswa />} />
         <Route path="/admin/profil-sekolah" element={<AdminProfilSekolah />} />
+        <Route path="/admin/verifikasi-guru" element={<AdminVerifikasiGuru />} />
       </Routes>
     </BrowserRouter>
   );

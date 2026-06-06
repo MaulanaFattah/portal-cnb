@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -26,7 +26,7 @@ function LoginGuru() {
 
     saveAuth(result.token, result.user);
     alert("Login guru berhasil");
-    navigate("/");
+    navigate("/dashboard-guru");
   };
 
   return (
@@ -71,7 +71,7 @@ function LoginGuru() {
           </Link>
 
           <Link to="/login" className="auth-link">
-            ← Kembali ke pilihan login
+            â† Kembali ke pilihan login
           </Link>
         </div>
       </main>

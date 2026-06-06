@@ -26,7 +26,7 @@ function LoginOrangTua() {
 
     saveAuth(result.token, result.user);
     alert("Login orang tua berhasil");
-    navigate("/");
+    navigate("/dashboard-orangtua");
   };
 
   return (

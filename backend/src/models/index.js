@@ -10,6 +10,10 @@ const KepalaSekolah = require("./KepalaSekolah");
 const Kelas = require("./Kelas");
 const Siswa = require("./Siswa");
 const ProfilSekolah = require("./ProfilSekolah");
+const GuruProfile = require("./GuruProfile");
+const JadwalMengajar = require("./JadwalMengajar");
+const AbsensiSiswa = require("./AbsensiSiswa");
+const PortalAccountLink = require("./PortalAccountLink");
 
 const db = {};
 
@@ -25,5 +29,9 @@ db.KepalaSekolah = KepalaSekolah(sequelize);
 db.Kelas = Kelas(sequelize);
 db.Siswa = Siswa(sequelize);
 db.ProfilSekolah = ProfilSekolah(sequelize);
+db.GuruProfile = GuruProfile(sequelize);
+db.JadwalMengajar = JadwalMengajar(sequelize);
+db.AbsensiSiswa = AbsensiSiswa(sequelize);
+db.PortalAccountLink = PortalAccountLink(sequelize);
 
 module.exports = db;

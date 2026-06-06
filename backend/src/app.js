@@ -12,6 +12,9 @@ const kepalaSekolahRoutes = require("./routes/kepalaSekolahRoutes");
 const kelasRoutes = require("./routes/kelasRoutes");
 const siswaRoutes = require("./routes/siswaRoutes");
 const profilSekolahRoutes = require("./routes/profilSekolahRoutes");
+const adminGuruPortalRoutes = require("./routes/adminGuruPortalRoutes");
+const guruPortalRoutes = require("./routes/guruPortalRoutes");
+const portalRoutes = require("./routes/portalRoutes");
 
 const app = express();
 
@@ -41,5 +44,8 @@ app.use("/api/kepala-sekolah", kepalaSekolahRoutes);
 app.use("/api/kelas", kelasRoutes);
 app.use("/api/siswa", siswaRoutes);
 app.use("/api/profil-sekolah", profilSekolahRoutes);
+app.use("/api/admin-guru", adminGuruPortalRoutes);
+app.use("/api/guru-portal", guruPortalRoutes);
+app.use("/api/portal", portalRoutes);
 
 module.exports = app;

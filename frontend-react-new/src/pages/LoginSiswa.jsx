@@ -26,7 +26,7 @@ function LoginSiswa() {
 
     saveAuth(result.token, result.user);
     alert("Login siswa berhasil");
-    navigate("/");
+    navigate("/dashboard-siswa");
   };
 
   return (

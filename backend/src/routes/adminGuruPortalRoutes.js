@@ -1,0 +1,13 @@
+﻿const express = require("express");
+const router = express.Router();
+
+const guruPortalController = require("../controllers/guruPortalController");
+const { verifyToken, onlyAdmin } = require("../middlewares/authMiddleware");
+
+router.get("/registrations", verifyToken, onlyAdmin, guruPortalController.getGuruRegistrations);
+router.put("/registrations/:userId", verifyToken, onlyAdmin, guruPortalController.verifyGuruRegistration);
+router.get("/jadwal", verifyToken, onlyAdmin, guruPortalController.getJadwalAdmin);
+router.post("/jadwal", verifyToken, onlyAdmin, guruPortalController.createJadwal);
+router.delete("/jadwal/:id", verifyToken, onlyAdmin, guruPortalController.deleteJadwal);
+
+module.exports = router;
