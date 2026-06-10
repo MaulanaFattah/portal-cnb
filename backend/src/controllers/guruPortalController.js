@@ -144,7 +144,7 @@ exports.getGuruRegistrations = async (req, res) => {
 exports.verifyGuruRegistration = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { verification_status, teacher_type, subject, kelas_id, notes } = req.body;
+    const { verification_status, teacher_type, subject, kelas_id, note } = req.body;
 
     if (!["pending", "approved", "rejected"].includes(verification_status)) {
       return res.status(400).json({ success: false, message: "Status verifikasi tidak valid" });
@@ -160,12 +160,17 @@ exports.verifyGuruRegistration = async (req, res) => {
       defaults: { teacher_type: teacher_type || "mapel", subject: subject || user.profession }
     });
 
+    const nextTeacherType = teacher_type || profile.teacher_type;
+    if (nextTeacherType === "wali_kelas" && verification_status === "approved" && !kelas_id && !profile.kelas_id) {
+      return res.status(400).json({ success: false, message: "Kelas wajib dipilih untuk wali kelas" });
+    }
+
     await profile.update({
       verification_status,
-      teacher_type: teacher_type || profile.teacher_type,
-      subject: subject || profile.subject,
-      kelas_id: kelas_id || null,
-      notes: notes || null,
+      teacher_type: nextTeacherType,
+      subject: nextTeacherType === "mapel" ? (subject || profile.subject) : null,
+      kelas_id: nextTeacherType === "wali_kelas" ? (kelas_id || profile.kelas_id) : null,
+      note: note || null,
       approved_by: verification_status === "approved" ? req.user.id : profile.approved_by,
       approved_at: verification_status === "approved" ? new Date() : profile.approved_at
     });

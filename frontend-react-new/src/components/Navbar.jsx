@@ -1,11 +1,12 @@
-﻿import { Link, NavLink } from "react-router-dom";
+import schoolLogo from "../assets/logo.jpeg";
+import { Link, NavLink } from "react-router-dom";
 
 function Navbar() {
   return (
     <header className="header">
       <div className="container nav">
         <Link to="/" className="brand">
-          <img src="/logo.svg" alt="Logo Sekolah" className="brand-logo" />
+          <img src={schoolLogo} alt="Logo Sekolah" className="brand-logo" />
 
           <div>
             <h1>Cipta Nusa Bakti</h1>

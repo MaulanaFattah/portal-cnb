@@ -593,21 +593,21 @@ body {
 
 .gallery-page-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
-  margin-bottom: 70px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 26px;
 }
 
 .gallery-card {
   background: white;
   border: 1px solid #e5e7eb;
-  border-radius: 24px;
+  border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 8px 26px rgba(15, 23, 42, 0.06);
 }
 
 .gallery-photo {
-  height: 300px;
+  height: 190px;
 }
 
 .gallery-photo img {
@@ -617,25 +617,64 @@ body {
 }
 
 .gallery-info {
-  padding: 24px;
+  padding: 18px;
 }
 
 .gallery-info h3 {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
+  font-size: 20px;
 }
 
 .gallery-info p {
   color: #475569;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.gallery-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0 70px;
+}
+
+.gallery-pagination button {
+  width: 44px;
+  height: 44px;
+  border: 1px solid #dbe2ea;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #07142f;
+  font-weight: 900;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.gallery-pagination button:hover,
+.gallery-pagination button.active {
+  background: #07142f;
+  color: #ffffff;
+  border-color: #07142f;
 }
 
 @media (max-width: 900px) {
-  .activity-grid,
   .gallery-page-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .activity-grid {
     grid-template-columns: 1fr;
   }
 
   .announcement-card {
     flex-direction: column;
+  }
+}
+
+@media (max-width: 600px) {
+  .gallery-page-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -3337,6 +3376,114 @@ button:focus-visible {
   }
 
   .attend-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Admin + PPDB refinements */
+.admin-sidebar-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+}
+
+.admin-menu a {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+}
+
+.modern-form {
+  align-items: start;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.08);
+}
+
+.ppdb-form-hero p {
+  max-width: 720px;
+}
+
+.file-chip {
+  min-height: 52px;
+  border: 1px dashed #94a3b8;
+  border-radius: 16px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #334155;
+  font-weight: 800;
+  transition: 0.2s ease;
+}
+
+.file-chip:hover,
+.file-chip.filled {
+  border-color: #07142f;
+  background: #eef2ff;
+  color: #07142f;
+}
+
+.file-chip input {
+  display: none;
+}
+
+.ppdb-note-box {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border-radius: 18px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #14532d;
+}
+
+.ppdb-note-box strong {
+  color: #14532d;
+}
+
+.ppdb-verify-detail a {
+  color: #07142f;
+  font-weight: 900;
+  text-decoration: underline;
+}
+
+@media (max-width: 760px) {
+  .modern-form,
+  .admin-kegiatan-card,
+  .verify-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Profil sekolah admin: field mengalir ke kanan */
+.profile-editor-card {
+  grid-template-columns: 1fr;
+}
+
+.profile-editor-area {
+  border-right: 0;
+  padding-right: 0;
+}
+
+.profile-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 28px;
+}
+
+.profile-editor-grid .form-group {
+  margin-bottom: 0;
+}
+
+.profile-editor-grid .button-row.full {
+  grid-column: 1 / -1;
+  margin-top: 8px;
+}
+
+@media (max-width: 900px) {
+  .profile-editor-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -1,4 +1,5 @@
-﻿import { Link } from "react-router-dom";
+import schoolLogo from "../assets/logo.jpeg";
+import { Link } from "react-router-dom";
 
 function Footer() {
   return (
@@ -6,7 +7,7 @@ function Footer() {
       <div className="container footer-simple">
 
         <div className="footer-logo-box">
-          <img src="/logo.svg" alt="Logo Sekolah" />
+          <img src={schoolLogo} alt="Logo Sekolah" />
         </div>
 
         <div className="footer-menu">

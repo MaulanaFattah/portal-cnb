@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import AdminSidebar from "../components/AdminSidebar";
 import { getPPDB, updatePPDB, deletePPDB, logout } from "../services/api";
 
 function formatTanggal(value) {
@@ -9,11 +10,18 @@ function formatTanggal(value) {
   return date.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
 }
 
-const STATUS_LABEL = {
-  pending: "Menunggu Verifikasi",
-  diterima: "Diterima",
-  ditolak: "Ditolak"
-};
+const STATUS_LABEL = { pending: "Menunggu Verifikasi", diterima: "Diterima", ditolak: "Ditolak" };
+const TYPE_LABEL = { pendaftaran_baru: "Pendaftaran Baru", siswa_pindahan: "Siswa Pindahan" };
+const LEVEL_LABEL = { tk: "TK", sd: "SD", smp: "SMP" };
+
+function FileLink({ label, value }) {
+  return (
+    <div>
+      <strong>{label}</strong>
+      {value ? <a href={value} target="_blank" rel="noreferrer">Lihat berkas</a> : <span>-</span>}
+    </div>
+  );
+}
 
 function AdminPPDB() {
   const navigate = useNavigate();
@@ -26,15 +34,16 @@ function AdminPPDB() {
     if (result.success) setPPDB(result.data || []);
   };
 
-  useEffect(() => {
-    (async () => {
-      await loadPPDB();
-    })();
-  }, []);
+  useEffect(() => { (async () => { await loadPPDB(); })(); }, []);
 
-  const handleVerify = async (id, status) => {
-    const result = await updatePPDB(id, { status });
-    alert(result.message);
+  const handleVerify = async (item, status) => {
+    const notification_note = status === "diterima"
+      ? `Diterima. Hubungi orang tua/wali melalui email ${item.email || "-"} atau WhatsApp ${item.no_telepon || "-"}.`
+      : status === "ditolak"
+        ? `Ditolak. Beri tahu orang tua/wali melalui email ${item.email || "-"} atau WhatsApp ${item.no_telepon || "-"}.`
+        : "Menunggu verifikasi admin.";
+    const result = await updatePPDB(item.id, { status, notification_note });
+    alert(status === "diterima" ? `${result.message}\n\nNotifikasi paling gampang untuk demo dosen: admin kirim WhatsApp/email manual dari data pendaftar.` : result.message);
     loadPPDB();
   };
 
@@ -45,10 +54,7 @@ function AdminPPDB() {
     loadPPDB();
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate("/admin-login");
-  };
+  const handleLogout = () => { logout(); navigate("/admin-login"); };
 
   const counts = {
     all: ppdb.length,
@@ -56,39 +62,20 @@ function AdminPPDB() {
     diterima: ppdb.filter((p) => p.status === "diterima").length,
     ditolak: ppdb.filter((p) => p.status === "ditolak").length
   };
-
   const filtered = filter === "all" ? ppdb : ppdb.filter((p) => p.status === filter);
 
   return (
     <div className="dashboard-layout">
-      <aside className="admin-sidebar-card">
-        <span className="sidebar-title">Dashboard</span>
-        <h3>Admin</h3>
-
-        <nav className="admin-menu">
-          <Link to="/dashboard-admin">Dashboard</Link>
-          <Link to="/admin/kegiatan">Kegiatan</Link>
-          <Link to="/admin/pengumuman">Pengumuman</Link>
-          <Link to="/admin/galeri">Galeri</Link>
-          <Link className="active" to="/admin/ppdb">PPDB</Link>
-          <Link to="/admin/guru">Guru</Link>
-          <Link to="/admin/kepala-sekolah">Kepala Sekolah</Link>
-          <Link to="/admin/kelas">Kelas</Link>
-          <Link to="/admin/siswa">Siswa</Link>
-          <Link to="/admin/akun-siswa">Akun Siswa</Link>
-          <Link to="/admin/profil-sekolah">Profil Sekolah</Link>
-        </nav>
-      </aside>
+      <AdminSidebar active="/admin/ppdb" />
 
       <main className="dashboard-content">
         <div className="dashboard-header">
           <div>
             <h1>Verifikasi PPDB</h1>
-            <p>Tinjau dan verifikasi data calon peserta didik yang telah mendaftar.</p>
+            <p>Data pendaftar masuk dari halaman form PPDB dan diverifikasi admin.</p>
           </div>
-
           <div className="dashboard-actions">
-            <Link to="/" className="btn secondary">Website</Link>
+            <Link to="/form-ppdb" className="btn secondary">Lihat Form</Link>
             <button onClick={handleLogout} className="btn primary">Logout</button>
           </div>
         </div>
@@ -101,42 +88,40 @@ function AdminPPDB() {
         </div>
 
         <div className="ppdb-verify-list">
-          {filtered.length === 0 ? (
-            <p className="empty-text">Belum ada pendaftar pada kategori ini.</p>
-          ) : (
-            filtered.map((item) => (
-              <div className="ppdb-verify-item" key={item.id}>
-                <div className="ppdb-verify-head" onClick={() => setOpenId(openId === item.id ? null : item.id)}>
-                  <div>
-                    <h4>{item.nama_lengkap}</h4>
-                    <p>NISN: {item.nisn || "-"} • {item.tahun_ajaran} • Daftar {formatTanggal(item.createdAt)}</p>
-                  </div>
-                  <span className={`status-badge ${item.status}`}>{STATUS_LABEL[item.status]}</span>
+          {filtered.length === 0 ? <p className="empty-text">Belum ada pendaftar pada kategori ini.</p> : filtered.map((item) => (
+            <div className="ppdb-verify-item" key={item.id}>
+              <div className="ppdb-verify-head" onClick={() => setOpenId(openId === item.id ? null : item.id)}>
+                <div>
+                  <h4>{item.nama_lengkap}</h4>
+                  <p>{LEVEL_LABEL[item.target_jenjang] || "-"} • {TYPE_LABEL[item.jenis_pendaftaran] || "-"} • Daftar {formatTanggal(item.createdAt)}</p>
                 </div>
-
-                {openId === item.id && (
-                  <div className="ppdb-verify-detail">
-                    <div><strong>Jenis Kelamin</strong><span>{item.jenis_kelamin === "L" ? "Laki-laki" : "Perempuan"}</span></div>
-                    <div><strong>Tempat, Tgl Lahir</strong><span>{item.tempat_lahir}, {formatTanggal(item.tanggal_lahir)}</span></div>
-                    <div><strong>Agama</strong><span>{item.agama}</span></div>
-                    <div><strong>Asal Sekolah</strong><span>{item.asal_sekolah || "-"}</span></div>
-                    <div><strong>Alamat</strong><span>{item.alamat}</span></div>
-                    <div><strong>Nama Ayah</strong><span>{item.nama_ayah} ({item.pekerjaan_ayah || "-"})</span></div>
-                    <div><strong>Nama Ibu</strong><span>{item.nama_ibu} ({item.pekerjaan_ibu || "-"})</span></div>
-                    <div><strong>No WhatsApp</strong><span>{item.no_telepon}</span></div>
-                    <div><strong>Email</strong><span>{item.email || "-"}</span></div>
-                  </div>
-                )}
-
-                <div className="ppdb-verify-actions">
-                  <button className="verify-accept" disabled={item.status === "diterima"} onClick={() => handleVerify(item.id, "diterima")}>Terima</button>
-                  <button className="verify-reject" disabled={item.status === "ditolak"} onClick={() => handleVerify(item.id, "ditolak")}>Tolak</button>
-                  <button className="verify-pending" disabled={item.status === "pending"} onClick={() => handleVerify(item.id, "pending")}>Set Pending</button>
-                  <button className="verify-delete" onClick={() => handleDelete(item.id)}>Hapus</button>
-                </div>
+                <span className={`status-badge ${item.status}`}>{STATUS_LABEL[item.status]}</span>
               </div>
-            ))
-          )}
+
+              {openId === item.id && (
+                <div className="ppdb-verify-detail">
+                  <div><strong>Jenis Kelamin</strong><span>{item.jenis_kelamin === "L" ? "Laki-laki" : "Perempuan"}</span></div>
+                  <div><strong>Tanggal Lahir</strong><span>{formatTanggal(item.tanggal_lahir)}</span></div>
+                  <div><strong>Alamat</strong><span>{item.alamat}</span></div>
+                  <div><strong>Orang Tua/Wali</strong><span>{item.nama_orang_tua || item.nama_ayah || item.nama_ibu || "-"}</span></div>
+                  <div><strong>No WhatsApp</strong><span>{item.no_telepon}</span></div>
+                  <div><strong>Email</strong><span>{item.email || "-"}</span></div>
+                  <FileLink label="Fotokopi KK" value={item.berkas_kk} />
+                  <FileLink label="Raport Terakhir" value={item.berkas_raport} />
+                  <FileLink label="Foto Calon Siswa" value={item.foto_siswa} />
+                  <FileLink label="Surat Pindahan" value={item.berkas_surat_pindah} />
+                  <div><strong>Catatan Notifikasi</strong><span>{item.notification_note || "Belum ada"}</span></div>
+                </div>
+              )}
+
+              <div className="ppdb-verify-actions">
+                <button className="verify-accept" disabled={item.status === "diterima"} onClick={() => handleVerify(item, "diterima")}>Terima</button>
+                <button className="verify-reject" disabled={item.status === "ditolak"} onClick={() => handleVerify(item, "ditolak")}>Tolak</button>
+                <button className="verify-pending" disabled={item.status === "pending"} onClick={() => handleVerify(item, "pending")}>Set Pending</button>
+                <button className="verify-delete" onClick={() => handleDelete(item.id)}>Hapus</button>
+              </div>
+            </div>
+          ))}
         </div>
       </main>
     </div>

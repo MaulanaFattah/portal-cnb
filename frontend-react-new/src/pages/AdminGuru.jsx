@@ -1,4 +1,5 @@
-﻿import { useEffect, useState } from "react";
+import schoolLogo from "../assets/logo.jpeg";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   getGuru,
@@ -235,7 +236,7 @@ function AdminGuru() {
                 guru.map((item, index) => (
                   <div className="activity-admin-item" key={item.id}>
                     <span>{index + 1}</span>
-                    <img src={item.foto || "/logo.svg"} alt={item.nama} />
+                    <img src={item.foto || schoolLogo} alt={item.nama} />
                     <div>
                       <h4>{item.nama}</h4>
                       <p>{item.nip} • {item.mata_pelajaran || "Belum ada mapel"}</p>

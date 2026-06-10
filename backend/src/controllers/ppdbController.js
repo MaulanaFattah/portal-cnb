@@ -24,20 +24,51 @@ exports.getAllPPDB = async (req, res) => {
 
 exports.createPPDB = async (req, res) => {
   try {
-    const { nama_lengkap, tanggal_lahir, jenis_kelamin, agama, alamat, nama_ayah, nama_ibu, no_telepon, tahun_ajaran } = req.body;
+    const {
+      jenis_pendaftaran,
+      target_jenjang,
+      nama_lengkap,
+      tanggal_lahir,
+      jenis_kelamin,
+      alamat,
+      nama_orang_tua,
+      no_telepon,
+      email,
+      tahun_ajaran,
+      berkas_kk,
+      berkas_raport,
+      foto_siswa,
+      berkas_surat_pindah
+    } = req.body;
 
-    if (!nama_lengkap || !tanggal_lahir || !jenis_kelamin || !agama || !alamat || !nama_ayah || !nama_ibu || !no_telepon || !tahun_ajaran) {
+    if (!jenis_pendaftaran || !target_jenjang || !nama_lengkap || !tanggal_lahir || !jenis_kelamin || !alamat || !nama_orang_tua || !no_telepon || !email || !tahun_ajaran || !berkas_kk || !foto_siswa) {
       return res.status(400).json({
         success: false,
-        message: "Semua field wajib diisi"
+        message: "Data utama, email/WA orang tua, fotokopi KK, dan foto calon siswa wajib diisi"
       });
+    }
+
+    if (!["pendaftaran_baru", "siswa_pindahan"].includes(jenis_pendaftaran)) {
+      return res.status(400).json({ success: false, message: "Jenis pendaftaran tidak valid" });
+    }
+
+    if (!["tk", "sd", "smp"].includes(target_jenjang)) {
+      return res.status(400).json({ success: false, message: "Target jenjang tidak valid" });
+    }
+
+    if (["sd", "smp"].includes(target_jenjang) && !berkas_raport) {
+      return res.status(400).json({ success: false, message: "Berkas raport terakhir wajib untuk jenjang SD dan SMP" });
+    }
+
+    if (jenis_pendaftaran === "siswa_pindahan" && !berkas_surat_pindah) {
+      return res.status(400).json({ success: false, message: "Berkas surat pindahan wajib untuk siswa pindahan" });
     }
 
     const ppdb = await PPDB.create(req.body);
 
     res.status(201).json({
       success: true,
-      message: "Data PPDB berhasil ditambahkan",
+      message: "Pendaftaran berhasil dikirim. Informasi verifikasi akan diberitahukan melalui email orang tua/wali atau WhatsApp.",
       data: ppdb
     });
   } catch (error) {

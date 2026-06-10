@@ -1,4 +1,5 @@
-﻿import { useEffect, useState } from "react";
+import schoolLogo from "../assets/logo.jpeg";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -60,7 +61,7 @@ function Home() {
           </div>
 
           <div className="hero-image">
-            <img src="/logo.svg" alt="Logo Sekolah" />
+            <img src={schoolLogo} alt="Logo Sekolah" />
           </div>
         </section>
 
@@ -91,7 +92,7 @@ function Home() {
             ) : (
               kegiatan.map((item) => (
                 <div className="activity-card" key={item.id}>
-                  <img src={item.image || "/logo.svg"} alt={item.title} />
+                  <img src={item.image || schoolLogo} alt={item.title} />
                   <div className="activity-content">
                     <span className="activity-date">{formatTanggal(item.date)}</span>
                     <h3>{item.title}</h3>
@@ -137,7 +138,7 @@ function Home() {
               galeri.map((item) => (
                 <div className="gallery-card" key={item.id}>
                   <div className="gallery-photo">
-                    <img src={item.image || "/logo.svg"} alt={item.title} />
+                    <img src={item.image || schoolLogo} alt={item.title} />
                   </div>
                   <div className="gallery-info">
                     <h3>{item.title}</h3>

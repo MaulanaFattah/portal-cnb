@@ -1,4 +1,5 @@
-﻿import { useEffect, useState } from "react";
+import schoolLogo from "../assets/logo.jpeg";
+import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { getKegiatan } from "../services/api";
@@ -49,7 +50,7 @@ function Kegiatan() {
             ) : (
               kegiatan.map((item) => (
                 <article className="activity-card" key={item.id}>
-                  <img src={item.image || "/logo.svg"} alt={item.title} />
+                  <img src={item.image || schoolLogo} alt={item.title} />
 
                   <div className="activity-content">
                     <div className="activity-date">{formatTanggal(item.date)}</div>

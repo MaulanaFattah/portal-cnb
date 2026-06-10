@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import AdminSidebar from "../components/AdminSidebar";
 import {
   getGuruRegistrations,
   verifyGuruRegistration,
@@ -36,7 +37,7 @@ function AdminVerifikasiGuru() {
           teacher_type: profile.teacher_type || "mapel",
           subject: profile.subject || item.profession || "",
           kelas_id: profile.kelas_id || "",
-          notes: profile.notes || ""
+          note: profile.note || ""
         };
       });
       setDraft(nextDraft);
@@ -90,20 +91,9 @@ function AdminVerifikasiGuru() {
 
   return (
     <div className="dashboard-layout">
-      <aside className="admin-sidebar-card">
-        <span className="sidebar-title">Dashboard</span>
-        <h3>Admin</h3>
-        <nav className="admin-menu">
-          <Link to="/dashboard-admin">Dashboard</Link>
-          <Link to="/admin/guru">Guru</Link>
-          <Link className="active" to="/admin/verifikasi-guru">Verifikasi Guru</Link>
-          <Link to="/admin/kelas">Kelas</Link>
-          <Link to="/admin/siswa">Siswa</Link>
-          <Link to="/admin/profil-sekolah">Profil Sekolah</Link>
-        </nav>
-      </aside>
+      <AdminSidebar active="/admin/verifikasi-guru" />
 
-      <main className="dashboard-content">
+<main className="dashboard-content">
         <div className="dashboard-header">
           <div>
             <h1>Verifikasi Guru</h1>
@@ -137,17 +127,20 @@ function AdminVerifikasiGuru() {
                       <option value="wali_kelas">Wali Kelas</option>
                     </select>
                   </label>
-                  <label>Mata Pelajaran
-                    <input value={itemDraft.subject || ""} onChange={(e) => handleDraft(item.id, "subject", e.target.value)} placeholder="Contoh: Matematika" />
-                  </label>
-                  <label>Kelas Wali
-                    <select value={itemDraft.kelas_id || ""} onChange={(e) => handleDraft(item.id, "kelas_id", e.target.value)}>
-                      <option value="">Tidak ada</option>
-                      {kelas.map((kelasItem) => <option key={kelasItem.id} value={kelasItem.id}>{kelasItem.nama_kelas}</option>)}
-                    </select>
-                  </label>
+                  {(itemDraft.teacher_type || "mapel") === "mapel" ? (
+                    <label>Mata Pelajaran
+                      <input value={itemDraft.subject || ""} onChange={(e) => handleDraft(item.id, "subject", e.target.value)} placeholder="Contoh: Matematika" />
+                    </label>
+                  ) : (
+                    <label>Kelas
+                      <select value={itemDraft.kelas_id || ""} onChange={(e) => handleDraft(item.id, "kelas_id", e.target.value)}>
+                        <option value="">Pilih kelas</option>
+                        {kelas.map((kelasItem) => <option key={kelasItem.id} value={kelasItem.id}>{kelasItem.nama_kelas}</option>)}
+                      </select>
+                    </label>
+                  )}
                   <label>Catatan
-                    <input value={itemDraft.notes || ""} onChange={(e) => handleDraft(item.id, "notes", e.target.value)} placeholder="Opsional" />
+                    <input value={itemDraft.note || ""} onChange={(e) => handleDraft(item.id, "note", e.target.value)} placeholder="Opsional" />
                   </label>
                 </div>
 

@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import AdminSidebar from "../components/AdminSidebar";
 import {
   getUsersByRole,
   createUser,
@@ -21,8 +22,8 @@ function AdminAkunSiswa() {
   });
 
   const loadUsers = async () => {
-    const result = await getUsersByRole("siswa");
-    if (result.success) setUsers(result.data || []);
+    const [siswaResult, orangTuaResult] = await Promise.all([getUsersByRole("siswa"), getUsersByRole("orangtua")]);
+    setUsers([...(siswaResult.data || []), ...(orangTuaResult.data || [])]);
   };
 
   useEffect(() => {
@@ -61,7 +62,7 @@ function AdminAkunSiswa() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Yakin ingin menghapus akun siswa ini?")) return;
+    if (!confirm("Yakin ingin menghapus akun ini?")) return;
     const result = await deleteUser(id);
     alert(result.message);
     loadUsers();
@@ -74,30 +75,13 @@ function AdminAkunSiswa() {
 
   return (
     <div className="dashboard-layout">
-      <aside className="admin-sidebar-card">
-        <span className="sidebar-title">Dashboard</span>
-        <h3>Admin</h3>
+      <AdminSidebar active="/admin/akun-siswa" />
 
-        <nav className="admin-menu">
-          <Link to="/dashboard-admin">Dashboard</Link>
-          <Link to="/admin/kegiatan">Kegiatan</Link>
-          <Link to="/admin/pengumuman">Pengumuman</Link>
-          <Link to="/admin/galeri">Galeri</Link>
-          <Link to="/admin/ppdb">PPDB</Link>
-          <Link to="/admin/guru">Guru</Link>
-          <Link to="/admin/kepala-sekolah">Kepala Sekolah</Link>
-          <Link to="/admin/kelas">Kelas</Link>
-          <Link to="/admin/siswa">Siswa</Link>
-          <Link className="active" to="/admin/akun-siswa">Akun Siswa</Link>
-          <Link to="/admin/profil-sekolah">Profil Sekolah</Link>
-        </nav>
-      </aside>
-
-      <main className="dashboard-content">
+<main className="dashboard-content">
         <div className="dashboard-header">
           <div>
-            <h1>Akun Siswa</h1>
-            <p>Kelola akun login siswa.</p>
+            <h1>Akun Siswa & Orang Tua</h1>
+            <p>Kelola akun login siswa dan orang tua dari dashboard admin.</p>
           </div>
 
           <div className="dashboard-actions">
@@ -108,7 +92,7 @@ function AdminAkunSiswa() {
 
         <section className="admin-kegiatan-card">
           <div className="kegiatan-form-area">
-            <h2>{editId ? "Edit Akun Siswa" : "Tambah Akun Siswa"}</h2>
+            <h2>{editId ? "Edit Akun" : "Tambah Akun"}</h2>
 
             <form onSubmit={handleSubmit}>
               <div className="form-group">
@@ -144,6 +128,14 @@ function AdminAkunSiswa() {
                 />
               </div>
 
+              <div className="form-group">
+                <label>Jenis Akun</label>
+                <select name="role" value={formData.role} onChange={handleChange}>
+                  <option value="siswa">Siswa</option>
+                  <option value="orangtua">Orang Tua</option>
+                </select>
+              </div>
+
               <div className="button-row">
                 <button type="submit" className="save-btn">
                   {editId ? "Simpan Perubahan" : "Simpan"}
@@ -158,18 +150,18 @@ function AdminAkunSiswa() {
           </div>
 
           <div className="kegiatan-list-area">
-            <h2>Daftar Akun Siswa</h2>
+            <h2>Daftar Akun Siswa & Orang Tua</h2>
 
             <div className="activity-admin-list">
               {users.length === 0 ? (
-                <p className="empty-text">Belum ada akun siswa.</p>
+                <p className="empty-text">Belum ada akun siswa/orang tua.</p>
               ) : (
                 users.map((item, index) => (
                   <div className="activity-admin-item" key={item.id}>
                     <span>{index + 1}</span>
                     <div>
                       <h4>{item.name}</h4>
-                      <p>{item.email}</p>
+                      <p>{item.email} • {item.role === "orangtua" ? "Orang Tua" : "Siswa"}</p>
                     </div>
                     <div className="admin-action">
                       <button onClick={() => handleEdit(item)}>✎</button>

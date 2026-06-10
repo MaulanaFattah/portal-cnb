@@ -1,4 +1,5 @@
-﻿import { useState } from "react";
+import schoolLogo from "../assets/logo.jpeg";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginUser, saveAuth } from "../services/api";
 
@@ -29,7 +30,7 @@ function AdminLogin() {
   return (
     <div className="admin-login-page">
       <div className="admin-login-card">
-        <img src="/logo.svg" alt="Logo" className="admin-login-logo" />
+        <img src={schoolLogo} alt="Logo" className="admin-login-logo" />
 
         <h1>Admin Login</h1>
         <p>Masukkan email dan password administrator.</p>

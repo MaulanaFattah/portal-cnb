@@ -1,33 +1,67 @@
-﻿import { useState } from "react";
+﻿import { useMemo, useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { createPPDB } from "../services/api";
 
+const currentYear = new Date().getFullYear();
+
 const initialForm = {
+  jenis_pendaftaran: "pendaftaran_baru",
+  target_jenjang: "tk",
   nama_lengkap: "",
-  nisn: "",
-  jenis_kelamin: "L",
-  tempat_lahir: "",
   tanggal_lahir: "",
-  agama: "",
-  alamat: "",
-  asal_sekolah: "",
-  nama_ayah: "",
-  nama_ibu: "",
-  pekerjaan_ayah: "",
-  pekerjaan_ibu: "",
-  no_telepon: "",
   email: "",
-  tahun_ajaran: ""
+  jenis_kelamin: "L",
+  alamat: "",
+  nama_orang_tua: "",
+  no_telepon: "",
+  tahun_ajaran: `${currentYear}/${currentYear + 1}`,
+  berkas_kk: "",
+  berkas_raport: "",
+  foto_siswa: "",
+  berkas_surat_pindah: ""
 };
+
+const levelLabel = { tk: "TK", sd: "SD", smp: "SMP" };
+const typeLabel = { pendaftaran_baru: "Pendaftaran Baru", siswa_pindahan: "Siswa Pindahan" };
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function FileInput({ label, name, value, onFile, required }) {
+  return (
+    <div className="form-group">
+      <label>{label}</label>
+      <label className={`file-chip ${value ? "filled" : ""}`}>
+        <span>{value ? "Berkas sudah dipilih" : "Pilih berkas"}</span>
+        <input type="file" accept="image/*,.pdf" onChange={(e) => onFile(name, e.target.files?.[0])} required={required && !value} />
+      </label>
+    </div>
+  );
+}
 
 function FormPPDB() {
   const [form, setForm] = useState(initialForm);
   const [status, setStatus] = useState({ type: "", message: "" });
   const [loading, setLoading] = useState(false);
 
+  const needsReport = useMemo(() => ["sd", "smp"].includes(form.target_jenjang), [form.target_jenjang]);
+  const needsTransferLetter = form.jenis_pendaftaran === "siswa_pindahan";
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleFile = async (name, file) => {
+    if (!file) return;
+    const value = await readFileAsDataUrl(file);
+    setForm((current) => ({ ...current, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
@@ -36,11 +70,18 @@ function FormPPDB() {
     setStatus({ type: "", message: "" });
 
     try {
-      const result = await createPPDB(form);
+      const payload = {
+        ...form,
+        nama_ayah: form.nama_orang_tua,
+        nama_ibu: form.nama_orang_tua,
+        agama: "-",
+        tempat_lahir: "-"
+      };
+      const result = await createPPDB(payload);
       if (result.success) {
         setStatus({
           type: "success",
-          message: "Pendaftaran berhasil dikirim. Status Anda menunggu verifikasi admin."
+          message: "Pendaftaran berhasil dikirim. Hasil verifikasi akan diberitahukan melalui email orang tua/wali atau WhatsApp."
         });
         setForm(initialForm);
       } else {
@@ -58,25 +99,45 @@ function FormPPDB() {
       <Navbar />
 
       <main className="container">
-        <section className="page-hero">
+        <section className="page-hero ppdb-form-hero">
           <span className="badge">Formulir PPDB</span>
-          <h1>Form Pendaftaran</h1>
-          <p>Lengkapi data calon peserta didik dengan benar.</p>
+          <h1>Form Pendaftaran {levelLabel[form.target_jenjang]}</h1>
+          <p>{typeLabel[form.jenis_pendaftaran]} — lengkapi data calon siswa dan unggah berkas yang diminta.</p>
         </section>
 
-        {status.message && (
-          <div className={`form-alert ${status.type}`}>{status.message}</div>
-        )}
+        {status.message && <div className={`form-alert ${status.type}`}>{status.message}</div>}
 
-        <form className="registration-form" onSubmit={handleSubmit}>
+        <form className="registration-form modern-form" onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Nama Lengkap</label>
+            <label>Jenis Pendaftaran</label>
+            <select name="jenis_pendaftaran" value={form.jenis_pendaftaran} onChange={handleChange} required>
+              <option value="pendaftaran_baru">Pendaftaran Baru</option>
+              <option value="siswa_pindahan">Siswa Pindahan</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Target Jenjang</label>
+            <select name="target_jenjang" value={form.target_jenjang} onChange={handleChange} required>
+              <option value="tk">TK</option>
+              <option value="sd">SD</option>
+              <option value="smp">SMP</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Nama Lengkap Calon Siswa</label>
             <input type="text" name="nama_lengkap" value={form.nama_lengkap} onChange={handleChange} required />
           </div>
 
           <div className="form-group">
-            <label>NISN</label>
-            <input type="text" name="nisn" value={form.nisn} onChange={handleChange} />
+            <label>Tanggal Lahir</label>
+            <input type="date" name="tanggal_lahir" value={form.tanggal_lahir} onChange={handleChange} required />
+          </div>
+
+          <div className="form-group">
+            <label>Email Orang Tua/Wali</label>
+            <input type="email" name="email" value={form.email} onChange={handleChange} required />
           </div>
 
           <div className="form-group">
@@ -87,69 +148,32 @@ function FormPPDB() {
             </select>
           </div>
 
-          <div className="form-group">
-            <label>Tempat Lahir</label>
-            <input type="text" name="tempat_lahir" value={form.tempat_lahir} onChange={handleChange} required />
-          </div>
-
-          <div className="form-group">
-            <label>Tanggal Lahir</label>
-            <input type="date" name="tanggal_lahir" value={form.tanggal_lahir} onChange={handleChange} required />
-          </div>
-
-          <div className="form-group">
-            <label>Agama</label>
-            <input type="text" name="agama" value={form.agama} onChange={handleChange} required />
-          </div>
-
           <div className="form-group full">
             <label>Alamat</label>
-            <textarea rows="3" name="alamat" value={form.alamat} onChange={handleChange} required></textarea>
+            <textarea rows="3" name="alamat" value={form.alamat} onChange={handleChange} required />
           </div>
 
           <div className="form-group">
-            <label>Asal Sekolah</label>
-            <input type="text" name="asal_sekolah" value={form.asal_sekolah} onChange={handleChange} />
+            <label>Nama Orang Tua/Wali</label>
+            <input type="text" name="nama_orang_tua" value={form.nama_orang_tua} onChange={handleChange} required />
           </div>
 
           <div className="form-group">
-            <label>Tahun Ajaran</label>
-            <input type="text" name="tahun_ajaran" placeholder="2026/2027" value={form.tahun_ajaran} onChange={handleChange} required />
+            <label>No HP Orang Tua</label>
+            <input type="tel" name="no_telepon" value={form.no_telepon} onChange={handleChange} required />
           </div>
 
-          <div className="form-group">
-            <label>Nama Ayah</label>
-            <input type="text" name="nama_ayah" value={form.nama_ayah} onChange={handleChange} required />
+          <FileInput label="Berkas Fotokopi KK" name="berkas_kk" value={form.berkas_kk} onFile={handleFile} required />
+          {needsReport && <FileInput label="Berkas Raport Terakhir" name="berkas_raport" value={form.berkas_raport} onFile={handleFile} required />}
+          <FileInput label="Foto Calon Siswa" name="foto_siswa" value={form.foto_siswa} onFile={handleFile} required />
+          {needsTransferLetter && <FileInput label="Berkas Surat Pindahan" name="berkas_surat_pindah" value={form.berkas_surat_pindah} onFile={handleFile} required />}
+
+          <div className="form-group full ppdb-note-box">
+            <strong>Pemberitahuan hasil</strong>
+            <span>Jika data sudah diverifikasi admin, informasi diterima/ditolak akan disampaikan melalui email orang tua/wali atau WhatsApp.</span>
           </div>
 
-          <div className="form-group">
-            <label>Nama Ibu</label>
-            <input type="text" name="nama_ibu" value={form.nama_ibu} onChange={handleChange} required />
-          </div>
-
-          <div className="form-group">
-            <label>Pekerjaan Ayah</label>
-            <input type="text" name="pekerjaan_ayah" value={form.pekerjaan_ayah} onChange={handleChange} />
-          </div>
-
-          <div className="form-group">
-            <label>Pekerjaan Ibu</label>
-            <input type="text" name="pekerjaan_ibu" value={form.pekerjaan_ibu} onChange={handleChange} />
-          </div>
-
-          <div className="form-group">
-            <label>No WhatsApp</label>
-            <input type="text" name="no_telepon" value={form.no_telepon} onChange={handleChange} required />
-          </div>
-
-          <div className="form-group">
-            <label>Email</label>
-            <input type="email" name="email" value={form.email} onChange={handleChange} />
-          </div>
-
-          <button type="submit" className="submit-btn" disabled={loading}>
-            {loading ? "Mengirim..." : "Kirim Pendaftaran"}
-          </button>
+          <button className="submit-btn full" type="submit" disabled={loading}>{loading ? "Mengirim..." : "Kirim Pendaftaran"}</button>
         </form>
       </main>
 

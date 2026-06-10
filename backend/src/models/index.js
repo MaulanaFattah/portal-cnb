@@ -34,4 +34,36 @@ db.JadwalMengajar = JadwalMengajar(sequelize);
 db.AbsensiSiswa = AbsensiSiswa(sequelize);
 db.PortalAccountLink = PortalAccountLink(sequelize);
 
+const cascade = { onDelete: "CASCADE", onUpdate: "CASCADE" };
+const setNull = { onDelete: "SET NULL", onUpdate: "CASCADE" };
+
+db.Kelas.hasMany(db.Siswa, { foreignKey: "kelas_id", as: "students", ...setNull });
+db.Siswa.belongsTo(db.Kelas, { foreignKey: "kelas_id", as: "kelas", ...setNull });
+
+db.User.hasOne(db.GuruProfile, { foreignKey: "user_id", as: "guruProfile", ...cascade });
+db.GuruProfile.belongsTo(db.User, { foreignKey: "user_id", as: "user", ...cascade });
+db.User.hasMany(db.GuruProfile, { foreignKey: "approved_by", as: "approvedGuruProfiles", ...setNull });
+db.GuruProfile.belongsTo(db.User, { foreignKey: "approved_by", as: "approvedBy", ...setNull });
+db.Kelas.hasMany(db.GuruProfile, { foreignKey: "kelas_id", as: "homeroomProfiles", ...setNull });
+db.GuruProfile.belongsTo(db.Kelas, { foreignKey: "kelas_id", as: "kelas", ...setNull });
+
+db.User.hasMany(db.JadwalMengajar, { foreignKey: "guru_user_id", as: "teachingSchedules", ...cascade });
+db.JadwalMengajar.belongsTo(db.User, { foreignKey: "guru_user_id", as: "guru", ...cascade });
+db.Kelas.hasMany(db.JadwalMengajar, { foreignKey: "kelas_id", as: "teachingSchedules", ...cascade });
+db.JadwalMengajar.belongsTo(db.Kelas, { foreignKey: "kelas_id", as: "kelas", ...cascade });
+
+db.Siswa.hasMany(db.AbsensiSiswa, { foreignKey: "siswa_id", as: "attendances", ...cascade });
+db.AbsensiSiswa.belongsTo(db.Siswa, { foreignKey: "siswa_id", as: "siswa", ...cascade });
+db.Kelas.hasMany(db.AbsensiSiswa, { foreignKey: "kelas_id", as: "attendances", ...cascade });
+db.AbsensiSiswa.belongsTo(db.Kelas, { foreignKey: "kelas_id", as: "kelas", ...cascade });
+db.User.hasMany(db.AbsensiSiswa, { foreignKey: "guru_user_id", as: "attendanceRecords", ...cascade });
+db.AbsensiSiswa.belongsTo(db.User, { foreignKey: "guru_user_id", as: "guru", ...cascade });
+db.JadwalMengajar.hasMany(db.AbsensiSiswa, { foreignKey: "jadwal_id", as: "attendances", ...setNull });
+db.AbsensiSiswa.belongsTo(db.JadwalMengajar, { foreignKey: "jadwal_id", as: "jadwal", ...setNull });
+
+db.User.hasMany(db.PortalAccountLink, { foreignKey: "user_id", as: "portalLinks", ...cascade });
+db.PortalAccountLink.belongsTo(db.User, { foreignKey: "user_id", as: "user", ...cascade });
+db.Siswa.hasMany(db.PortalAccountLink, { foreignKey: "siswa_id", as: "portalLinks", ...cascade });
+db.PortalAccountLink.belongsTo(db.Siswa, { foreignKey: "siswa_id", as: "siswa", ...cascade });
+
 module.exports = db;

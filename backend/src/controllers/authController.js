@@ -15,12 +15,12 @@ function generateToken(user) {
 
 exports.registerGuru = async (req, res) => {
   try {
-    const { name, email, password, profession, teacher_type, subject } = req.body;
+    const { name, email, password, profession, teacher_type, subject, kelas_id } = req.body;
 
-    if (!name || !email || !password || !profession || !teacher_type) {
+    if (!name || !email || !password || !teacher_type) {
       return res.status(400).json({
         success: false,
-        message: "Nama, email, password, jabatan, dan tipe guru wajib diisi"
+        message: "Nama, email, password, dan tipe guru wajib diisi"
       });
     }
 
@@ -34,12 +34,18 @@ exports.registerGuru = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, password: hashedPassword, role: "guru", profession });
+    if (teacher_type === "wali_kelas" && !kelas_id) {
+      return res.status(400).json({ success: false, message: "Kelas wajib dipilih untuk wali kelas" });
+    }
+
+    const teacherProfession = teacher_type === "wali_kelas" ? "Wali Kelas" : (profession || subject || "Guru Mapel");
+    const user = await User.create({ name, email, password: hashedPassword, role: "guru", profession: teacherProfession });
 
     const profile = await GuruProfile.create({
       user_id: user.id,
       teacher_type,
-      subject: subject || profession,
+      subject: teacher_type === "mapel" ? (subject || profession) : null,
+      kelas_id: teacher_type === "wali_kelas" ? kelas_id : null,
       verification_status: "pending"
     });
 

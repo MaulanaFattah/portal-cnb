@@ -1,7 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  createGuruStudentAccounts,
   getGuruDashboard,
   getRekapAbsensiGuru,
   logout,
@@ -19,8 +18,7 @@ const MENU_ITEMS = [
   { id: "dashboard", label: "Dashboard" },
   { id: "jadwal", label: "Jadwal Mengajar" },
   { id: "absensi", label: "Absensi Harian" },
-  { id: "rekap", label: "Rekapitulasi Absensi" },
-  { id: "akun", label: "Akun Siswa + Orang Tua" }
+  { id: "rekap", label: "Rekapitulasi Absensi" }
 ];
 
 const emptySummary = { hadir: 0, izin: 0, sakit: 0, alpha: 0, total: 0 };
@@ -69,18 +67,6 @@ function DashboardGuru() {
     dari: firstDayOfMonthISO(),
     sampai: todayISO()
   });
-  const [accountForm, setAccountForm] = useState({
-    kelas_id: "",
-    siswa_id: "",
-    siswa_email: "",
-    siswa_password: "",
-    orangtua_name: "",
-    orangtua_phone: "",
-    orangtua_email: "",
-    orangtua_password: ""
-  });
-  const [savingAccount, setSavingAccount] = useState(false);
-
   useEffect(() => {
     const loadDashboard = async () => {
       const result = await getGuruDashboard();
@@ -94,17 +80,8 @@ function DashboardGuru() {
       const data = result.data;
       const firstJadwalId = data.jadwal?.[0]?.id ? String(data.jadwal[0].id) : "";
       const firstClassId = data.kelasAkses?.[0]?.id || data.guruProfile?.kelas_id || "";
-      const firstStudent = (data.siswa || []).find((siswa) => (
-        firstClassId ? Number(siswa.kelas_id) === Number(firstClassId) : true
-      ));
-
       setJadwalId(firstJadwalId);
-      setRekapFilter((previous) => ({ ...previous, kelas_id: firstClassId ? String(firstClassId) : "" }));
-      setAccountForm((previous) => ({
-        ...previous,
-        kelas_id: firstClassId ? String(firstClassId) : "",
-        siswa_id: firstStudent?.id ? String(firstStudent.id) : ""
-      }));
+      setRekapFilter((previous) => ({ ...previous, kelas_id: firstClassId ? String(firstClassId) : "" }));
       setDashboard(data);
       setLoading(false);
     };
@@ -133,17 +110,6 @@ function DashboardGuru() {
     if (!dashboard || !attendanceClassId) return [];
     return (dashboard.siswa || []).filter((siswa) => Number(siswa.kelas_id) === Number(attendanceClassId));
   }, [dashboard, attendanceClassId]);
-
-  const accountStudents = useMemo(() => {
-    if (!dashboard) return [];
-    return (dashboard.siswa || []).filter((siswa) => (
-      accountForm.kelas_id ? Number(siswa.kelas_id) === Number(accountForm.kelas_id) : true
-    ));
-  }, [dashboard, accountForm.kelas_id]);
-
-  const selectedAccountStudent = useMemo(() => {
-    return accountStudents.find((siswa) => Number(siswa.id) === Number(accountForm.siswa_id)) || null;
-  }, [accountStudents, accountForm.siswa_id]);
 
   const attendanceSummary = useMemo(() => {
     return siswaList.reduce((summary, siswa) => {
@@ -226,43 +192,6 @@ function DashboardGuru() {
     anchor.download = `rekap-absensi-${rekapFilter.dari || "awal"}-${rekapFilter.sampai || "akhir"}.csv`;
     anchor.click();
     URL.revokeObjectURL(url);
-  };
-
-  const handleAccountChange = (event) => {
-    const { name, value } = event.target;
-
-    setAccountForm((previous) => {
-      if (name !== "kelas_id") return { ...previous, [name]: value };
-
-      const firstStudent = (dashboard?.siswa || []).find((siswa) => Number(siswa.kelas_id) === Number(value));
-      return {
-        ...previous,
-        kelas_id: value,
-        siswa_id: firstStudent?.id ? String(firstStudent.id) : ""
-      };
-    });
-  };
-
-  const handleCreateAccount = async (event) => {
-    event.preventDefault();
-    setSavingAccount(true);
-    setNotice(null);
-
-    const result = await createGuruStudentAccounts(accountForm);
-    setSavingAccount(false);
-    setNotice({ type: result.success ? "success" : "error", text: result.message });
-
-    if (result.success) {
-      setAccountForm((previous) => ({
-        ...previous,
-        siswa_email: "",
-        siswa_password: "",
-        orangtua_name: "",
-        orangtua_phone: "",
-        orangtua_email: "",
-        orangtua_password: ""
-      }));
-    }
   };
 
   const renderSummaryCards = (summary) => (
@@ -556,76 +485,10 @@ function DashboardGuru() {
     </section>
   );
 
-  const renderAkun = () => (
-    <section className="teacher-panel">
-      <div className="teacher-panel-header compact">
-        <span>Akun</span>
-        <h1>Akun Siswa + Orang Tua</h1>
-        <p>Buat akun login siswa dan orang tua untuk siswa pada kelas yang bisa diakses guru.</p>
-      </div>
-
-      <form onSubmit={handleCreateAccount} className="teacher-form-stack">
-        <div className="teacher-form-grid two-columns">
-          <label className="teacher-field">Kelas
-            <select name="kelas_id" value={accountForm.kelas_id} onChange={handleAccountChange}>
-              {classOptions.map((kelas) => <option key={kelas.id} value={kelas.id}>{kelas.nama_kelas}</option>)}
-            </select>
-          </label>
-          <label className="teacher-field">Siswa
-            <select name="siswa_id" value={accountForm.siswa_id} onChange={handleAccountChange} required>
-              {accountStudents.map((siswa) => <option key={siswa.id} value={siswa.id}>{siswa.nama} • {siswa.nisn}</option>)}
-            </select>
-          </label>
-        </div>
-
-        <div className="teacher-grid two-columns account-grid">
-          <article className="teacher-card account-card">
-            <div className="teacher-card-title">
-              <span>Form Akun Siswa</span>
-              <strong>{selectedAccountStudent?.nama || "Pilih siswa"}</strong>
-            </div>
-            <label className="teacher-field">Email Siswa
-              <input type="email" name="siswa_email" value={accountForm.siswa_email} onChange={handleAccountChange} placeholder="siswa@cnb.sch.id" required />
-            </label>
-            <label className="teacher-field">Password Siswa
-              <input type="password" name="siswa_password" value={accountForm.siswa_password} onChange={handleAccountChange} placeholder="Minimal 6 karakter" minLength="6" required />
-            </label>
-          </article>
-
-          <article className="teacher-card account-card">
-            <div className="teacher-card-title">
-              <span>Form Akun Orang Tua</span>
-              <strong>Opsional</strong>
-            </div>
-            <label className="teacher-field">Nama Orang Tua
-              <input name="orangtua_name" value={accountForm.orangtua_name} onChange={handleAccountChange} placeholder="Nama ayah/ibu/wali" />
-            </label>
-            <label className="teacher-field">No. HP Orang Tua
-              <input name="orangtua_phone" value={accountForm.orangtua_phone} onChange={handleAccountChange} placeholder="08xxxxxxxxxx" />
-            </label>
-            <label className="teacher-field">Email Orang Tua
-              <input type="email" name="orangtua_email" value={accountForm.orangtua_email} onChange={handleAccountChange} placeholder="orangtua@email.com" />
-            </label>
-            <label className="teacher-field">Password Orang Tua
-              <input type="password" name="orangtua_password" value={accountForm.orangtua_password} onChange={handleAccountChange} placeholder="Isi jika membuat akun orang tua" minLength="6" />
-            </label>
-          </article>
-        </div>
-
-        <div className="teacher-actions-row">
-          <button type="submit" className="teacher-primary" disabled={savingAccount || !accountStudents.length}>
-            {savingAccount ? "Membuat..." : "Buat Akun"}
-          </button>
-        </div>
-      </form>
-    </section>
-  );
-
   const renderActivePanel = () => {
     if (activeMenu === "jadwal") return renderJadwal();
     if (activeMenu === "absensi") return renderAbsensi();
     if (activeMenu === "rekap") return renderRekap();
-    if (activeMenu === "akun") return renderAkun();
     return renderDashboard();
   };
 

@@ -1,11 +1,12 @@
-﻿import { useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { registerGuru } from "../services/api";
+import { getKelas, registerGuru } from "../services/api";
 
 function RegisterGuru() {
   const navigate = useNavigate();
+  const [kelas, setKelas] = useState([]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -13,12 +14,22 @@ function RegisterGuru() {
     password: "",
     confirmPassword: "",
     teacher_type: "mapel",
-    profession: "",
+    kelas_id: "",
     subject: ""
   });
 
+  useEffect(() => {
+    (async () => {
+      const result = await getKelas();
+      if (result.success) setKelas(result.data || []);
+    })();
+  }, []);
+
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const next = { ...formData, [e.target.name]: e.target.value };
+    if (e.target.name === "teacher_type" && e.target.value === "mapel") next.kelas_id = "";
+    if (e.target.name === "teacher_type" && e.target.value === "wali_kelas") next.subject = "";
+    setFormData(next);
   };
 
   const handleRegister = async (e) => {
@@ -29,13 +40,19 @@ function RegisterGuru() {
       return;
     }
 
+    if (formData.teacher_type === "wali_kelas" && !formData.kelas_id) {
+      alert("Wali kelas wajib memilih kelas.");
+      return;
+    }
+
     const result = await registerGuru({
       name: formData.name,
       email: formData.email,
       password: formData.password,
-      profession: formData.profession,
       teacher_type: formData.teacher_type,
-      subject: formData.subject
+      kelas_id: formData.teacher_type === "wali_kelas" ? formData.kelas_id : null,
+      profession: formData.teacher_type === "mapel" ? formData.subject : "Wali Kelas",
+      subject: formData.teacher_type === "mapel" ? formData.subject : null
     });
 
     if (!result.success) {
@@ -75,15 +92,20 @@ function RegisterGuru() {
               </select>
             </div>
 
-            <div className="form-group">
-              <label>Jabatan / Profesi</label>
-              <input type="text" name="profession" placeholder="Contoh: Guru Matematika" value={formData.profession} onChange={handleChange} required />
-            </div>
-
-            <div className="form-group">
-              <label>Mata Pelajaran</label>
-              <input type="text" name="subject" placeholder="Contoh: Matematika" value={formData.subject} onChange={handleChange} />
-            </div>
+            {formData.teacher_type === "wali_kelas" ? (
+              <div className="form-group">
+                <label>Kelas</label>
+                <select name="kelas_id" value={formData.kelas_id} onChange={handleChange} required>
+                  <option value="">Pilih kelas</option>
+                  {kelas.map((item) => <option key={item.id} value={item.id}>{item.nama_kelas}</option>)}
+                </select>
+              </div>
+            ) : (
+              <div className="form-group">
+                <label>Mata Pelajaran</label>
+                <input type="text" name="subject" placeholder="Contoh: Matematika" value={formData.subject} onChange={handleChange} required />
+              </div>
+            )}
 
             <div className="form-group">
               <label>Password</label>

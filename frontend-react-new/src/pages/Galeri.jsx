@@ -1,11 +1,15 @@
-﻿import { useEffect, useState } from "react";
+import schoolLogo from "../assets/logo.jpeg";
+import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { getGaleri } from "../services/api";
 
+const ITEMS_PER_PAGE = 6;
+
 function Galeri() {
   const [galeri, setGaleri] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     (async () => {
@@ -17,6 +21,14 @@ function Galeri() {
       }
     })();
   }, []);
+
+  const totalPages = Math.max(1, Math.ceil(galeri.length / ITEMS_PER_PAGE));
+  const currentItems = galeri.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
+  const goToPage = (targetPage) => {
+    setPage(targetPage);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
     <>
@@ -36,10 +48,10 @@ function Galeri() {
             ) : galeri.length === 0 ? (
               <p className="empty-text">Belum ada galeri.</p>
             ) : (
-              galeri.map((item) => (
+              currentItems.map((item) => (
                 <article className="gallery-card" key={item.id}>
                   <div className="gallery-photo">
-                    <img src={item.image || "/logo.svg"} alt={item.title} />
+                    <img src={item.image || schoolLogo} alt={item.title} />
                   </div>
 
                   <div className="gallery-info">
@@ -50,6 +62,21 @@ function Galeri() {
               ))
             )}
           </div>
+
+          {!loading && galeri.length > ITEMS_PER_PAGE && (
+            <div className="gallery-pagination" aria-label="Navigasi halaman galeri">
+              {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
+                <button
+                  key={pageNumber}
+                  className={pageNumber === page ? "active" : ""}
+                  onClick={() => goToPage(pageNumber)}
+                  type="button"
+                >
+                  {pageNumber}
+                </button>
+              ))}
+            </div>
+          )}
         </section>
       </main>
 

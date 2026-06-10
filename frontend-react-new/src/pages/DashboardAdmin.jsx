@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import AdminSidebar from "../components/AdminSidebar";
 import { getAdminDashboard, logout } from "../services/api";
 
 function DashboardAdmin() {
@@ -36,27 +37,9 @@ function DashboardAdmin() {
 
     return (
         <div className="dashboard-layout">
-            <aside className="admin-sidebar-card">
-                <span className="sidebar-title">Dashboard</span>
-                <h3>Admin</h3>
+      <AdminSidebar active="/dashboard-admin" />
 
-                <nav className="admin-menu">
-                    <Link className="active" to="/dashboard-admin">Dashboard</Link>
-                    <Link to="/admin/kegiatan">Kegiatan</Link>
-                    <Link to="/admin/pengumuman">Pengumuman</Link>
-                    <Link to="/admin/galeri">Galeri</Link>
-                    <Link to="/admin/ppdb">PPDB</Link>
-                    <Link to="/admin/guru">Guru</Link>
-                    <Link to="/admin/verifikasi-guru">Verifikasi Guru</Link>
-                    <Link to="/admin/kepala-sekolah">Kepala Sekolah</Link>
-                    <Link to="/admin/kelas">Kelas</Link>
-                    <Link to="/admin/siswa">Siswa</Link>
-                    <Link to="/admin/akun-siswa">Akun Siswa</Link>
-                    <Link to="/admin/profil-sekolah">Profil Sekolah</Link>
-                </nav>
-            </aside>
-
-            <main className="dashboard-content">
+<main className="dashboard-content">
                 <div className="dashboard-header">
                     <div>
                         <h1>Dashboard Admin</h1>

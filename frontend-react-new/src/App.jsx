@@ -20,8 +20,6 @@ import AdminKegiatan from "./pages/AdminKegiatan";
 import AdminPengumuman from "./pages/AdminPengumuman";
 import AdminGaleri from "./pages/AdminGaleri";
 import AdminPPDB from "./pages/AdminPPDB";
-import AdminGuru from "./pages/AdminGuru";
-import AdminKepalaSekolah from "./pages/AdminKepalaSekolah";
 import AdminKelas from "./pages/AdminKelas";
 import AdminSiswa from "./pages/AdminSiswa";
 import AdminAkunSiswa from "./pages/AdminAkunSiswa";
@@ -60,8 +58,6 @@ function App() {
         <Route path="/admin/pengumuman" element={<AdminPengumuman />} />
         <Route path="/admin/galeri" element={<AdminGaleri />} />
         <Route path="/admin/ppdb" element={<AdminPPDB />} />
-        <Route path="/admin/guru" element={<AdminGuru />} />
-        <Route path="/admin/kepala-sekolah" element={<AdminKepalaSekolah />} />
         <Route path="/admin/kelas" element={<AdminKelas />} />
         <Route path="/admin/siswa" element={<AdminSiswa />} />
         <Route path="/admin/akun-siswa" element={<AdminAkunSiswa />} />

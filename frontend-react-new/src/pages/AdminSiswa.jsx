@@ -1,7 +1,10 @@
-﻿import { useEffect, useState } from "react";
+import schoolLogo from "../assets/logo.jpeg";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import AdminSidebar from "../components/AdminSidebar";
 import {
   getSiswa,
+  getKelas,
   createSiswa,
   updateSiswa,
   deleteSiswa,
@@ -11,6 +14,7 @@ import {
 function AdminSiswa() {
   const navigate = useNavigate();
   const [siswa, setSiswa] = useState([]);
+  const [kelas, setKelas] = useState([]);
   const [editId, setEditId] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -31,8 +35,9 @@ function AdminSiswa() {
   });
 
   const loadSiswa = async () => {
-    const result = await getSiswa();
+    const [result, kelasResult] = await Promise.all([getSiswa(), getKelas()]);
     if (result.success) setSiswa(result.data);
+    if (kelasResult.success) setKelas(kelasResult.data || []);
   };
 
   useEffect(() => {
@@ -112,26 +117,9 @@ function AdminSiswa() {
 
   return (
     <div className="dashboard-layout">
-      <aside className="admin-sidebar-card">
-        <span className="sidebar-title">Dashboard</span>
-        <h3>Admin</h3>
+      <AdminSidebar active="/admin/siswa" />
 
-        <nav className="admin-menu">
-          <Link to="/dashboard-admin">Dashboard</Link>
-          <Link to="/admin/kegiatan">Kegiatan</Link>
-          <Link to="/admin/pengumuman">Pengumuman</Link>
-          <Link to="/admin/galeri">Galeri</Link>
-          <Link to="/admin/ppdb">PPDB</Link>
-          <Link to="/admin/guru">Guru</Link>
-          <Link to="/admin/kepala-sekolah">Kepala Sekolah</Link>
-          <Link to="/admin/kelas">Kelas</Link>
-          <Link className="active" to="/admin/siswa">Siswa</Link>
-          <Link to="/admin/akun-siswa">Akun Siswa</Link>
-          <Link to="/admin/profil-sekolah">Profil Sekolah</Link>
-        </nav>
-      </aside>
-
-      <main className="dashboard-content">
+<main className="dashboard-content">
         <div className="dashboard-header">
           <div>
             <h1>Siswa</h1>
@@ -160,8 +148,11 @@ function AdminSiswa() {
               </div>
 
               <div className="form-group">
-                <label>Kelas ID</label>
-                <input type="number" name="kelas_id" value={formData.kelas_id} onChange={handleChange} />
+                <label>Kelas</label>
+                <select name="kelas_id" value={formData.kelas_id || ""} onChange={handleChange}>
+                  <option value="">Pilih kelas</option>
+                  {kelas.map((item) => <option key={item.id} value={item.id}>{item.nama_kelas}</option>)}
+                </select>
               </div>
 
               <div className="form-group">
@@ -258,10 +249,10 @@ function AdminSiswa() {
                 siswa.map((item, index) => (
                   <div className="activity-admin-item" key={item.id}>
                     <span>{index + 1}</span>
-                    <img src={item.foto || "/logo.svg"} alt={item.nama} />
+                    <img src={item.foto || schoolLogo} alt={item.nama} />
                     <div>
                       <h4>{item.nama}</h4>
-                      <p>{item.nisn} • {item.status}</p>
+                      <p>{item.nisn} • {kelas.find((kelasItem) => Number(kelasItem.id) === Number(item.kelas_id))?.nama_kelas || "Belum ada kelas"} • {item.status}</p>
                     </div>
                     <div className="admin-action">
                       <button onClick={() => handleEdit(item)}>✎</button>
