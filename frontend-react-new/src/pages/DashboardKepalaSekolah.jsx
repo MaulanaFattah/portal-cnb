@@ -4,7 +4,7 @@ import {
   getKepalaSekolahDashboard,
   logout
 } from "../services/api";
-import { exportExcel } from "../utils/exportExcel";
+import { exportExcel, exportPdf } from "../utils/exportExcel";
 
 const MENU_ITEMS = [
   { id: "dashboard", label: "Dashboard" },
@@ -85,32 +85,40 @@ function DashboardKepalaSekolah() {
     }));
   };
 
-  const exportRekap = () => {
-    const rows = dashboard?.absensi?.rows || [];
-    if (!rows.length) return;
+  const buildExportPayload = () => ({
+    title: "Rekapitulasi Absensi Sekolah",
+    subtitle: `Periode ${filter.dari || "awal"} sampai ${filter.sampai || "akhir"}`,
+    summary: [
+      { label: "Hadir", value: dashboard.absensi?.summary?.hadir || 0 },
+      { label: "Izin", value: dashboard.absensi?.summary?.izin || 0 },
+      { label: "Sakit", value: dashboard.absensi?.summary?.sakit || 0 },
+      { label: "Alpha", value: dashboard.absensi?.summary?.alpha || 0 },
+      { label: "Total", value: dashboard.absensi?.summary?.total || 0 }
+    ],
+    columns: [
+      { header: "No", value: (_row, index) => index + 1 },
+      { header: "Tanggal", value: (row) => formatDate(row.tanggal) },
+      { header: "Nama Siswa", value: (row) => row.siswa?.nama || "-" },
+      { header: "Kelas", value: (row) => row.kelas?.nama_kelas || "-" },
+      { header: "Mapel", value: (row) => row.mapel || "Wali Kelas" },
+      { header: "Status", value: (row) => row.status?.toUpperCase() || "-" },
+      { header: "Keterangan", value: (row) => row.keterangan || "-" }
+    ],
+    rows: dashboard?.absensi?.rows || []
+  });
 
-    exportExcel({
-      filename: `rekapitulasi-sekolah-${filter.dari}-${filter.sampai}.xls`,
-      title: "Rekapitulasi Absensi Sekolah",
-      subtitle: `Periode ${filter.dari || "awal"} sampai ${filter.sampai || "akhir"}`,
-      summary: [
-        { label: "Hadir", value: dashboard.absensi?.summary?.hadir || 0 },
-        { label: "Izin", value: dashboard.absensi?.summary?.izin || 0 },
-        { label: "Sakit", value: dashboard.absensi?.summary?.sakit || 0 },
-        { label: "Alpha", value: dashboard.absensi?.summary?.alpha || 0 },
-        { label: "Total", value: dashboard.absensi?.summary?.total || 0 }
-      ],
-      columns: [
-        { header: "No", value: (_row, index) => index + 1 },
-        { header: "Tanggal", value: (row) => formatDate(row.tanggal) },
-        { header: "Nama Siswa", value: (row) => row.siswa?.nama || "-" },
-        { header: "Kelas", value: (row) => row.kelas?.nama_kelas || "-" },
-        { header: "Mapel", value: (row) => row.mapel || "Wali Kelas" },
-        { header: "Status", value: (row) => row.status?.toUpperCase() || "-" },
-        { header: "Keterangan", value: (row) => row.keterangan || "-" }
-      ],
-      rows
-    });
+  const exportRekap = () => {
+    const payload = buildExportPayload();
+    if (!payload.rows.length) return;
+    getKepalaSekolahDashboard({ ...filter, export_type: "excel" });
+    exportExcel({ filename: `rekapitulasi-sekolah-${filter.dari}-${filter.sampai}.xls`, ...payload });
+  };
+
+  const exportRekapPdf = () => {
+    const payload = buildExportPayload();
+    if (!payload.rows.length) return;
+    getKepalaSekolahDashboard({ ...filter, export_type: "pdf" });
+    exportPdf(payload);
   };
 
   if (loading) {
@@ -285,6 +293,7 @@ function DashboardKepalaSekolah() {
         <div className="teacher-actions-row action-height" style={{ alignItems: "flex-end", paddingBottom: "2px" }}>
           <button type="button" className="teacher-primary" onClick={loadRekap} disabled={rekapLoading}>{rekapLoading ? "Memuat..." : "Tampilkan"}</button>
           <button type="button" className="teacher-secondary" onClick={exportRekap} disabled={!absensi.rows.length}>Export Excel</button>
+          <button type="button" className="teacher-secondary" onClick={exportRekapPdf} disabled={!absensi.rows.length}>Export PDF</button>
         </div>
       </div>
 

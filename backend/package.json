@@ -10,7 +10,8 @@
     "seed:users": "node src/seedUsers.js",
     "migrate:english-schema": "node src/migrateEnglishSingularSchema.js",
     "migrate:admission-profile-fields": "node src/migrateAdmissionProfileFields.js",
-    "migrate:portal-features": "node src/migratePortalFeatureEnhancements.js"
+    "migrate:portal-features": "node src/migratePortalFeatureEnhancements.js",
+    "migrate:revision-rbac": "node src/migrateRevisionRbacAbsensi.js"
   },
   "keywords": [],
   "author": "",
@@ -23,7 +24,8 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.22.4",
-    "sequelize": "^6.37.8"
+    "sequelize": "^6.37.8",
+    "multer": "^2.0.2"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

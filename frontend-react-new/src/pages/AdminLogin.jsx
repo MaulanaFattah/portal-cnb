@@ -24,7 +24,7 @@ function AdminLogin() {
     }
 
     saveAuth(result.token, result.user);
-    navigate("/dashboard-admin");
+    navigate(result.user?.must_change_password ? "/change-password" : "/dashboard-admin");
   };
 
   return (

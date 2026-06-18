@@ -18,6 +18,7 @@ module.exports = (sequelize) => {
         defaultValue: "mapel"
       },
       subject: { type: DataTypes.STRING, allowNull: true },
+      is_homeroom: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
       kelas_id: {
         type: DataTypes.INTEGER,
         allowNull: true,

@@ -10,5 +10,6 @@ router.get("/users", verifyToken, onlyAdmin, adminController.getUsers);
 router.post("/users", verifyToken, onlyAdmin, adminController.createUser);
 router.put("/users/:id", verifyToken, onlyAdmin, adminController.updateUser);
 router.delete("/users/:id", verifyToken, onlyAdmin, adminController.deleteUser);
+router.put("/users/:id/reset-password", verifyToken, onlyAdmin, adminController.resetUserPassword);
 
 module.exports = router;

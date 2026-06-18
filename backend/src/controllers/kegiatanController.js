@@ -1,7 +1,15 @@
 const db = require("../models");
+const { deleteLocalUpload, toRelativeUploadPath } = require("../utils/uploadStorage");
+const { logAudit } = require("../services/auditLogService");
 
 const Kegiatan = db.Kegiatan;
 const VALID_STATUS = ["tampil", "tidak_tampil"];
+
+function getImageValue(req, currentImage = null) {
+  if (req.file) return toRelativeUploadPath(req.file);
+  if (req.body.image !== undefined) return req.body.image || currentImage;
+  return currentImage;
+}
 
 exports.getAllKegiatan = async (req, res) => {
   try {
@@ -24,7 +32,8 @@ exports.getAllKegiatan = async (req, res) => {
 
 exports.createKegiatan = async (req, res) => {
   try {
-    const { title, date, description, image, status = "tampil" } = req.body;
+    const { title, date, description, status = "tampil" } = req.body;
+    const image = getImageValue(req);
 
     if (!title || !date || !description) {
       return res.status(400).json({
@@ -38,6 +47,12 @@ exports.createKegiatan = async (req, res) => {
     }
 
     const kegiatan = await Kegiatan.create({ title, date, description, image, status });
+    await logAudit(req, {
+      action: "activity.create",
+      entityType: "activity",
+      entityId: kegiatan.id,
+      metadata: { title, uploaded: Boolean(req.file) }
+    });
 
     res.status(201).json({
       success: true,
@@ -45,6 +60,7 @@ exports.createKegiatan = async (req, res) => {
       data: kegiatan
     });
   } catch (error) {
+    if (req.file) deleteLocalUpload(toRelativeUploadPath(req.file));
     res.status(500).json({
       success: false,
       message: "Gagal menambahkan kegiatan",
@@ -60,6 +76,7 @@ exports.updateKegiatan = async (req, res) => {
     const kegiatan = await Kegiatan.findByPk(id);
 
     if (!kegiatan) {
+      if (req.file) deleteLocalUpload(toRelativeUploadPath(req.file));
       return res.status(404).json({
         success: false,
         message: "Kegiatan tidak ditemukan"
@@ -67,10 +84,27 @@ exports.updateKegiatan = async (req, res) => {
     }
 
     if (req.body.status && !VALID_STATUS.includes(req.body.status)) {
+      if (req.file) deleteLocalUpload(toRelativeUploadPath(req.file));
       return res.status(400).json({ success: false, message: "Status kegiatan tidak valid" });
     }
 
-    await kegiatan.update(req.body);
+    const oldImage = kegiatan.image;
+    const nextImage = getImageValue(req, oldImage);
+    await kegiatan.update({
+      title: req.body.title ?? kegiatan.title,
+      date: req.body.date ?? kegiatan.date,
+      description: req.body.description ?? kegiatan.description,
+      status: req.body.status ?? kegiatan.status,
+      image: nextImage
+    });
+
+    if (req.file && oldImage && oldImage !== nextImage) deleteLocalUpload(oldImage);
+    await logAudit(req, {
+      action: "activity.update",
+      entityType: "activity",
+      entityId: kegiatan.id,
+      metadata: { title: kegiatan.title, uploaded: Boolean(req.file) }
+    });
 
     res.json({
       success: true,
@@ -78,6 +112,7 @@ exports.updateKegiatan = async (req, res) => {
       data: kegiatan
     });
   } catch (error) {
+    if (req.file) deleteLocalUpload(toRelativeUploadPath(req.file));
     res.status(500).json({
       success: false,
       message: "Gagal memperbarui kegiatan",
@@ -99,7 +134,10 @@ exports.deleteKegiatan = async (req, res) => {
       });
     }
 
+    const oldImage = kegiatan.image;
     await kegiatan.destroy();
+    deleteLocalUpload(oldImage);
+    await logAudit(req, { action: "activity.delete", entityType: "activity", entityId: id });
 
     res.json({
       success: true,

@@ -11,6 +11,7 @@ const Siswa = db.Siswa;
 const ProfilSekolah = db.ProfilSekolah;
 const Pengumuman = db.Pengumuman;
 const PortalAccountLink = db.PortalAccountLink;
+const { logAudit } = require("../services/auditLogService");
 
 const VALID_ABSENSI = ["hadir", "izin", "sakit", "alpha"];
 const VALID_JADWAL_STATUS = ["aktif", "non-aktif"];
@@ -43,6 +44,23 @@ function uniqueNumbers(values) {
 
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
+}
+
+function normalizeSubjects(value) {
+  if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+  return String(value || "").split(",").map((item) => item.trim()).filter(Boolean);
+}
+
+function toBoolean(value) {
+  return value === true || value === "true" || value === "1" || value === 1;
+}
+
+function isHomeroomProfile(profile) {
+  return Boolean(profile?.is_homeroom) || profile?.teacher_type === "wali_kelas";
+}
+
+function isSubjectTeacherProfile(profile) {
+  return profile?.teacher_type === "mapel" || Boolean(profile?.subject);
 }
 
 function summarizeAbsensi(rows) {
@@ -80,17 +98,11 @@ async function getTeacherSchedules(userId, classMap) {
 }
 
 async function getAccessibleContext(profile, userId, classMap) {
-  if (profile.teacher_type === "wali_kelas") {
-    const classIds = uniqueNumbers([profile.kelas_id]);
-    return {
-      classIds,
-      classes: classIds.map((id) => classMap.get(id)).filter(Boolean),
-      jadwal: []
-    };
-  }
-
   const jadwal = await getTeacherSchedules(userId, classMap);
-  const classIds = uniqueNumbers(jadwal.map((item) => item.kelas_id));
+  const classIds = uniqueNumbers([
+    isHomeroomProfile(profile) ? profile.kelas_id : null,
+    ...jadwal.map((item) => item.kelas_id)
+  ]);
 
   return {
     classIds,
@@ -106,10 +118,8 @@ async function ensureClassAccess(profile, userId, classId) {
     return { allowed: false, message: "Kelas wajib dipilih" };
   }
 
-  if (profile.teacher_type === "wali_kelas") {
-    return Number(profile.kelas_id) === normalizedClassId
-      ? { allowed: true }
-      : { allowed: false, message: "Wali kelas hanya dapat mengakses kelas sendiri" };
+  if (isHomeroomProfile(profile) && Number(profile.kelas_id) === normalizedClassId) {
+    return { allowed: true, homeroom: true };
   }
 
   const jadwal = await JadwalMengajar.findOne({
@@ -118,7 +128,7 @@ async function ensureClassAccess(profile, userId, classId) {
 
   return jadwal
     ? { allowed: true, jadwal }
-    : { allowed: false, message: "Guru mapel hanya dapat mengakses kelas sesuai roster" };
+    : { allowed: false, message: "Guru hanya dapat mengakses kelas sesuai wali kelas atau roster aktif" };
 }
 
 exports.getGuruRegistrations = async (req, res) => {
@@ -132,7 +142,7 @@ exports.getGuruRegistrations = async (req, res) => {
       const profile = profileMap.get(user.id) || null;
       return {
         ...safeUser(user),
-        guruProfile: profile ? { ...profile, kelas: classMap.get(profile.kelas_id) || null } : null
+        guruProfile: profile ? { ...profile, subjects: normalizeSubjects(profile.subject), kelas: classMap.get(profile.kelas_id) || null } : null
       };
     });
 
@@ -145,7 +155,7 @@ exports.getGuruRegistrations = async (req, res) => {
 exports.verifyGuruRegistration = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { verification_status, teacher_type, subject, kelas_id, note } = req.body;
+    const { verification_status, subject, subjects, kelas_id, homeroom_classroom_id, note } = req.body;
 
     if (!["pending", "approved", "rejected"].includes(verification_status)) {
       return res.status(400).json({ success: false, message: "Status verifikasi tidak valid" });
@@ -158,22 +168,47 @@ exports.verifyGuruRegistration = async (req, res) => {
 
     const [profile] = await GuruProfile.findOrCreate({
       where: { user_id: user.id },
-      defaults: { teacher_type: teacher_type || "mapel", subject: subject || user.profession }
+      defaults: { teacher_type: "mapel", subject: user.profession }
     });
 
-    const nextTeacherType = teacher_type || profile.teacher_type;
-    if (nextTeacherType === "wali_kelas" && verification_status === "approved" && !kelas_id && !profile.kelas_id) {
-      return res.status(400).json({ success: false, message: "Kelas wajib dipilih untuk wali kelas" });
+    const subjectList = normalizeSubjects(subjects || subject || profile.subject);
+    const isHomeroom = toBoolean(req.body.is_homeroom) || req.body.teacher_type === "wali_kelas";
+    const isSubjectTeacher = toBoolean(req.body.is_subject_teacher) || req.body.teacher_type === "mapel" || subjectList.length > 0;
+    const nextClassId = Number(homeroom_classroom_id || kelas_id || profile.kelas_id || 0);
+
+    if (verification_status === "approved") {
+      if (!isHomeroom && !isSubjectTeacher) {
+        return res.status(400).json({ success: false, message: "Pilih minimal satu peran guru" });
+      }
+      if (isHomeroom && !nextClassId) {
+        return res.status(400).json({ success: false, message: "Kelas wajib dipilih untuk wali kelas" });
+      }
+      if (isSubjectTeacher && !subjectList.length) {
+        return res.status(400).json({ success: false, message: "Minimal satu mata pelajaran wajib diisi untuk guru mapel" });
+      }
     }
 
+    const legacyTeacherType = isSubjectTeacher ? "mapel" : "wali_kelas";
     await profile.update({
       verification_status,
-      teacher_type: nextTeacherType,
-      subject: nextTeacherType === "mapel" ? (subject || profile.subject) : null,
-      kelas_id: nextTeacherType === "wali_kelas" ? (kelas_id || profile.kelas_id) : null,
+      teacher_type: legacyTeacherType,
+      subject: isSubjectTeacher ? subjectList.join(", ") : null,
+      is_homeroom: isHomeroom,
+      kelas_id: isHomeroom ? nextClassId : null,
       note: note || null,
       approved_by: verification_status === "approved" ? req.user.id : profile.approved_by,
       approved_at: verification_status === "approved" ? new Date() : profile.approved_at
+    });
+
+    await user.update({
+      profession: [isHomeroom ? "Wali Kelas" : null, isSubjectTeacher ? subjectList.join(", ") : null].filter(Boolean).join(" + ") || user.profession
+    });
+
+    await logAudit(req, {
+      action: "teacher.verify",
+      entityType: "teacher_profile",
+      entityId: profile.id,
+      metadata: { userId: user.id, verification_status, isHomeroom, subjects: subjectList }
     });
 
     return res.json({ success: true, message: "Status guru berhasil diperbarui", data: profile });
@@ -214,11 +249,12 @@ exports.createJadwal = async (req, res) => {
     }
 
     const profile = await GuruProfile.findOne({ where: { user_id: guru_user_id } });
-    if (!profile || profile.verification_status !== "approved" || profile.teacher_type !== "mapel") {
+    if (!profile || profile.verification_status !== "approved" || !isSubjectTeacherProfile(profile)) {
       return res.status(400).json({ success: false, message: "Jadwal hanya untuk guru mapel yang sudah disetujui" });
     }
 
     const jadwal = await JadwalMengajar.create({ guru_user_id, kelas_id, mapel, hari, jam_mulai, jam_selesai, status });
+    await logAudit(req, { action: "schedule.create", entityType: "teaching_schedule", entityId: jadwal.id, metadata: { guru_user_id, kelas_id, mapel } });
     return res.status(201).json({ success: true, message: "Jadwal mengajar berhasil ditambahkan", data: jadwal });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Gagal menambahkan jadwal", error: error.message });
@@ -240,11 +276,12 @@ exports.updateJadwal = async (req, res) => {
     }
 
     const profile = await GuruProfile.findOne({ where: { user_id: guru_user_id } });
-    if (!profile || profile.verification_status !== "approved" || profile.teacher_type !== "mapel") {
+    if (!profile || profile.verification_status !== "approved" || !isSubjectTeacherProfile(profile)) {
       return res.status(400).json({ success: false, message: "Jadwal hanya untuk guru mapel yang sudah disetujui" });
     }
 
     await jadwal.update({ guru_user_id, kelas_id, mapel, hari, jam_mulai, jam_selesai, status: status || "aktif" });
+    await logAudit(req, { action: "schedule.update", entityType: "teaching_schedule", entityId: jadwal.id, metadata: { guru_user_id, kelas_id, mapel } });
     return res.json({ success: true, message: "Jadwal mengajar berhasil diperbarui", data: jadwal });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Gagal memperbarui jadwal", error: error.message });
@@ -256,6 +293,7 @@ exports.deleteJadwal = async (req, res) => {
     const jadwal = await JadwalMengajar.findByPk(req.params.id);
     if (!jadwal) return res.status(404).json({ success: false, message: "Jadwal tidak ditemukan" });
     await jadwal.destroy();
+    await logAudit(req, { action: "schedule.delete", entityType: "teaching_schedule", entityId: req.params.id });
     return res.json({ success: true, message: "Jadwal berhasil dihapus" });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Gagal menghapus jadwal", error: error.message });
@@ -315,15 +353,18 @@ exports.submitAbsensi = async (req, res) => {
     let classId = Number(kelas_id || profile.kelas_id);
     let mapel = null;
     let scheduleId = null;
+    let teacherType = "wali_kelas";
 
-    if (profile.teacher_type === "mapel") {
+    if (jadwal_id) {
       const jadwal = await JadwalMengajar.findOne({ where: { id: jadwal_id, guru_user_id: req.user.id, status: "aktif" } });
       if (!jadwal) return res.status(404).json({ success: false, message: "Jadwal mengajar tidak ditemukan" });
       if (jadwal.hari !== hari) return res.status(400).json({ success: false, message: `Tanggal yang dipilih bukan hari ${jadwal.hari}` });
       classId = jadwal.kelas_id;
       mapel = jadwal.mapel;
       scheduleId = jadwal.id;
+      teacherType = "mapel";
     } else {
+      if (!isHomeroomProfile(profile)) return res.status(403).json({ success: false, message: "Pilih jadwal aktif untuk absensi guru mapel" });
       if (!classId) return res.status(400).json({ success: false, message: "Kelas wali belum ditentukan admin" });
       if (Number(profile.kelas_id) !== classId) {
         return res.status(403).json({ success: false, message: "Wali kelas hanya dapat absensi kelas sendiri" });
@@ -359,7 +400,7 @@ exports.submitAbsensi = async (req, res) => {
         jadwal_id: scheduleId,
         tanggal,
         hari,
-        tipe_guru: profile.teacher_type,
+        tipe_guru: teacherType,
         mapel,
         status: entry.status,
         keterangan: entry.keterangan || null
@@ -370,6 +411,7 @@ exports.submitAbsensi = async (req, res) => {
       saved += 1;
     }
 
+    await logAudit(req, { action: "attendance.submit", entityType: "student_attendance", metadata: { tanggal, kelas_id: classId, jadwal_id: scheduleId, saved } });
     return res.json({ success: true, message: `${saved} data absensi berhasil disimpan`, data: { saved } });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Gagal menyimpan absensi", error: error.message });
@@ -386,31 +428,29 @@ exports.getRekapAbsensi = async (req, res) => {
     }
 
     const classMap = await getClassMap();
-    const where = { guru_user_id: req.user.id };
-    let classId = Number(kelas_id || profile.kelas_id);
+    const where = {};
+    let classId = Number(kelas_id || 0);
 
-    if (profile.teacher_type === "wali_kelas") {
-      classId = Number(profile.kelas_id);
-      if (!classId) return res.status(400).json({ success: false, message: "Kelas wali belum ditentukan admin" });
-      if (kelas_id && Number(kelas_id) !== classId) {
-        return res.status(403).json({ success: false, message: "Wali kelas hanya dapat melihat rekap kelas sendiri" });
-      }
-      where.kelas_id = classId;
-    } else if (jadwal_id) {
+    if (jadwal_id) {
       const jadwal = await JadwalMengajar.findOne({ where: { id: jadwal_id, guru_user_id: req.user.id, status: "aktif" } });
       if (!jadwal) return res.status(404).json({ success: false, message: "Jadwal mengajar tidak ditemukan" });
       classId = jadwal.kelas_id;
+      where.guru_user_id = req.user.id;
       where.jadwal_id = jadwal.id;
       where.kelas_id = jadwal.kelas_id;
     } else if (classId) {
       const access = await ensureClassAccess(profile, req.user.id, classId);
       if (!access.allowed) return res.status(403).json({ success: false, message: access.message });
       where.kelas_id = classId;
+      if (!access.homeroom) where.guru_user_id = req.user.id;
+    } else if (isHomeroomProfile(profile) && profile.kelas_id) {
+      where.kelas_id = Number(profile.kelas_id);
     } else {
       const context = await getAccessibleContext(profile, req.user.id, classMap);
       if (!context.classIds.length) {
         return res.json({ success: true, message: "Belum ada kelas pada roster", data: { summary: summarizeAbsensi([]), rows: [] } });
       }
+      where.guru_user_id = req.user.id;
       where.kelas_id = { [Op.in]: context.classIds };
     }
 
@@ -442,6 +482,48 @@ exports.getRekapAbsensi = async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Gagal mengambil rekap absensi", error: error.message });
+  }
+};
+
+exports.deleteGuruRegistration = async (req, res) => {
+  const transaction = await db.sequelize.transaction();
+
+  try {
+    const { userId } = req.params;
+    const user = await User.findByPk(userId, { transaction });
+    if (!user || user.role !== "guru") {
+      await transaction.rollback();
+      return res.status(404).json({ success: false, message: "Akun guru tidak ditemukan" });
+    }
+
+    const profile = await GuruProfile.findOne({ where: { user_id: user.id }, transaction });
+    const [scheduleCount, attendanceCount] = await Promise.all([
+      JadwalMengajar.count({ where: { guru_user_id: user.id }, transaction }),
+      AbsensiSiswa.count({ where: { guru_user_id: user.id }, transaction })
+    ]);
+
+    if (profile?.verification_status === "approved" && (scheduleCount || attendanceCount)) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Guru sudah dipakai oleh jadwal atau absensi. Nonaktifkan/hapus jadwal dan data terkait sebelum menghapus akun."
+      });
+    }
+
+    if (profile) await profile.destroy({ transaction });
+    await user.destroy({ transaction });
+    await logAudit(req, {
+      action: "teacher_registration.delete",
+      entityType: "user_account",
+      entityId: userId,
+      metadata: { scheduleCount, attendanceCount, verification_status: profile?.verification_status || null }
+    }, { transaction });
+
+    await transaction.commit();
+    return res.json({ success: true, message: "Registrasi guru berhasil dihapus" });
+  } catch (error) {
+    await transaction.rollback();
+    return res.status(500).json({ success: false, message: "Gagal menghapus registrasi guru", error: error.message });
   }
 };
 
@@ -533,7 +615,8 @@ exports.createStudentAccounts = async (req, res) => {
       email: normalizedStudentEmail,
       password: await bcrypt.hash(siswa_password, 10),
       role: "siswa",
-      profession: kelas ? `Siswa ${kelas.nama_kelas}` : "Siswa"
+      profession: kelas ? `Siswa ${kelas.nama_kelas}` : "Siswa",
+      must_change_password: true
     }, { transaction });
 
     await siswa.update({ email: normalizedStudentEmail }, { transaction });
@@ -552,7 +635,8 @@ exports.createStudentAccounts = async (req, res) => {
         email: normalizedParentEmail,
         password: await bcrypt.hash(orangtua_password, 10),
         role: "orangtua",
-        profession: [`Orang tua dari ${siswa.nama}`, orangtua_phone ? `No HP: ${orangtua_phone}` : null].filter(Boolean).join(" | ")
+        profession: [`Orang tua dari ${siswa.nama}`, orangtua_phone ? `No HP: ${orangtua_phone}` : null].filter(Boolean).join(" | "),
+        must_change_password: true
       }, { transaction });
 
       await siswa.update({
@@ -569,6 +653,7 @@ exports.createStudentAccounts = async (req, res) => {
       }
     }
 
+    await logAudit(req, { action: "student_account.create", entityType: "student", entityId: siswa.id, metadata: { studentUserId: studentUser.id, parentUserId: parentUser?.id || null } }, { transaction });
     await transaction.commit();
 
     return res.status(201).json({

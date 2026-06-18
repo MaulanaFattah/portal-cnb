@@ -19,7 +19,7 @@ function LoginKepalaSekolah() {
     }
 
     saveAuth(result.token, result.user);
-    navigate("/dashboard-kepala-sekolah");
+    navigate(result.user?.must_change_password ? "/change-password" : "/dashboard-kepala-sekolah");
   };
 
   return (

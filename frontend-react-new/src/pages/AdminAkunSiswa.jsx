@@ -7,6 +7,7 @@ import {
   createUser,
   updateUser,
   deleteUser,
+  resetUserPassword,
   logout
 } from "../services/api";
 
@@ -15,6 +16,7 @@ function AdminAkunSiswa() {
   const [users, setUsers] = useState([]);
   const [siswaList, setSiswaList] = useState([]);
   const [editId, setEditId] = useState(null);
+  const [resetCredential, setResetCredential] = useState(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -90,6 +92,17 @@ function AdminAkunSiswa() {
     loadUsers();
   };
 
+  const handleResetPassword = async (item) => {
+    const customPassword = prompt("Masukkan password baru, atau kosongkan untuk generate otomatis:");
+    if (customPassword === null) return;
+    const result = await resetUserPassword(item.id, customPassword ? { password: customPassword } : {});
+    alert(result.message);
+    if (result.success && result.data?.generated_password) {
+      setResetCredential({ email: item.email, password: result.data.generated_password });
+    }
+    loadUsers();
+  };
+
   const handleLogout = () => {
     logout();
     navigate("/admin-login");
@@ -111,6 +124,14 @@ function AdminAkunSiswa() {
             <button onClick={handleLogout} className="btn primary">Keluar</button>
           </div>
         </div>
+
+        {resetCredential && (
+          <section className="dashboard-card credential-card">
+            <h3>Password baru digenerate</h3>
+            <p>Simpan password ini sekarang dan berikan ke pemilik akun.</p>
+            <div className="credential-grid"><div><strong>{resetCredential.email}</strong><code>{resetCredential.password}</code></div></div>
+          </section>
+        )}
 
         <section className="admin-kegiatan-card portal-account-admin-card">
           <div className="kegiatan-form-area">
@@ -210,6 +231,7 @@ function AdminAkunSiswa() {
                     </div>
                     <div className="admin-action">
                       <button onClick={() => handleEdit(item)}>Edit</button>
+                      <button onClick={() => handleResetPassword(item)}>Reset</button>
                       <button onClick={() => handleDelete(item.id)}>Hapus</button>
                     </div>
                   </div>

@@ -12,7 +12,8 @@ module.exports = (sequelize) => {
         type: DataTypes.ENUM("admin", "guru", "siswa", "orangtua", "kepala_sekolah"),
         defaultValue: "siswa"
       },
-      profession: { type: DataTypes.STRING, allowNull: true }
+      profession: { type: DataTypes.STRING, allowNull: true },
+      must_change_password: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false }
     },
     {
       tableName: "user_account",

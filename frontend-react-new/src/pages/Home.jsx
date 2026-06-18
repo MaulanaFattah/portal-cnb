@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { getKegiatan, getPengumuman, getGaleri } from "../services/api";
+import { getKegiatan, getPengumuman, getGaleri, resolveMediaUrl } from "../services/api";
 
 function formatTanggal(value) {
   if (!value) return "";
@@ -92,7 +92,7 @@ function Home() {
             ) : (
               kegiatan.map((item) => (
                 <div className="activity-card" key={item.id}>
-                  <img src={item.image || schoolLogo} alt={item.title} />
+                  <img src={resolveMediaUrl(item.image, schoolLogo)} alt={item.title} loading="lazy" onError={(event) => { event.currentTarget.src = schoolLogo; }} />
                   <div className="activity-content">
                     <span className="activity-date">{formatTanggal(item.date)}</span>
                     <h3>{item.title}</h3>
@@ -138,7 +138,7 @@ function Home() {
               galeri.map((item) => (
                 <div className="gallery-card" key={item.id}>
                   <div className="gallery-photo">
-                    <img src={item.image || schoolLogo} alt={item.title} loading="lazy" />
+                    <img src={resolveMediaUrl(item.image, schoolLogo)} alt={item.title} loading="lazy" onError={(event) => { event.currentTarget.src = schoolLogo; }} />
                   </div>
                   <div className="gallery-info">
                     <h3>{item.title}</h3>

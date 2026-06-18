@@ -1,7 +1,8 @@
 ﻿import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AdminSidebar from "../components/AdminSidebar";
-import { getGaleri, createGaleri, updateGaleri, deleteGaleri, logout } from "../services/api";
+import schoolLogo from "../assets/logo.jpeg";
+import { getGaleri, createGaleri, updateGaleri, deleteGaleri, logout, resolveMediaUrl } from "../services/api";
 
 const emptyForm = { title: "", image: "", description: "" };
 
@@ -11,6 +12,7 @@ function AdminGaleri() {
   const [editId, setEditId] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
   const [isReadingImage, setIsReadingImage] = useState(false);
+  const [imagePreview, setImagePreview] = useState("");
 
   const loadGaleri = async () => {
     const result = await getGaleri();
@@ -23,19 +25,11 @@ function AdminGaleri() {
   const handleImage = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setIsReadingImage(true);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData((current) => ({ ...current, image: reader.result }));
-      setIsReadingImage(false);
-    };
-    reader.onerror = () => {
-      setIsReadingImage(false);
-      alert("Gagal membaca file foto. Coba pilih gambar lain.");
-    };
-    reader.readAsDataURL(file);
+    setIsReadingImage(false);
+    setFormData((current) => ({ ...current, image: file }));
+    setImagePreview(URL.createObjectURL(file));
   };
-  const resetForm = () => { setEditId(null); setFormData(emptyForm); setIsReadingImage(false); };
+  const resetForm = () => { setEditId(null); setFormData(emptyForm); setImagePreview(""); setIsReadingImage(false); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -53,6 +47,7 @@ function AdminGaleri() {
   const handleEdit = (item) => {
     setEditId(item.id);
     setFormData({ title: item.title || "", image: item.image || "", description: item.description || "" });
+    setImagePreview(resolveMediaUrl(item.image, schoolLogo));
   };
 
   const handleDelete = async (id) => {
@@ -78,7 +73,7 @@ function AdminGaleri() {
             <form onSubmit={handleSubmit}>
               <div className="form-group"><label>Judul</label><input name="title" value={formData.title} onChange={handleChange} required /></div>
               <div className="form-group"><label>Deskripsi</label><textarea name="description" value={formData.description} onChange={handleChange} rows="3" /></div>
-              <div className="form-group"><label>Foto</label><label className="upload-box">{formData.image ? <img src={formData.image} alt="Preview" /> : <div><strong>Upload Foto</strong><span>JPG / PNG</span></div>}<input type="file" accept="image/*" onChange={handleImage} required={!editId} /></label></div>
+              <div className="form-group"><label>Foto</label><label className="upload-box">{imagePreview || formData.image ? <img src={imagePreview || resolveMediaUrl(formData.image, schoolLogo)} alt="Preview" /> : <div><strong>Upload Foto</strong><span>JPG / PNG / WebP</span></div>}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImage} required={!editId} /></label></div>
               <div className="button-row"><button type="submit" className="save-btn" disabled={isReadingImage || !formData.image}>{isReadingImage ? "Memuat Foto..." : editId ? "Simpan Perubahan" : "Simpan"}</button>{editId && <button type="button" onClick={resetForm} className="cancel-btn">Batal</button>}</div>
             </form>
           </div>
@@ -86,7 +81,7 @@ function AdminGaleri() {
             <h2>Daftar Galeri</h2>
             <div className="activity-admin-list">
               {galeri.length === 0 ? <p className="empty-text">Belum ada galeri.</p> : galeri.map((item, index) => (
-                <div className="activity-admin-item" key={item.id}><span>{index + 1}</span><img src={item.image} alt={item.title} /><div><h4>{item.title}</h4><p>{item.description || "Tanpa deskripsi"}</p></div><div className="admin-action"><button onClick={() => handleEdit(item)}>Edit</button><button onClick={() => handleDelete(item.id)}>Hapus</button></div></div>
+                <div className="activity-admin-item" key={item.id}><span>{index + 1}</span><img src={resolveMediaUrl(item.image, schoolLogo)} alt={item.title} loading="lazy" onError={(event) => { event.currentTarget.src = schoolLogo; }} /><div><h4>{item.title}</h4><p>{item.description || "Tanpa deskripsi"}</p></div><div className="admin-action"><button onClick={() => handleEdit(item)}>Edit</button><button onClick={() => handleDelete(item.id)}>Hapus</button></div></div>
               ))}
             </div>
           </div>

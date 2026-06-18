@@ -2,7 +2,7 @@ import schoolLogo from "../assets/logo.jpeg";
 import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { getKegiatan } from "../services/api";
+import { getKegiatan, resolveMediaUrl } from "../services/api";
 
 function formatTanggal(value) {
   if (!value) return "";
@@ -50,7 +50,7 @@ function Kegiatan() {
             ) : (
               kegiatan.map((item) => (
                 <article className="activity-card" key={item.id}>
-                  <img src={item.image || schoolLogo} alt={item.title} />
+                  <img src={resolveMediaUrl(item.image, schoolLogo)} alt={item.title} loading="lazy" onError={(event) => { event.currentTarget.src = schoolLogo; }} />
 
                   <div className="activity-content">
                     <div className="activity-date">{formatTanggal(item.date)}</div>

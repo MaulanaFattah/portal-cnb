@@ -4,6 +4,7 @@ import AdminSidebar from "../components/AdminSidebar";
 import {
   getGuruRegistrations,
   verifyGuruRegistration,
+  deleteGuruRegistration,
   getGuruJadwalAdmin,
   createGuruJadwal,
   updateGuruJadwal,
@@ -38,6 +39,8 @@ function AdminVerifikasiGuru() {
         const profile = item.guruProfile || {};
         nextDraft[item.id] = {
           teacher_type: profile.teacher_type || "mapel",
+          is_homeroom: Boolean(profile.is_homeroom) || profile.teacher_type === "wali_kelas",
+          is_subject_teacher: profile.teacher_type === "mapel" || Boolean(profile.subject),
           subject: profile.subject || item.profession || "",
           kelas_id: profile.kelas_id || "",
           note: profile.note || ""
@@ -60,6 +63,13 @@ function AdminVerifikasiGuru() {
 
   const handleVerify = async (id, verification_status) => {
     const result = await verifyGuruRegistration(id, { ...draft[id], verification_status });
+    alert(result.message);
+    loadData();
+  };
+
+  const handleDeleteRegistration = async (id) => {
+    if (!confirm("Hapus registrasi guru ini? Aksi ini tidak dapat dibatalkan.")) return;
+    const result = await deleteGuruRegistration(id);
     alert(result.message);
     loadData();
   };
@@ -111,7 +121,7 @@ function AdminVerifikasiGuru() {
     navigate("/admin-login");
   };
 
-  const approvedMapel = accounts.filter((item) => item.guruProfile?.verification_status === "approved" && item.guruProfile?.teacher_type === "mapel");
+  const approvedMapel = accounts.filter((item) => item.guruProfile?.verification_status === "approved" && (item.guruProfile?.teacher_type === "mapel" || item.guruProfile?.subject));
 
   return (
     <div className="dashboard-layout">
@@ -145,21 +155,22 @@ function AdminVerifikasiGuru() {
                 </div>
 
                 <div className="verify-grid">
-                  <label>Tipe Guru
-                    <select value={itemDraft.teacher_type || "mapel"} onChange={(e) => handleDraft(item.id, "teacher_type", e.target.value)}>
-                      <option value="mapel">Guru Mapel</option>
-                      <option value="wali_kelas">Wali Kelas</option>
-                    </select>
+                  <label>Peran Guru
+                    <span className="checkbox-stack compact">
+                      <label><input type="checkbox" checked={Boolean(itemDraft.is_homeroom)} onChange={(e) => handleDraft(item.id, "is_homeroom", e.target.checked)} /> Wali Kelas</label>
+                      <label><input type="checkbox" checked={Boolean(itemDraft.is_subject_teacher)} onChange={(e) => handleDraft(item.id, "is_subject_teacher", e.target.checked)} /> Guru Mapel</label>
+                    </span>
                   </label>
-                  {(itemDraft.teacher_type || "mapel") === "mapel" ? (
+                  {itemDraft.is_subject_teacher && (
                     <label>Mata Pelajaran
-                      <input value={itemDraft.subject || ""} onChange={(e) => handleDraft(item.id, "subject", e.target.value)} placeholder="Contoh: Matematika" />
+                      <input value={itemDraft.subject || ""} onChange={(e) => handleDraft(item.id, "subject", e.target.value)} placeholder="Contoh: Matematika, IPA" />
                     </label>
-                  ) : (
-                    <label>Kelas
+                  )}
+                  {itemDraft.is_homeroom && (
+                    <label>Kelas Wali
                       <select value={itemDraft.kelas_id || ""} onChange={(e) => handleDraft(item.id, "kelas_id", e.target.value)}>
                         <option value="">Pilih kelas</option>
-                        {kelas.map((kelasItem) => <option key={kelasItem.id} value={kelasItem.id}>{kelasItem.nama_kelas}</option>)}
+                        {kelas.map((kelasItem) => <option key={kelasItem.id} value={kelasItem.id}>{[kelasItem.nama_kelas, kelasItem.tingkat, kelasItem.tahun_ajaran].filter(Boolean).join(" - ")}</option>)}
                       </select>
                     </label>
                   )}
@@ -172,6 +183,7 @@ function AdminVerifikasiGuru() {
                   <button className="verify-accept" onClick={() => handleVerify(item.id, "approved")}>Setujui</button>
                   <button className="verify-reject" onClick={() => handleVerify(item.id, "rejected")}>Tolak</button>
                   <button className="verify-pending" onClick={() => handleVerify(item.id, "pending")}>Pending</button>
+                  <button className="verify-delete" onClick={() => handleDeleteRegistration(item.id)}>Hapus</button>
                 </div>
               </div>
             );

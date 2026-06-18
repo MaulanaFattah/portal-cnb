@@ -1,4 +1,19 @@
 ﻿const API_URL = "http://localhost:4000/api";
+const BACKEND_URL = API_URL.replace(/\/api$/, "");
+
+function toFormData(data) {
+  const formData = new FormData();
+  Object.entries(data || {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) formData.append(key, value);
+  });
+  return formData;
+}
+
+export function resolveMediaUrl(value, fallback = "") {
+  if (!value) return fallback;
+  if (String(value).startsWith("/uploads/")) return `${BACKEND_URL}${value}`;
+  return value;
+}
 
 export async function loginUser(data) {
   const response = await fetch(`${API_URL}/auth/login`, {
@@ -38,6 +53,19 @@ export function logout() {
   localStorage.removeItem("user");
 }
 
+export async function changePassword(data) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/auth/change-password`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
 export async function getAdminDashboard() {
   const token = localStorage.getItem("token");
 
@@ -69,11 +97,8 @@ export async function createKegiatan(data) {
 
   const response = await fetch("http://localhost:4000/api/kegiatan", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify(data)
+    headers: { Authorization: `Bearer ${token}` },
+    body: toFormData(data)
   });
 
   return response.json();
@@ -84,11 +109,8 @@ export async function updateKegiatan(id, data) {
 
   const response = await fetch(`http://localhost:4000/api/kegiatan/${id}`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify(data)
+    headers: { Authorization: `Bearer ${token}` },
+    body: toFormData(data)
   });
 
   return response.json();
@@ -160,11 +182,8 @@ export async function createGaleri(data) {
   const token = localStorage.getItem("token");
   const response = await fetch("http://localhost:4000/api/galeri", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify(data)
+    headers: { Authorization: `Bearer ${token}` },
+    body: toFormData(data)
   });
   return response.json();
 }
@@ -173,11 +192,8 @@ export async function updateGaleri(id, data) {
   const token = localStorage.getItem("token");
   const response = await fetch(`http://localhost:4000/api/galeri/${id}`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify(data)
+    headers: { Authorization: `Bearer ${token}` },
+    body: toFormData(data)
   });
   return response.json();
 }
@@ -382,11 +398,8 @@ export async function createSiswa(data) {
   const token = localStorage.getItem("token");
   const response = await fetch("http://localhost:4000/api/siswa", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify(data)
+    headers: { Authorization: `Bearer ${token}` },
+    body: toFormData(data)
   });
   return response.json();
 }
@@ -395,11 +408,8 @@ export async function updateSiswa(id, data) {
   const token = localStorage.getItem("token");
   const response = await fetch(`http://localhost:4000/api/siswa/${id}`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify(data)
+    headers: { Authorization: `Bearer ${token}` },
+    body: toFormData(data)
   });
   return response.json();
 }
@@ -495,6 +505,19 @@ export async function deleteUser(id) {
   return response.json();
 }
 
+export async function resetUserPassword(id, data = {}) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`http://localhost:4000/api/admin/users/${id}/reset-password`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
 // ========== GURU VERIFICATION & ATTENDANCE API ==========
 export async function getGuruRegistrations() {
   const token = localStorage.getItem("token");
@@ -513,6 +536,15 @@ export async function verifyGuruRegistration(userId, data) {
       Authorization: `Bearer ${token}`
     },
     body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
+export async function deleteGuruRegistration(userId) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`http://localhost:4000/api/admin-guru/registrations/${userId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` }
   });
   return response.json();
 }

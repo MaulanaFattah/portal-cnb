@@ -14,6 +14,7 @@ const GuruProfile = require("./GuruProfile");
 const JadwalMengajar = require("./JadwalMengajar");
 const AbsensiSiswa = require("./AbsensiSiswa");
 const PortalAccountLink = require("./PortalAccountLink");
+const AuditLog = require("./AuditLog");
 
 const db = {};
 
@@ -33,6 +34,7 @@ db.GuruProfile = GuruProfile(sequelize);
 db.JadwalMengajar = JadwalMengajar(sequelize);
 db.AbsensiSiswa = AbsensiSiswa(sequelize);
 db.PortalAccountLink = PortalAccountLink(sequelize);
+db.AuditLog = AuditLog(sequelize);
 
 const cascade = { onDelete: "CASCADE", onUpdate: "CASCADE" };
 const setNull = { onDelete: "SET NULL", onUpdate: "CASCADE" };
@@ -65,5 +67,7 @@ db.User.hasMany(db.PortalAccountLink, { foreignKey: "user_id", as: "portalLinks"
 db.PortalAccountLink.belongsTo(db.User, { foreignKey: "user_id", as: "user", ...cascade });
 db.Siswa.hasMany(db.PortalAccountLink, { foreignKey: "siswa_id", as: "portalLinks", ...cascade });
 db.PortalAccountLink.belongsTo(db.Siswa, { foreignKey: "siswa_id", as: "siswa", ...cascade });
+db.User.hasMany(db.AuditLog, { foreignKey: "actor_user_account_id", as: "auditLogs", ...setNull });
+db.AuditLog.belongsTo(db.User, { foreignKey: "actor_user_account_id", as: "actor", ...setNull });
 
 module.exports = db;

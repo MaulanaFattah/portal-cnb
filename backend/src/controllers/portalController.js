@@ -1,5 +1,6 @@
 ﻿const { Op } = require("sequelize");
 const db = require("../models");
+const { logAudit } = require("../services/auditLogService");
 
 const User = db.User;
 const Guru = db.Guru;
@@ -250,7 +251,7 @@ exports.getOrangTuaAbsensi = async (req, res) => {
 
 exports.getKepalaSekolahDashboard = async (req, res) => {
   try {
-    const { dari, sampai, kelas_id } = req.query;
+    const { dari, sampai, kelas_id, export_type } = req.query;
     const classMap = await getClassMap();
     const whereAbsensi = {};
     if (kelas_id) whereAbsensi.kelas_id = Number(kelas_id);
@@ -278,6 +279,16 @@ exports.getKepalaSekolahDashboard = async (req, res) => {
       };
     });
 
+    if (export_type) {
+      await logAudit(req, {
+        action: `report.export.${export_type}`,
+        entityType: "attendance_report",
+        metadata: { dari, sampai, kelas_id, rows: absensi.length }
+      });
+    }
+
+    const attendanceSummary = summarizeAttendance(absensi);
+
     return res.json({
       success: true,
       message: "Dashboard kepala sekolah berhasil diambil",
@@ -290,18 +301,23 @@ exports.getKepalaSekolahDashboard = async (req, res) => {
         guruProfile,
         monitoring: {
           totalSiswa: siswa.length,
-          totalGuruWaliKelas: guruProfile.filter((item) => item.teacher_type === "wali_kelas").length,
-          totalGuruMapel: guruProfile.filter((item) => item.teacher_type === "mapel").length,
+          totalGuruWaliKelas: guruProfile.filter((item) => item.is_homeroom || item.teacher_type === "wali_kelas").length,
+          totalGuruMapel: guruProfile.filter((item) => item.teacher_type === "mapel" || item.subject).length,
           totalKelas: kelas.length,
           totalPengumuman: pengumuman.length,
-          totalKegiatan: kegiatan.length
+          totalKegiatan: kegiatan.length,
+          hadir: attendanceSummary.hadir,
+          izin: attendanceSummary.izin,
+          sakit: attendanceSummary.sakit,
+          alpha: attendanceSummary.alpha,
+          terlambat: 0
         },
         siswa: siswa.map((item) => attachClass(item, classMap)),
         kelas,
         pengumuman,
         kegiatan,
         absensi: {
-          summary: summarizeAttendance(absensi),
+          summary: attendanceSummary,
           rows: absensi
         }
       }

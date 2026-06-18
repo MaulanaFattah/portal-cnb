@@ -2,7 +2,7 @@ import schoolLogo from "../assets/logo.jpeg";
 import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { getGaleri } from "../services/api";
+import { getGaleri, resolveMediaUrl } from "../services/api";
 
 const ITEMS_PER_PAGE = 6;
 
@@ -51,7 +51,7 @@ function Galeri() {
               currentItems.map((item) => (
                 <article className="gallery-card" key={item.id}>
                   <div className="gallery-photo">
-                    <img src={item.image || schoolLogo} alt={item.title} loading="lazy" />
+                    <img src={resolveMediaUrl(item.image, schoolLogo)} alt={item.title} loading="lazy" />
                   </div>
 
                   <div className="gallery-info">

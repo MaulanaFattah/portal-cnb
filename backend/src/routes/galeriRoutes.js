@@ -3,10 +3,11 @@ const router = express.Router();
 
 const galeriController = require("../controllers/galeriController");
 const { verifyToken, onlyAdmin } = require("../middlewares/authMiddleware");
+const { handleUploadError, imageUpload } = require("../middlewares/uploadMiddleware");
 
 router.get("/", galeriController.getAllGaleri);
-router.post("/", verifyToken, onlyAdmin, galeriController.createGaleri);
-router.put("/:id", verifyToken, onlyAdmin, galeriController.updateGaleri);
+router.post("/", verifyToken, onlyAdmin, imageUpload("gallery").single("image"), handleUploadError, galeriController.createGaleri);
+router.put("/:id", verifyToken, onlyAdmin, imageUpload("gallery").single("image"), handleUploadError, galeriController.updateGaleri);
 router.delete("/:id", verifyToken, onlyAdmin, galeriController.deleteGaleri);
 
 module.exports = router;

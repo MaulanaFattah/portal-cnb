@@ -1,12 +1,13 @@
 ﻿const bcrypt = require("bcryptjs");
 const db = require("../models");
+const { logAudit } = require("../services/auditLogService");
 
 const User = db.User;
 const Siswa = db.Siswa;
 const Kelas = db.Kelas;
 const PortalAccountLink = db.PortalAccountLink;
 
-const SAFE_ATTRS = ["id", "name", "email", "role", "profession", "createdAt", "updatedAt"];
+const SAFE_ATTRS = ["id", "name", "email", "role", "profession", "must_change_password", "createdAt", "updatedAt"];
 const VALID_ROLES = ["admin", "guru", "siswa", "orangtua", "kepala_sekolah"];
 const LINKED_ROLES = ["siswa", "orangtua"];
 
@@ -261,5 +262,49 @@ exports.deleteUser = async (req, res) => {
       message: "Gagal menghapus user",
       error: error.message
     });
+  }
+};
+
+
+function generatePassword() {
+  return `CNB-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+}
+
+exports.resetUserPassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const requestedPassword = req.body.password || generatePassword();
+
+    if (String(requestedPassword).length < 6) {
+      return res.status(400).json({ success: false, message: "Password minimal 6 karakter" });
+    }
+
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User tidak ditemukan" });
+    }
+
+    await user.update({
+      password: await bcrypt.hash(requestedPassword, 10),
+      must_change_password: true
+    });
+
+    await logAudit(req, {
+      action: "password.force_reset",
+      entityType: "user_account",
+      entityId: user.id,
+      metadata: { role: user.role, generated: !req.body.password }
+    });
+
+    return res.json({
+      success: true,
+      message: "Password user berhasil direset. User wajib mengganti password saat login berikutnya.",
+      data: {
+        user: safeUser(user),
+        generated_password: req.body.password ? null : requestedPassword
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Gagal reset password user", error: error.message });
   }
 };

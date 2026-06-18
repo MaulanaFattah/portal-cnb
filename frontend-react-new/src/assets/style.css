@@ -4677,3 +4677,199 @@ button:focus-visible {
     border-radius: 24px;
   }
 }
+
+
+/* Revision RBAC + Upload Polish */
+.profile-card {
+  max-width: 920px;
+  margin-inline: auto;
+  padding: clamp(24px, 4vw, 38px);
+}
+
+.profile-card h3 {
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.25;
+}
+
+.profile-card p {
+  max-width: 72ch;
+  font-size: clamp(15px, 1.4vw, 17px);
+  line-height: 1.85;
+  text-align: justify;
+  text-wrap: pretty;
+}
+
+.activity-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.activity-card img,
+.gallery-photo img {
+  aspect-ratio: 16 / 10;
+  height: auto;
+  max-height: 260px;
+  object-fit: cover;
+  background: #f1f5f9;
+}
+
+.activity-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.activity-content p {
+  max-width: 64ch;
+  line-height: 1.75;
+  text-align: justify;
+  text-wrap: pretty;
+}
+
+.checkbox-stack {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid #dbe2ea;
+  border-radius: 18px;
+  background: #f8fafc;
+}
+
+.checkbox-stack.compact {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.checkbox-stack label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-weight: 800;
+}
+
+.checkbox-stack input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  min-height: auto;
+}
+
+.verify-delete {
+  background: #fee2e2 !important;
+  color: #991b1b !important;
+}
+
+.student-admin-card {
+  grid-template-columns: minmax(360px, 520px) minmax(0, 1fr);
+  align-items: start;
+}
+
+.student-admin-page .dashboard-card {
+  margin-bottom: 22px;
+}
+
+.form-section-title {
+  margin: 22px 0 14px;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #1e3a8a;
+}
+
+.student-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.student-form-grid .full {
+  grid-column: 1 / -1;
+}
+
+.advanced-fields {
+  margin: 18px 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 14px;
+  background: #f8fafc;
+}
+
+.advanced-fields summary {
+  cursor: pointer;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.credential-card {
+  border-left: 6px solid #2563eb;
+}
+
+.credential-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.credential-grid > div {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 18px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.credential-grid code {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #fff;
+  overflow-wrap: anywhere;
+}
+
+.student-list-head {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.student-list-head input {
+  width: min(100%, 320px);
+  min-height: 44px;
+  border: 1px solid #dbe2ea;
+  border-radius: 999px;
+  padding: 0 18px;
+}
+
+.admin-action.compact {
+  justify-content: flex-start;
+}
+
+@media (max-width: 980px) {
+  .student-admin-card,
+  .student-form-grid,
+  .credential-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .student-list-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .student-list-head input {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .profile-card p,
+  .activity-content p {
+    text-align: left;
+  }
+}

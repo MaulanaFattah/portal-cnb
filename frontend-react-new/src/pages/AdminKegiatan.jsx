@@ -7,13 +7,15 @@ import {
   createKegiatan,
   updateKegiatan,
   deleteKegiatan,
-  logout
+  logout,
+  resolveMediaUrl
 } from "../services/api";
 
 function AdminKegiatan() {
   const navigate = useNavigate();
   const [kegiatan, setKegiatan] = useState([]);
   const [editId, setEditId] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
 
   const [formData, setFormData] = useState({
     title: "",
@@ -42,15 +44,13 @@ function AdminKegiatan() {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData({ ...formData, image: reader.result });
-    };
-    reader.readAsDataURL(file);
+    setFormData({ ...formData, image: file });
+    setImagePreview(URL.createObjectURL(file));
   };
 
   const resetForm = () => {
     setEditId(null);
+    setImagePreview("");
     setFormData({ title: "", date: "", description: "", image: "", status: "tampil" });
   };
 
@@ -80,6 +80,7 @@ function AdminKegiatan() {
       image: item.image || "",
       status: item.status || "tampil"
     });
+    setImagePreview(resolveMediaUrl(item.image, schoolLogo));
   };
 
   const handleDelete = async (id) => {
@@ -153,8 +154,8 @@ function AdminKegiatan() {
               <div className="form-group">
                 <label>Foto Kegiatan</label>
                 <label className="upload-box">
-                  {formData.image ? (
-                    <img src={formData.image} alt="Preview" />
+                  {imagePreview || formData.image ? (
+                    <img src={imagePreview || resolveMediaUrl(formData.image, schoolLogo)} alt="Preview" />
                   ) : (
                     <div>
                       <strong>Upload Foto</strong>
@@ -196,7 +197,7 @@ function AdminKegiatan() {
                 kegiatan.map((item, index) => (
                   <div className="activity-admin-item" key={item.id}>
                     <span>{index + 1}</span>
-                    <img src={item.image || schoolLogo} alt={item.title} />
+                    <img src={resolveMediaUrl(item.image, schoolLogo)} alt={item.title} loading="lazy" onError={(event) => { event.currentTarget.src = schoolLogo; }} />
                     <div>
                       <h4>{item.title}</h4>
                       <p>{item.date} • {item.status === "tidak_tampil" ? "Tidak tampil" : "Tampil"}</p>

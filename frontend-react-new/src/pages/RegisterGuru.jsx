@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -13,8 +13,9 @@ function RegisterGuru() {
     email: "",
     password: "",
     confirmPassword: "",
-    teacher_type: "mapel",
-    kelas_id: "",
+    is_homeroom: false,
+    is_subject_teacher: true,
+    homeroom_classroom_id: "",
     subject: ""
   });
 
@@ -26,10 +27,8 @@ function RegisterGuru() {
   }, []);
 
   const handleChange = (e) => {
-    const next = { ...formData, [e.target.name]: e.target.value };
-    if (e.target.name === "teacher_type" && e.target.value === "mapel") next.kelas_id = "";
-    if (e.target.name === "teacher_type" && e.target.value === "wali_kelas") next.subject = "";
-    setFormData(next);
+    const { name, value, type, checked } = e.target;
+    setFormData({ ...formData, [name]: type === "checkbox" ? checked : value });
   };
 
   const handleRegister = async (e) => {
@@ -40,8 +39,18 @@ function RegisterGuru() {
       return;
     }
 
-    if (formData.teacher_type === "wali_kelas" && !formData.kelas_id) {
-      alert("Wali kelas wajib memilih kelas.");
+    if (!formData.is_homeroom && !formData.is_subject_teacher) {
+      alert("Pilih minimal satu peran guru.");
+      return;
+    }
+
+    if (formData.is_homeroom && !formData.homeroom_classroom_id) {
+      alert("Guru wali kelas wajib memilih kelas.");
+      return;
+    }
+
+    if (formData.is_subject_teacher && !formData.subject.trim()) {
+      alert("Guru mata pelajaran wajib mengisi minimal satu mata pelajaran.");
       return;
     }
 
@@ -49,10 +58,11 @@ function RegisterGuru() {
       name: formData.name,
       email: formData.email,
       password: formData.password,
-      teacher_type: formData.teacher_type,
-      kelas_id: formData.teacher_type === "wali_kelas" ? formData.kelas_id : null,
-      profession: formData.teacher_type === "mapel" ? formData.subject : "Wali Kelas",
-      subject: formData.teacher_type === "mapel" ? formData.subject : null
+      is_homeroom: formData.is_homeroom,
+      is_subject_teacher: formData.is_subject_teacher,
+      homeroom_classroom_id: formData.is_homeroom ? formData.homeroom_classroom_id : null,
+      subjects: formData.is_subject_teacher ? formData.subject : "",
+      profession: [formData.is_homeroom ? "Wali Kelas" : null, formData.is_subject_teacher ? formData.subject : null].filter(Boolean).join(" + ")
     });
 
     if (!result.success) {
@@ -71,51 +81,25 @@ function RegisterGuru() {
       <main className="auth-page container">
         <div className="auth-card">
           <h1>Registrasi Guru</h1>
-          <p>Daftar sebagai guru wali kelas atau guru mapel. Akun aktif setelah disetujui admin.</p>
+          <p>Guru dapat mendaftar sebagai wali kelas, guru mata pelajaran, atau keduanya. Akun aktif setelah disetujui admin.</p>
 
           <form onSubmit={handleRegister}>
-            <div className="form-group">
-              <label>Nama Lengkap</label>
-              <input type="text" name="name" placeholder="Masukkan nama lengkap" value={formData.name} onChange={handleChange} required />
-            </div>
+            <div className="form-group"><label>Nama Lengkap</label><input type="text" name="name" placeholder="Masukkan nama lengkap" value={formData.name} onChange={handleChange} required /></div>
+            <div className="form-group"><label>Email</label><input type="email" name="email" placeholder="guru@cnb.sch.id" value={formData.email} onChange={handleChange} required /></div>
 
             <div className="form-group">
-              <label>Email</label>
-              <input type="email" name="email" placeholder="guru@cnb.sch.id" value={formData.email} onChange={handleChange} required />
-            </div>
-
-            <div className="form-group">
-              <label>Tipe Guru</label>
-              <select name="teacher_type" value={formData.teacher_type} onChange={handleChange} required>
-                <option value="mapel">Guru Mapel</option>
-                <option value="wali_kelas">Guru Wali Kelas</option>
-              </select>
-            </div>
-
-            {formData.teacher_type === "wali_kelas" ? (
-              <div className="form-group">
-                <label>Kelas</label>
-                <select name="kelas_id" value={formData.kelas_id} onChange={handleChange} required>
-                  <option value="">Pilih kelas</option>
-                  {kelas.map((item) => <option key={item.id} value={item.id}>{item.nama_kelas}</option>)}
-                </select>
+              <label>Peran Guru</label>
+              <div className="checkbox-stack">
+                <label><input type="checkbox" name="is_homeroom" checked={formData.is_homeroom} onChange={handleChange} /> Guru Wali Kelas</label>
+                <label><input type="checkbox" name="is_subject_teacher" checked={formData.is_subject_teacher} onChange={handleChange} /> Guru Mata Pelajaran</label>
               </div>
-            ) : (
-              <div className="form-group">
-                <label>Mata Pelajaran</label>
-                <input type="text" name="subject" placeholder="Contoh: Matematika" value={formData.subject} onChange={handleChange} required />
-              </div>
-            )}
-
-            <div className="form-group">
-              <label>Password</label>
-              <input type="password" name="password" placeholder="Masukkan password" value={formData.password} onChange={handleChange} required />
             </div>
 
-            <div className="form-group">
-              <label>Konfirmasi Password</label>
-              <input type="password" name="confirmPassword" placeholder="Ulangi password" value={formData.confirmPassword} onChange={handleChange} required />
-            </div>
+            {formData.is_homeroom && <div className="form-group"><label>Kelas Wali</label><select name="homeroom_classroom_id" value={formData.homeroom_classroom_id} onChange={handleChange} required><option value="">Pilih kelas</option>{kelas.map((item) => <option key={item.id} value={item.id}>{[item.nama_kelas, item.tingkat, item.tahun_ajaran].filter(Boolean).join(" - ")}</option>)}</select></div>}
+            {formData.is_subject_teacher && <div className="form-group"><label>Mata Pelajaran</label><input type="text" name="subject" placeholder="Contoh: Matematika, IPA" value={formData.subject} onChange={handleChange} required /></div>}
+
+            <div className="form-group"><label>Password</label><input type="password" name="password" placeholder="Masukkan password" value={formData.password} onChange={handleChange} required /></div>
+            <div className="form-group"><label>Konfirmasi Password</label><input type="password" name="confirmPassword" placeholder="Ulangi password" value={formData.confirmPassword} onChange={handleChange} required /></div>
 
             <button type="submit" className="submit-btn">Registrasi</button>
           </form>
