@@ -6,6 +6,10 @@ const { verifyToken, onlyAdmin } = require("../middlewares/authMiddleware");
 
 // public: semua user bisa lihat kegiatan
 router.get("/", kegiatanController.getAllKegiatan);
+router.get("/admin/all", verifyToken, onlyAdmin, (req, res, next) => {
+  req.query.includeHidden = "true";
+  return kegiatanController.getAllKegiatan(req, res, next);
+});
 
 // admin only: tambah, edit, hapus kegiatan
 router.post("/", verifyToken, onlyAdmin, kegiatanController.createKegiatan);

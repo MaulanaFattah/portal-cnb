@@ -4,20 +4,14 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { loginUser, saveAuth } from "../services/api";
 
-function LoginSiswa() {
+function LoginKepalaSekolah() {
   const navigate = useNavigate();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-
-    const result = await loginUser({
-      email,
-      password,
-      role: "siswa"
-    });
+  const handleLogin = async (event) => {
+    event.preventDefault();
+    const result = await loginUser({ email, password, role: "kepala_sekolah" });
 
     if (!result.success) {
       alert(result.message);
@@ -25,57 +19,37 @@ function LoginSiswa() {
     }
 
     saveAuth(result.token, result.user);
-    alert("Login siswa berhasil");
-    navigate("/dashboard-siswa");
+    navigate("/dashboard-kepala-sekolah");
   };
 
   return (
     <>
       <Navbar />
-
       <main className="auth-page container">
         <div className="auth-card">
-          <h1>Login Siswa</h1>
-
-          <p>
-            Masukkan email dan password akun siswa untuk masuk ke portal.
-          </p>
+          <h1>Login Kepala Sekolah</h1>
+          <p>Masuk untuk memantau data guru, siswa, kegiatan, pengumuman, dan rekap absensi sekolah.</p>
 
           <form onSubmit={handleLogin}>
             <div className="form-group">
               <label>Email</label>
-              <input
-                type="email"
-                placeholder="siswa@cnb.sch.id"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+              <input type="email" placeholder="kepsek@cnb.sch.id" value={email} onChange={(event) => setEmail(event.target.value)} required />
             </div>
 
             <div className="form-group">
               <label>Password</label>
-              <input
-                type="password"
-                placeholder="Masukkan password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <input type="password" placeholder="Masukkan password" value={password} onChange={(event) => setPassword(event.target.value)} required />
             </div>
 
-            <button type="submit" className="submit-btn">
-              Login
-            </button>
+            <button type="submit" className="submit-btn">Login</button>
           </form>
 
           <Link to="/login" className="auth-link auth-back-link">Kembali ke pilihan login</Link>
         </div>
       </main>
-
       <Footer />
     </>
   );
 }
 
-export default LoginSiswa;
+export default LoginKepalaSekolah;

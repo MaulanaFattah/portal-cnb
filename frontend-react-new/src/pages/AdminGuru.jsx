@@ -135,7 +135,7 @@ function AdminGuru() {
 
           <div className="dashboard-actions">
             <Link to="/" className="btn secondary">Website</Link>
-            <button onClick={handleLogout} className="btn primary">Logout</button>
+            <button onClick={handleLogout} className="btn primary">Keluar</button>
           </div>
         </div>
 
@@ -242,8 +242,8 @@ function AdminGuru() {
                       <p>{item.nip} • {item.mata_pelajaran || "Belum ada mapel"}</p>
                     </div>
                     <div className="admin-action">
-                      <button onClick={() => handleEdit(item)}>✎</button>
-                      <button onClick={() => handleDelete(item.id)}>🗑</button>
+                      <button onClick={() => handleEdit(item)}>Edit</button>
+                      <button onClick={() => handleDelete(item.id)}>Hapus</button>
                     </div>
                   </div>
                 ))

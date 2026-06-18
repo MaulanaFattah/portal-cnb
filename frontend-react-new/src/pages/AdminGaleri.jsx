@@ -70,7 +70,7 @@ function AdminGaleri() {
       <main className="dashboard-content">
         <div className="dashboard-header">
           <div><h1>Galeri</h1><p>Kelola judul, deskripsi, dan foto galeri.</p></div>
-          <div className="dashboard-actions"><Link to="/galeri" className="btn secondary">Lihat Galeri</Link><button onClick={handleLogout} className="btn primary">Logout</button></div>
+          <div className="dashboard-actions"><Link to="/galeri" className="btn secondary">Lihat Galeri</Link><button onClick={handleLogout} className="btn primary">Keluar</button></div>
         </div>
         <section className="admin-kegiatan-card">
           <div className="kegiatan-form-area">
@@ -86,7 +86,7 @@ function AdminGaleri() {
             <h2>Daftar Galeri</h2>
             <div className="activity-admin-list">
               {galeri.length === 0 ? <p className="empty-text">Belum ada galeri.</p> : galeri.map((item, index) => (
-                <div className="activity-admin-item" key={item.id}><span>{index + 1}</span><img src={item.image} alt={item.title} /><div><h4>{item.title}</h4><p>{item.description || "Tanpa deskripsi"}</p></div><div className="admin-action"><button onClick={() => handleEdit(item)}>✎</button><button onClick={() => handleDelete(item.id)}>🗑</button></div></div>
+                <div className="activity-admin-item" key={item.id}><span>{index + 1}</span><img src={item.image} alt={item.title} /><div><h4>{item.title}</h4><p>{item.description || "Tanpa deskripsi"}</p></div><div className="admin-action"><button onClick={() => handleEdit(item)}>Edit</button><button onClick={() => handleDelete(item.id)}>Hapus</button></div></div>
               ))}
             </div>
           </div>

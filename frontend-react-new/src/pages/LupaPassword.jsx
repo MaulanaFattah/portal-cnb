@@ -45,9 +45,7 @@ function LupaPassword() {
             </button>
           </form>
 
-          <Link to="/login" className="auth-link">
-            ← Kembali ke Login
-          </Link>
+          <Link to="/login" className="auth-link auth-back-link">Kembali ke Login</Link>
         </div>
       </main>
 

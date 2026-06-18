@@ -3487,3 +3487,565 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+/* Final responsive polish: portal dashboards, login, announcement, and admin lists */
+.login-grid {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.auth-back-link {
+  width: 100%;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+  border: 1px solid #dbe2ea;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #07142f;
+  font-weight: 800;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.auth-back-link::before {
+  content: "?";
+  font-size: 18px;
+  line-height: 1;
+}
+
+.auth-back-link:hover {
+  background: #f8fafc;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+.announcement-card > div,
+.announcement-admin-item > div,
+.activity-admin-item > div {
+  min-width: 0;
+}
+
+.announcement-card p,
+.announcement-admin-item p,
+.teacher-announcement p,
+.teacher-card p,
+.vision-card p {
+  text-align: justify;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+
+.announcement-date {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.teacher-card.announcement-card,
+.teacher-card.profile-card {
+  display: block;
+  padding: 28px;
+}
+
+.student-vision-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.student-vision-list section {
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  background: #f8fafc;
+}
+
+.student-vision-list span {
+  display: block;
+  margin-bottom: 6px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.student-vision-list p,
+.readonly-note,
+.linked-student-text {
+  color: #475569;
+  font-weight: 500;
+  line-height: 1.7;
+  text-align: justify;
+}
+
+.linked-student-text {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.dashboard-stats {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.button-row.full {
+  grid-column: 1 / -1;
+}
+
+.admin-action {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.admin-action button {
+  min-height: 38px;
+  min-width: 72px;
+  border: 0;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #07142f;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.admin-action button:last-child {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.teacher-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.teacher-table th,
+.teacher-table td {
+  vertical-align: top;
+}
+
+.teacher-table select,
+.teacher-table input,
+.teacher-field input,
+.teacher-field select,
+.teacher-field textarea,
+.form-group input,
+.form-group select,
+.form-group textarea {
+  min-height: 44px;
+}
+
+@media (max-width: 1080px) {
+  .teacher-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+    padding: 20px;
+  }
+
+  .dashboard-header,
+  .teacher-topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dashboard-actions,
+  .teacher-actions-row {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .dashboard-actions .btn,
+  .dashboard-actions button,
+  .teacher-actions-row button {
+    flex: 1 1 180px;
+    justify-content: center;
+  }
+
+  .announcement-card {
+    flex-direction: column;
+  }
+
+  .announcement-date {
+    white-space: normal;
+  }
+
+  .activity-admin-item {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+
+  .activity-admin-item img,
+  .admin-action {
+    grid-column: 1 / -1;
+  }
+
+  .activity-admin-item img {
+    width: 100%;
+    height: 180px;
+  }
+
+  .admin-action {
+    justify-content: stretch;
+  }
+
+  .admin-action button {
+    flex: 1 1 120px;
+  }
+}
+
+@media (max-width: 760px) {
+  .teacher-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .teacher-panel,
+  .dashboard-content,
+  .admin-sidebar-card,
+  .auth-card,
+  .admin-login-card {
+    border-radius: 22px;
+    padding: 22px;
+  }
+
+  .teacher-main,
+  .dashboard-content {
+    min-width: 0;
+  }
+
+  .teacher-panel-header h1,
+  .dashboard-header h1 {
+    font-size: clamp(24px, 8vw, 34px);
+  }
+
+  .gallery-page-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-kegiatan-card .kegiatan-list-area,
+.admin-kegiatan-card .activity-admin-list {
+  min-width: 0;
+  width: 100%;
+}
+
+.activity-admin-list .announcement-admin-item {
+  grid-template-columns: 48px minmax(0, 1fr) max-content;
+  align-items: start;
+  gap: 18px;
+  padding: 22px 24px;
+  border-radius: 24px;
+  background: #ffffff;
+}
+
+.announcement-admin-item > span {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #07142f;
+  font-weight: 900;
+}
+
+.announcement-admin-item h4 {
+  margin: 0 0 8px;
+  color: #07142f;
+  font-size: 18px;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+.announcement-admin-item p {
+  max-width: 78ch;
+  margin: 0;
+  color: #475569;
+  font-size: 15px;
+  line-height: 1.75;
+  text-align: justify;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
+.announcement-admin-item .admin-action {
+  align-self: center;
+  min-width: 172px;
+  justify-content: flex-end;
+}
+
+.announcement-admin-item .admin-action button {
+  min-width: 82px;
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 999px;
+}
+
+@media (max-width: 1180px) {
+  .admin-kegiatan-card {
+    grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+    gap: 24px;
+    padding: 28px;
+  }
+}
+
+@media (max-width: 980px) {
+  .admin-kegiatan-card {
+    grid-template-columns: 1fr;
+  }
+
+  .kegiatan-form-area {
+    border-right: 0;
+    border-bottom: 1px solid #e5e7eb;
+    padding-right: 0;
+    padding-bottom: 24px;
+  }
+}
+
+@media (max-width: 760px) {
+  .activity-admin-list .announcement-admin-item {
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 14px;
+    padding: 18px;
+  }
+
+  .announcement-admin-item .admin-action {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+    justify-content: stretch;
+  }
+
+  .announcement-admin-item .admin-action button {
+    flex: 1 1 120px;
+  }
+}
+
+.announcement-admin-card {
+  grid-template-columns: 1fr;
+  gap: 30px;
+}
+
+.announcement-admin-card .kegiatan-form-area {
+  border-right: 0;
+  border-bottom: 1px solid #e5e7eb;
+  padding-right: 0;
+  padding-bottom: 30px;
+}
+
+.announcement-admin-card .kegiatan-form-area form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 18px 22px;
+  align-items: end;
+}
+
+.announcement-admin-card .form-group {
+  margin-bottom: 0;
+}
+
+.announcement-admin-card .form-group:nth-child(3),
+.announcement-admin-card .button-row {
+  grid-column: 1 / -1;
+}
+
+.announcement-admin-card .activity-admin-list {
+  gap: 16px;
+}
+
+.announcement-admin-card .announcement-admin-item {
+  grid-template-columns: 48px minmax(0, 1fr) max-content;
+  align-items: start;
+  gap: 18px;
+  padding: 22px 24px;
+}
+
+.announcement-admin-card .announcement-admin-item p {
+  max-width: 92ch;
+}
+
+.announcement-admin-card .announcement-admin-item .admin-action {
+  align-self: center;
+}
+
+@media (max-width: 760px) {
+  .announcement-admin-card .kegiatan-form-area form {
+    grid-template-columns: 1fr;
+  }
+
+  .announcement-admin-card .announcement-admin-item {
+    grid-template-columns: 40px minmax(0, 1fr);
+    padding: 18px;
+  }
+
+  .announcement-admin-card .announcement-admin-item .admin-action {
+    grid-column: 2;
+    width: 100%;
+    min-width: 0;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 520px) {
+  .dashboard-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .dashboard-actions .btn,
+  .dashboard-actions button {
+    width: 100%;
+    min-height: 46px;
+    padding: 12px 18px;
+    border-radius: 999px;
+    flex: none;
+  }
+
+  .announcement-admin-card {
+    padding: 22px;
+  }
+
+  .announcement-admin-card .announcement-admin-item {
+    grid-template-columns: 1fr;
+  }
+
+  .announcement-admin-card .announcement-admin-item .admin-action {
+    grid-column: 1;
+  }
+
+.announcement-admin-card .announcement-admin-item p {
+    text-align: left;
+  }
+}
+
+.portal-account-admin-card {
+  grid-template-columns: 1fr;
+  gap: 30px;
+}
+
+.portal-account-admin-card .kegiatan-form-area {
+  border-right: 0;
+  border-bottom: 1px solid #e5e7eb;
+  padding-right: 0;
+  padding-bottom: 30px;
+}
+
+.portal-account-admin-card .kegiatan-form-area form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 22px;
+  align-items: end;
+}
+
+.portal-account-admin-card .form-group,
+.portal-account-admin-card .button-row {
+  margin-bottom: 0;
+}
+
+.portal-account-admin-card .button-row {
+  grid-column: 1 / -1;
+}
+
+.portal-account-admin-card .activity-admin-list {
+  gap: 16px;
+}
+
+.portal-account-admin-item {
+  grid-template-columns: 48px minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: 18px;
+  padding: 22px 24px;
+  border-radius: 24px;
+  background: #ffffff;
+}
+
+.portal-account-admin-item > span {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #07142f;
+  font-weight: 900;
+}
+
+.portal-account-info {
+  display: grid;
+  gap: 6px;
+}
+
+.portal-account-info h4 {
+  margin: 0;
+  color: #07142f;
+  font-size: 18px;
+  line-height: 1.35;
+  overflow-wrap: break-word;
+}
+
+.portal-account-info p,
+.portal-account-info .linked-student-text {
+  margin: 0;
+  color: #475569;
+  font-size: 15px;
+  line-height: 1.65;
+  text-align: left;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
+.portal-account-admin-item .admin-action {
+  align-self: center;
+  min-width: 172px;
+  justify-content: flex-end;
+}
+
+.portal-account-admin-item .admin-action button {
+  min-width: 82px;
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 999px;
+}
+
+@media (max-width: 760px) {
+  .portal-account-admin-card .kegiatan-form-area form {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-account-admin-item {
+    grid-template-columns: 40px minmax(0, 1fr);
+    align-items: start;
+    padding: 18px;
+  }
+
+  .portal-account-admin-item .admin-action {
+    grid-column: 2;
+    width: 100%;
+    min-width: 0;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 520px) {
+  .portal-account-admin-card {
+    padding: 22px;
+  }
+
+  .portal-account-admin-item {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-account-admin-item .admin-action {
+    grid-column: 1;
+  }
+}

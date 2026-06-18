@@ -51,7 +51,7 @@ function Galeri() {
               currentItems.map((item) => (
                 <article className="gallery-card" key={item.id}>
                   <div className="gallery-photo">
-                    <img src={item.image || schoolLogo} alt={item.title} />
+                    <img src={item.image || schoolLogo} alt={item.title} loading="lazy" />
                   </div>
 
                   <div className="gallery-info">

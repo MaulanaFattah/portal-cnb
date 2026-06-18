@@ -4,6 +4,7 @@ import {
   getKepalaSekolahDashboard,
   logout
 } from "../services/api";
+import { exportExcel } from "../utils/exportExcel";
 
 const MENU_ITEMS = [
   { id: "dashboard", label: "Dashboard" },
@@ -32,10 +33,6 @@ function statusClass(status) {
   return `attend-status attend-${status}`;
 }
 
-function csvSafe(value) {
-  return `"${String(value || "").replace(/"/g, '""')}"`;
-}
-
 function DashboardKepalaSekolah() {
   const navigate = useNavigate();
   const [activeMenu, setActiveMenu] = useState("dashboard");
@@ -50,7 +47,7 @@ function DashboardKepalaSekolah() {
       const result = await getKepalaSekolahDashboard();
       if (!result.success) {
         alert(result.message || "Gagal membuka dashboard kepala sekolah");
-        navigate("/admin-login");
+        navigate("/login-kepala-sekolah");
         return;
       }
 
@@ -63,7 +60,7 @@ function DashboardKepalaSekolah() {
 
   const handleLogout = () => {
     logout();
-    navigate("/admin-login");
+    navigate("/login-kepala-sekolah");
   };
 
   const handleFilterChange = (event) => {
@@ -92,23 +89,28 @@ function DashboardKepalaSekolah() {
     const rows = dashboard?.absensi?.rows || [];
     if (!rows.length) return;
 
-    const header = ["Tanggal", "Nama Siswa", "Kelas", "Mapel", "Status", "Keterangan"];
-    const csvRows = rows.map((row) => [
-      row.tanggal,
-      row.siswa?.nama,
-      row.kelas?.nama_kelas,
-      row.mapel || "Wali Kelas",
-      row.status,
-      row.keterangan
-    ]);
-    const csv = [header, ...csvRows].map((row) => row.map(csvSafe).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `rekapitulasi-sekolah-${filter.dari}-${filter.sampai}.csv`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+    exportExcel({
+      filename: `rekapitulasi-sekolah-${filter.dari}-${filter.sampai}.xls`,
+      title: "Rekapitulasi Absensi Sekolah",
+      subtitle: `Periode ${filter.dari || "awal"} sampai ${filter.sampai || "akhir"}`,
+      summary: [
+        { label: "Hadir", value: dashboard.absensi?.summary?.hadir || 0 },
+        { label: "Izin", value: dashboard.absensi?.summary?.izin || 0 },
+        { label: "Sakit", value: dashboard.absensi?.summary?.sakit || 0 },
+        { label: "Alpha", value: dashboard.absensi?.summary?.alpha || 0 },
+        { label: "Total", value: dashboard.absensi?.summary?.total || 0 }
+      ],
+      columns: [
+        { header: "No", value: (_row, index) => index + 1 },
+        { header: "Tanggal", value: (row) => formatDate(row.tanggal) },
+        { header: "Nama Siswa", value: (row) => row.siswa?.nama || "-" },
+        { header: "Kelas", value: (row) => row.kelas?.nama_kelas || "-" },
+        { header: "Mapel", value: (row) => row.mapel || "Wali Kelas" },
+        { header: "Status", value: (row) => row.status?.toUpperCase() || "-" },
+        { header: "Keterangan", value: (row) => row.keterangan || "-" }
+      ],
+      rows
+    });
   };
 
   if (loading) {
@@ -126,13 +128,22 @@ function DashboardKepalaSekolah() {
 
   const kepala = dashboard.kepalaSekolah;
   const absensi = dashboard.absensi || { summary: emptySummary, rows: [] };
+  const monitoring = dashboard.monitoring || {};
 
   const renderProfil = () => (
     <section className="teacher-panel">
       <div className="teacher-panel-header compact">
-        <span>Profil Utama</span>
-        <h1>Profil Kepala Sekolah</h1>
-        <p>Data profil kepala sekolah yang sedang menjabat.</p>
+        <span>Dashboard</span>
+        <h1>Monitoring Kepala Sekolah</h1>
+        <p>Pantau kondisi sekolah, guru, siswa, kelas, pengumuman, kegiatan, dan rekap absensi dari satu halaman.</p>
+      </div>
+
+      <div className="teacher-stats principal-stats">
+        <div className="teacher-stat teacher-stat-total"><span>Jumlah Siswa</span><strong>{monitoring.totalSiswa || 0}</strong></div>
+        <div className="teacher-stat teacher-stat-hadir"><span>Guru Wali Kelas</span><strong>{monitoring.totalGuruWaliKelas || 0}</strong></div>
+        <div className="teacher-stat teacher-stat-sakit"><span>Guru Mapel</span><strong>{monitoring.totalGuruMapel || 0}</strong></div>
+        <div className="teacher-stat teacher-stat-izin"><span>Data Kelas</span><strong>{monitoring.totalKelas || 0}</strong></div>
+        <div className="teacher-stat teacher-stat-alpha"><span>Absensi Tercatat</span><strong>{absensi.summary.total || 0}</strong></div>
       </div>
 
       <div className="profile-layout">
@@ -148,10 +159,40 @@ function DashboardKepalaSekolah() {
           <div><span>No. HP</span><strong>{kepala?.no_telepon || "-"}</strong></div>
           <div><span>Alamat</span><strong>{kepala?.alamat || "-"}</strong></div>
           <div><span>Email</span><strong>{kepala?.email || dashboard.user?.email}</strong></div>
-          <div className="teacher-actions-row">
-            <button type="button" className="teacher-primary" onClick={() => navigate("/dashboard-admin")}>Edit di Admin Panel</button>
-          </div>
+          <p className="readonly-note">Akun ini hanya digunakan untuk memantau data sekolah. Perubahan data utama dilakukan oleh admin.</p>
         </div>
+      </div>
+
+      <div className="teacher-grid two-columns lower-grid">
+        <article className="teacher-card principal-feed-card">
+          <h3>Pengumuman Terbaru</h3>
+          {(dashboard.pengumuman || []).length === 0 ? <p className="teacher-empty">Belum ada pengumuman.</p> : (
+            <div className="teacher-announcement-list">
+              {dashboard.pengumuman.map((item) => (
+                <div className="teacher-announcement" key={item.id}>
+                  <span>{formatDate(item.date)}</span>
+                  <strong>{item.title}</strong>
+                  <p>{item.content}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </article>
+
+        <article className="teacher-card principal-feed-card">
+          <h3>Kegiatan Sekolah</h3>
+          {(dashboard.kegiatan || []).length === 0 ? <p className="teacher-empty">Belum ada kegiatan tampil.</p> : (
+            <div className="teacher-announcement-list">
+              {dashboard.kegiatan.map((item) => (
+                <div className="teacher-announcement" key={item.id}>
+                  <span>{formatDate(item.date)}</span>
+                  <strong>{item.title}</strong>
+                  <p>{item.description}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </article>
       </div>
     </section>
   );
@@ -243,7 +284,7 @@ function DashboardKepalaSekolah() {
         </label>
         <div className="teacher-actions-row action-height" style={{ alignItems: "flex-end", paddingBottom: "2px" }}>
           <button type="button" className="teacher-primary" onClick={loadRekap} disabled={rekapLoading}>{rekapLoading ? "Memuat..." : "Tampilkan"}</button>
-          <button type="button" className="teacher-secondary" onClick={exportRekap} disabled={!absensi.rows.length}>Export</button>
+          <button type="button" className="teacher-secondary" onClick={exportRekap} disabled={!absensi.rows.length}>Export Excel</button>
         </div>
       </div>
 
@@ -295,7 +336,7 @@ function DashboardKepalaSekolah() {
             <small>Sistem Informasi Sekolah</small>
           </div>
         </div>
-        <button type="button" onClick={handleLogout} className="teacher-logout">Logout</button>
+        <button type="button" onClick={handleLogout} className="teacher-logout">Keluar</button>
       </header>
 
       <div className="teacher-layout">
@@ -303,7 +344,7 @@ function DashboardKepalaSekolah() {
           <div className="teacher-avatar"><span>{dashboard.user?.name?.slice(0, 1) || "K"}</span></div>
           <h2>{dashboard.user?.name}</h2>
           <p>Kepala Sekolah</p>
-          <span className="teacher-role-pill">Administrator Utama</span>
+          <span className="teacher-role-pill">Monitoring Sekolah</span>
 
           <nav className="teacher-menu" aria-label="Menu dashboard kepala sekolah">
             {MENU_ITEMS.map((item) => (

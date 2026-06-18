@@ -1,6 +1,6 @@
 import schoolLogo from "../assets/logo.jpeg";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { loginUser, saveAuth } from "../services/api";
 
 function AdminLogin() {
@@ -58,6 +58,8 @@ function AdminLogin() {
 
           <button className="submit-btn">Login</button>
         </form>
+
+        <Link to="/login" className="auth-link auth-back-link">Kembali ke pilihan login</Link>
       </div>
     </div>
   );

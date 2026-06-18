@@ -58,3 +58,11 @@ exports.onlyOrangTua = (req, res, next) => {
 
   next();
 };
+
+exports.onlyKepalaSekolahOrAdmin = (req, res, next) => {
+  if (!["kepala_sekolah", "admin"].includes(req.user.role)) {
+    return res.status(403).json({ success: false, message: "Akses hanya untuk kepala sekolah atau admin" });
+  }
+
+  next();
+};

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import AdminSidebar from "../components/AdminSidebar";
 import {
   getUsersByRole,
+  getSiswa,
   createUser,
   updateUser,
   deleteUser,
@@ -12,18 +13,27 @@ import {
 function AdminAkunSiswa() {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
+  const [siswaList, setSiswaList] = useState([]);
   const [editId, setEditId] = useState(null);
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
-    role: "siswa"
+    role: "siswa",
+    siswa_id: "",
+    profession: ""
   });
 
   const loadUsers = async () => {
-    const [siswaResult, orangTuaResult] = await Promise.all([getUsersByRole("siswa"), getUsersByRole("orangtua")]);
-    setUsers([...(siswaResult.data || []), ...(orangTuaResult.data || [])]);
+    const [siswaResult, orangTuaResult, kepalaResult, studentResult] = await Promise.all([
+      getUsersByRole("siswa"),
+      getUsersByRole("orangtua"),
+      getUsersByRole("kepala_sekolah"),
+      getSiswa()
+    ]);
+    setUsers([...(siswaResult.data || []), ...(orangTuaResult.data || []), ...(kepalaResult.data || [])]);
+    if (studentResult.success) setSiswaList(studentResult.data || []);
   };
 
   useEffect(() => {
@@ -38,11 +48,16 @@ function AdminAkunSiswa() {
 
   const resetForm = () => {
     setEditId(null);
-    setFormData({ name: "", email: "", password: "", role: "siswa" });
+    setFormData({ name: "", email: "", password: "", role: "siswa", siswa_id: "", profession: "" });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (["siswa", "orangtua"].includes(formData.role) && !formData.siswa_id) {
+      alert("Pilih siswa yang akan dihubungkan dengan akun ini.");
+      return;
+    }
 
     const result = editId
       ? await updateUser(editId, formData)
@@ -58,7 +73,14 @@ function AdminAkunSiswa() {
 
   const handleEdit = (item) => {
     setEditId(item.id);
-    setFormData({ name: item.name, email: item.email, password: "", role: item.role });
+    setFormData({
+      name: item.name,
+      email: item.email,
+      password: "",
+      role: item.role,
+      siswa_id: item.portalLink?.siswa_id || "",
+      profession: item.profession || ""
+    });
   };
 
   const handleDelete = async (id) => {
@@ -86,13 +108,13 @@ function AdminAkunSiswa() {
 
           <div className="dashboard-actions">
             <Link to="/" className="btn secondary">Website</Link>
-            <button onClick={handleLogout} className="btn primary">Logout</button>
+            <button onClick={handleLogout} className="btn primary">Keluar</button>
           </div>
         </div>
 
-        <section className="admin-kegiatan-card">
+        <section className="admin-kegiatan-card portal-account-admin-card">
           <div className="kegiatan-form-area">
-            <h2>{editId ? "Edit Akun" : "Tambah Akun"}</h2>
+            <h2>{editId ? "Edit Akun Portal" : "Tambah Akun Portal"}</h2>
 
             <form onSubmit={handleSubmit}>
               <div className="form-group">
@@ -133,8 +155,30 @@ function AdminAkunSiswa() {
                 <select name="role" value={formData.role} onChange={handleChange}>
                   <option value="siswa">Siswa</option>
                   <option value="orangtua">Orang Tua</option>
+                  <option value="kepala_sekolah">Kepala Sekolah</option>
                 </select>
               </div>
+
+              {["siswa", "orangtua"].includes(formData.role) && (
+                <div className="form-group">
+                  <label>Hubungkan ke Siswa</label>
+                  <select name="siswa_id" value={formData.siswa_id} onChange={handleChange} required>
+                    <option value="">Pilih siswa berdasarkan kelas dan orang tua</option>
+                    {siswaList.map((siswa) => (
+                      <option key={siswa.id} value={siswa.id}>
+                        {siswa.nama} • {siswa.kelas?.nama_kelas || "Kelas -"} • Orang tua: {siswa.nama_ayah || siswa.nama_ibu || "-"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {formData.role === "kepala_sekolah" && (
+                <div className="form-group">
+                  <label>Keterangan Jabatan</label>
+                  <input name="profession" value={formData.profession} onChange={handleChange} placeholder="Contoh: Kepala Sekolah" />
+                </div>
+              )}
 
               <div className="button-row">
                 <button type="submit" className="save-btn">
@@ -150,22 +194,23 @@ function AdminAkunSiswa() {
           </div>
 
           <div className="kegiatan-list-area">
-            <h2>Daftar Akun Siswa & Orang Tua</h2>
+            <h2>Daftar Akun Portal</h2>
 
             <div className="activity-admin-list">
               {users.length === 0 ? (
                 <p className="empty-text">Belum ada akun siswa/orang tua.</p>
               ) : (
                 users.map((item, index) => (
-                  <div className="activity-admin-item" key={item.id}>
+                  <div className="activity-admin-item portal-account-admin-item" key={item.id}>
                     <span>{index + 1}</span>
-                    <div>
+                    <div className="portal-account-info">
                       <h4>{item.name}</h4>
-                      <p>{item.email} • {item.role === "orangtua" ? "Orang Tua" : "Siswa"}</p>
+                      <p>{item.email} • {item.role === "orangtua" ? "Orang Tua" : item.role === "kepala_sekolah" ? "Kepala Sekolah" : "Siswa"}</p>
+                      {item.siswa && <p className="linked-student-text">Terhubung: {item.siswa.nama} • {item.siswa.kelas?.nama_kelas || "Kelas -"}</p>}
                     </div>
                     <div className="admin-action">
-                      <button onClick={() => handleEdit(item)}>✎</button>
-                      <button onClick={() => handleDelete(item.id)}>🗑</button>
+                      <button onClick={() => handleEdit(item)}>Edit</button>
+                      <button onClick={() => handleDelete(item.id)}>Hapus</button>
                     </div>
                   </div>
                 ))

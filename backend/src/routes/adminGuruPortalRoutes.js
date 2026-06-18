@@ -8,6 +8,7 @@ router.get("/registrations", verifyToken, onlyAdmin, guruPortalController.getGur
 router.put("/registrations/:userId", verifyToken, onlyAdmin, guruPortalController.verifyGuruRegistration);
 router.get("/jadwal", verifyToken, onlyAdmin, guruPortalController.getJadwalAdmin);
 router.post("/jadwal", verifyToken, onlyAdmin, guruPortalController.createJadwal);
+router.put("/jadwal/:id", verifyToken, onlyAdmin, guruPortalController.updateJadwal);
 router.delete("/jadwal/:id", verifyToken, onlyAdmin, guruPortalController.deleteJadwal);
 
 module.exports = router;

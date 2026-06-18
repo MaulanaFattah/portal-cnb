@@ -76,7 +76,7 @@ function AdminPPDB() {
           </div>
           <div className="dashboard-actions">
             <Link to="/form-ppdb" className="btn secondary">Lihat Form</Link>
-            <button onClick={handleLogout} className="btn primary">Logout</button>
+            <button onClick={handleLogout} className="btn primary">Keluar</button>
           </div>
         </div>
 

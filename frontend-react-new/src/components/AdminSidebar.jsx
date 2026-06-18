@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 const menu = [
   ["/dashboard-admin", "Dashboard"],
   ["/admin/profil-sekolah", "Profil Sekolah"],
+  ["/admin/kegiatan", "Kegiatan"],
   ["/admin/pengumuman", "Pengumuman"],
   ["/admin/galeri", "Galeri"],
   ["/admin/ppdb", "PPDB"],

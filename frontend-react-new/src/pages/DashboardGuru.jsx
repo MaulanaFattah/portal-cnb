@@ -6,6 +6,7 @@ import {
   logout,
   submitAbsensiGuru
 } from "../services/api";
+import { exportExcel } from "../utils/exportExcel";
 
 const ABSENSI_OPTIONS = [
   { value: "hadir", label: "Hadir" },
@@ -17,7 +18,7 @@ const ABSENSI_OPTIONS = [
 const MENU_ITEMS = [
   { id: "dashboard", label: "Dashboard" },
   { id: "jadwal", label: "Jadwal Mengajar" },
-  { id: "absensi", label: "Absensi Harian" },
+  { id: "absensi", label: "Absen 1" },
   { id: "rekap", label: "Rekapitulasi Absensi" }
 ];
 
@@ -45,10 +46,6 @@ function getStatusLabel(value) {
   return ABSENSI_OPTIONS.find((item) => item.value === value)?.label || value;
 }
 
-function csvSafe(value) {
-  return `"${String(value || "").replace(/"/g, '""')}"`;
-}
-
 function DashboardGuru() {
   const navigate = useNavigate();
   const [activeMenu, setActiveMenu] = useState("dashboard");
@@ -58,6 +55,7 @@ function DashboardGuru() {
   const [tanggal, setTanggal] = useState(todayISO());
   const [jadwalId, setJadwalId] = useState("");
   const [entries, setEntries] = useState({});
+  const [savedAttendanceSummary, setSavedAttendanceSummary] = useState(emptySummary);
   const [savingAbsensi, setSavingAbsensi] = useState(false);
   const [rekapLoading, setRekapLoading] = useState(false);
   const [rekap, setRekap] = useState({ summary: emptySummary, rows: [] });
@@ -112,13 +110,16 @@ function DashboardGuru() {
   }, [dashboard, attendanceClassId]);
 
   const attendanceSummary = useMemo(() => {
-    return siswaList.reduce((summary, siswa) => {
-      const status = entries[siswa.id]?.status || "hadir";
+    const currentStudentIds = new Set(siswaList.map((siswa) => Number(siswa.id)));
+    return Object.values(entries).reduce((summary, entry) => {
+      if (!currentStudentIds.has(Number(entry?.siswa_id))) return summary;
+      const status = entry?.status;
+      if (!status) return summary;
       summary[status] += 1;
       summary.total += 1;
       return summary;
     }, { ...emptySummary });
-  }, [siswaList, entries]);
+  }, [entries, siswaList]);
 
   const handleLogout = () => {
     logout();
@@ -126,6 +127,7 @@ function DashboardGuru() {
   };
 
   const handleEntry = (id, field, value) => {
+    setSavedAttendanceSummary(emptySummary);
     setEntries((previous) => ({
       ...previous,
       [id]: { ...previous[id], siswa_id: id, [field]: value }
@@ -136,16 +138,26 @@ function DashboardGuru() {
     event.preventDefault();
     setSavingAbsensi(true);
     setNotice(null);
+    const selectedEntries = siswaList
+      .map((siswa) => entries[siswa.id])
+      .filter((entry) => entry?.status);
+
+    if (selectedEntries.length === 0) {
+      setSavingAbsensi(false);
+      setNotice({ type: "error", text: "Pilih status absensi minimal satu siswa sebelum menyimpan." });
+      return;
+    }
 
     const result = await submitAbsensiGuru({
       tanggal,
       kelas_id: attendanceClassId,
       jadwal_id: isWali ? null : jadwalId,
-      entries: siswaList.map((siswa) => entries[siswa.id] || { siswa_id: siswa.id, status: "hadir", keterangan: "" })
+      entries: selectedEntries
     });
 
     setSavingAbsensi(false);
     setNotice({ type: result.success ? "success" : "error", text: result.message });
+    if (result.success) setSavedAttendanceSummary(attendanceSummary);
   };
 
   const handleRekapFilter = (event) => {
@@ -175,23 +187,28 @@ function DashboardGuru() {
   const exportRekap = () => {
     if (!rekap.rows.length) return;
 
-    const header = ["Tanggal", "Nama Siswa", "Kelas", "Mapel", "Status", "Keterangan"];
-    const rows = rekap.rows.map((row) => [
-      row.tanggal,
-      row.siswa?.nama,
-      row.kelas?.nama_kelas,
-      row.mapel || "Wali Kelas",
-      getStatusLabel(row.status),
-      row.keterangan
-    ]);
-    const csv = [header, ...rows].map((row) => row.map(csvSafe).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `rekap-absensi-${rekapFilter.dari || "awal"}-${rekapFilter.sampai || "akhir"}.csv`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+    exportExcel({
+      filename: `rekap-absensi-${rekapFilter.dari || "awal"}-${rekapFilter.sampai || "akhir"}.xls`,
+      title: "Rekapitulasi Absensi Siswa",
+      subtitle: `${roleLabel} • Periode ${rekapFilter.dari || "awal"} sampai ${rekapFilter.sampai || "akhir"}`,
+      summary: [
+        { label: "Hadir", value: rekap.summary?.hadir || 0 },
+        { label: "Izin", value: rekap.summary?.izin || 0 },
+        { label: "Sakit", value: rekap.summary?.sakit || 0 },
+        { label: "Alpha", value: rekap.summary?.alpha || 0 },
+        { label: "Total", value: rekap.summary?.total || 0 }
+      ],
+      columns: [
+        { header: "No", value: (_row, index) => index + 1 },
+        { header: "Tanggal", value: (row) => formatDate(row.tanggal) },
+        { header: "Nama Siswa", value: (row) => row.siswa?.nama || "-" },
+        { header: "Kelas", value: (row) => row.kelas?.nama_kelas || "-" },
+        { header: "Mapel", value: (row) => row.mapel || "Wali Kelas" },
+        { header: "Status", value: (row) => getStatusLabel(row.status) },
+        { header: "Keterangan", value: (row) => row.keterangan || "-" }
+      ],
+      rows: rekap.rows
+    });
   };
 
   const renderSummaryCards = (summary) => (
@@ -330,7 +347,7 @@ function DashboardGuru() {
     <section className="teacher-panel">
       <div className="teacher-panel-header compact">
         <span>Absensi</span>
-        <h1>Absensi Harian</h1>
+          <h1>Absen 1</h1>
         <p>Pilih tanggal dan kelas/jam mengajar, lalu simpan status hadir, izin, sakit, atau alpha.</p>
       </div>
 
@@ -357,11 +374,11 @@ function DashboardGuru() {
           )}
 
           <button type="button" className="teacher-secondary action-height" onClick={() => setNotice({ type: "success", text: "Sesi absensi siap diisi." })}>
-            Buka Sesi
+            Buka Absen 1
           </button>
         </div>
 
-        {renderSummaryCards(attendanceSummary)}
+        {renderSummaryCards(savedAttendanceSummary)}
 
         <div className="teacher-table-wrap">
           <table className="teacher-table attendance-table">
@@ -383,7 +400,8 @@ function DashboardGuru() {
                   <td>{siswa.nama}</td>
                   <td>{siswa.nisn}</td>
                   <td>
-                    <select value={entries[siswa.id]?.status || "hadir"} onChange={(event) => handleEntry(siswa.id, "status", event.target.value)}>
+                    <select value={entries[siswa.id]?.status || ""} onChange={(event) => handleEntry(siswa.id, "status", event.target.value)}>
+                      <option value="">Pilih status</option>
                       {ABSENSI_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                     </select>
                   </td>
@@ -410,7 +428,7 @@ function DashboardGuru() {
       <div className="teacher-panel-header compact">
         <span>Rekapitulasi</span>
         <h1>Rekapitulasi Absensi</h1>
-        <p>Filter berdasarkan kelas dan rentang tanggal, lalu ekspor hasil rekap ke CSV.</p>
+        <p>Filter berdasarkan kelas dan rentang tanggal, lalu ekspor hasil rekap ke Excel.</p>
       </div>
 
       <div className="teacher-form-grid four-columns">
@@ -446,7 +464,7 @@ function DashboardGuru() {
           {rekapLoading ? "Memuat..." : "Tampilkan"}
         </button>
         <button type="button" className="teacher-secondary" onClick={exportRekap} disabled={!rekap.rows.length}>
-          Export CSV
+          Export Excel
         </button>
       </div>
 
@@ -515,7 +533,7 @@ function DashboardGuru() {
             <small>Sistem Informasi Sekolah</small>
           </div>
         </div>
-        <button type="button" onClick={handleLogout} className="teacher-logout">Logout</button>
+        <button type="button" onClick={handleLogout} className="teacher-logout">Keluar</button>
       </header>
 
       <div className="teacher-layout">

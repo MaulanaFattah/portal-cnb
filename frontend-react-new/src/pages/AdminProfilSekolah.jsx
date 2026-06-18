@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AdminSidebar from "../components/AdminSidebar";
 import { getProfilSekolah, createProfilSekolah, updateProfilSekolah, logout } from "../services/api";
@@ -56,7 +56,7 @@ function AdminProfilSekolah() {
           </div>
           <div className="dashboard-actions">
             <Link to="/profil" className="btn secondary">Lihat Profil</Link>
-            <button onClick={handleLogout} className="btn primary">Logout</button>
+            <button onClick={handleLogout} className="btn primary">Keluar</button>
           </div>
         </div>
 

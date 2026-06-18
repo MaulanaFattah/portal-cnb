@@ -1,17 +1,29 @@
 ﻿const db = require("../models");
 
 const Siswa = db.Siswa;
+const Kelas = db.Kelas;
+
+async function getClassMap() {
+  const kelas = await Kelas.findAll();
+  return new Map(kelas.map((item) => [Number(item.id), item.toJSON()]));
+}
+
+function attachClass(siswa, classMap) {
+  const data = siswa.toJSON ? siswa.toJSON() : siswa;
+  return { ...data, kelas: classMap.get(Number(data.kelas_id)) || null };
+}
 
 exports.getAllSiswa = async (req, res) => {
   try {
     const siswa = await Siswa.findAll({
       order: [["nama", "ASC"]]
     });
+    const classMap = await getClassMap();
 
     res.json({
       success: true,
       message: "Data siswa berhasil diambil",
-      data: siswa
+      data: siswa.map((item) => attachClass(item, classMap))
     });
   } catch (error) {
     res.status(500).json({

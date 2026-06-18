@@ -21,23 +21,28 @@ function Login() {
         <div className="login-grid">
 
           <Link to="/login-siswa" className="login-role-card">
-            <h3>🎓 Login Siswa</h3>
+            <h3>Login Siswa</h3>
             <p>Akses informasi akademik dan data siswa.</p>
           </Link>
 
           <Link to="/login-guru" className="login-role-card">
-            <h3>👨‍🏫 Login Guru</h3>
+            <h3>Login Guru</h3>
             <p>Akses data pembelajaran dan administrasi guru.</p>
           </Link>
 
           <Link to="/login-orangtua" className="login-role-card">
-            <h3>👨‍👩‍👧 Login Orang Tua</h3>
+            <h3>Login Orang Tua</h3>
             <p>Monitoring perkembangan dan informasi siswa.</p>
           </Link>
 
           <Link to="/admin-login" className="login-role-card admin-card">
-            <h3>⚙️ Login Admin</h3>
+            <h3>Login Admin</h3>
             <p>Kelola seluruh data portal sekolah.</p>
+          </Link>
+
+          <Link to="/login-kepala-sekolah" className="login-role-card">
+            <h3>Login Kepala Sekolah</h3>
+            <p>Monitoring data guru, siswa, kegiatan, dan absensi sekolah.</p>
           </Link>
 
         </div>

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AdminSidebar from "../components/AdminSidebar";
 import {
-  getKegiatan,
+  getKegiatanAdmin,
   createKegiatan,
   updateKegiatan,
   deleteKegiatan,
@@ -19,11 +19,12 @@ function AdminKegiatan() {
     title: "",
     date: "",
     description: "",
-    image: ""
+    image: "",
+    status: "tampil"
   });
 
   const loadKegiatan = async () => {
-    const result = await getKegiatan();
+    const result = await getKegiatanAdmin();
     if (result.success) setKegiatan(result.data);
   };
 
@@ -50,7 +51,7 @@ function AdminKegiatan() {
 
   const resetForm = () => {
     setEditId(null);
-    setFormData({ title: "", date: "", description: "", image: "" });
+    setFormData({ title: "", date: "", description: "", image: "", status: "tampil" });
   };
 
   const handleSubmit = async (e) => {
@@ -76,7 +77,8 @@ function AdminKegiatan() {
       title: item.title,
       date: item.date,
       description: item.description,
-      image: item.image || ""
+      image: item.image || "",
+      status: item.status || "tampil"
     });
   };
 
@@ -105,7 +107,7 @@ function AdminKegiatan() {
 
           <div className="dashboard-actions">
             <Link to="/" className="btn secondary">Website</Link>
-            <button onClick={handleLogout} className="btn primary">Logout</button>
+            <button onClick={handleLogout} className="btn primary">Keluar</button>
           </div>
         </div>
 
@@ -163,6 +165,14 @@ function AdminKegiatan() {
                 </label>
               </div>
 
+              <div className="form-group">
+                <label>Status Tampil</label>
+                <select name="status" value={formData.status} onChange={handleChange}>
+                  <option value="tampil">Tampilkan di Website</option>
+                  <option value="tidak_tampil">Sembunyikan</option>
+                </select>
+              </div>
+
               <div className="button-row">
                 <button type="submit" className="save-btn">
                   {editId ? "Simpan Perubahan" : "Simpan"}
@@ -189,11 +199,11 @@ function AdminKegiatan() {
                     <img src={item.image || schoolLogo} alt={item.title} />
                     <div>
                       <h4>{item.title}</h4>
-                      <p>{item.date}</p>
+                      <p>{item.date} • {item.status === "tidak_tampil" ? "Tidak tampil" : "Tampil"}</p>
                     </div>
                     <div className="admin-action">
-                      <button onClick={() => handleEdit(item)}>✎</button>
-                      <button onClick={() => handleDelete(item.id)}>🗑</button>
+                      <button onClick={() => handleEdit(item)}>Edit</button>
+                      <button onClick={() => handleDelete(item.id)}>Hapus</button>
                     </div>
                   </div>
                 ))

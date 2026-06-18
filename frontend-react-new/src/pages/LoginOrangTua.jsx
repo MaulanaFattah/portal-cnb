@@ -75,9 +75,7 @@ function LoginOrangTua() {
             Lupa password?
           </Link>
 
-          <Link to="/login" className="auth-link">
-            ← Kembali ke pilihan login
-          </Link>
+          <Link to="/login" className="auth-link auth-back-link">Kembali ke pilihan login</Link>
         </div>
       </main>
 

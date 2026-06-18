@@ -1,12 +1,12 @@
 const db = require("../models");
 
 const Kegiatan = db.Kegiatan;
+const VALID_STATUS = ["tampil", "tidak_tampil"];
 
 exports.getAllKegiatan = async (req, res) => {
   try {
-    const kegiatan = await Kegiatan.findAll({
-      order: [["date", "DESC"]]
-    });
+    const where = req.query.includeHidden === "true" ? {} : { status: "tampil" };
+    const kegiatan = await Kegiatan.findAll({ where, order: [["date", "DESC"]] });
 
     res.json({
       success: true,
@@ -24,7 +24,7 @@ exports.getAllKegiatan = async (req, res) => {
 
 exports.createKegiatan = async (req, res) => {
   try {
-    const { title, date, description, image } = req.body;
+    const { title, date, description, image, status = "tampil" } = req.body;
 
     if (!title || !date || !description) {
       return res.status(400).json({
@@ -33,12 +33,11 @@ exports.createKegiatan = async (req, res) => {
       });
     }
 
-    const kegiatan = await Kegiatan.create({
-      title,
-      date,
-      description,
-      image
-    });
+    if (!VALID_STATUS.includes(status)) {
+      return res.status(400).json({ success: false, message: "Status kegiatan tidak valid" });
+    }
+
+    const kegiatan = await Kegiatan.create({ title, date, description, image, status });
 
     res.status(201).json({
       success: true,
@@ -65,6 +64,10 @@ exports.updateKegiatan = async (req, res) => {
         success: false,
         message: "Kegiatan tidak ditemukan"
       });
+    }
+
+    if (req.body.status && !VALID_STATUS.includes(req.body.status)) {
+      return res.status(400).json({ success: false, message: "Status kegiatan tidak valid" });
     }
 
     await kegiatan.update(req.body);

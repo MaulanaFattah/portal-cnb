@@ -35,8 +35,7 @@ module.exports = (sequelize) => {
       mapel: { type: DataTypes.STRING, allowNull: true, field: "subject" },
       status: {
         type: DataTypes.ENUM("hadir", "izin", "sakit", "alpha"),
-        allowNull: false,
-        defaultValue: "hadir"
+        allowNull: false
       },
       keterangan: { type: DataTypes.TEXT, allowNull: true, field: "note" }
     },

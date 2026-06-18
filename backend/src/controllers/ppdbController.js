@@ -1,6 +1,7 @@
 ﻿const db = require("../models");
 
 const PPDB = db.PPDB;
+const { notifyNewPPDB } = require("../services/ppdbNotifier");
 
 exports.getAllPPDB = async (req, res) => {
   try {
@@ -65,11 +66,23 @@ exports.createPPDB = async (req, res) => {
     }
 
     const ppdb = await PPDB.create(req.body);
+    const notification = await notifyNewPPDB(ppdb).catch((error) => ({
+      sent: false,
+      channels: [],
+      errors: [error.message]
+    }));
+
+    await ppdb.update({
+      notification_note: notification.sent
+        ? `Notifikasi terkirim via ${notification.channels.join(", ")}`
+        : `Notifikasi belum terkirim otomatis${notification.errors?.length ? `: ${notification.errors.join(" | ")}` : " - konfigurasi belum diisi"}`
+    });
 
     res.status(201).json({
       success: true,
       message: "Pendaftaran berhasil dikirim. Informasi verifikasi akan diberitahukan melalui email orang tua/wali atau WhatsApp.",
-      data: ppdb
+      data: ppdb,
+      notification
     });
   } catch (error) {
     res.status(500).json({

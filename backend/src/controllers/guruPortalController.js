@@ -13,6 +13,7 @@ const Pengumuman = db.Pengumuman;
 const PortalAccountLink = db.PortalAccountLink;
 
 const VALID_ABSENSI = ["hadir", "izin", "sakit", "alpha"];
+const VALID_JADWAL_STATUS = ["aktif", "non-aktif"];
 const DAY_NAMES = ["minggu", "senin", "selasa", "rabu", "kamis", "jumat", "sabtu"];
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -202,10 +203,14 @@ exports.getJadwalAdmin = async (req, res) => {
 
 exports.createJadwal = async (req, res) => {
   try {
-    const { guru_user_id, kelas_id, mapel, hari, jam_mulai, jam_selesai } = req.body;
+    const { guru_user_id, kelas_id, mapel, hari, jam_mulai, jam_selesai, status = "aktif" } = req.body;
 
     if (!guru_user_id || !kelas_id || !mapel || !hari || !jam_mulai || !jam_selesai) {
       return res.status(400).json({ success: false, message: "Guru, kelas, mapel, hari, dan jam wajib diisi" });
+    }
+
+    if (!DAY_NAMES.includes(hari) || !VALID_JADWAL_STATUS.includes(status)) {
+      return res.status(400).json({ success: false, message: "Hari atau status jadwal tidak valid" });
     }
 
     const profile = await GuruProfile.findOne({ where: { user_id: guru_user_id } });
@@ -213,10 +218,36 @@ exports.createJadwal = async (req, res) => {
       return res.status(400).json({ success: false, message: "Jadwal hanya untuk guru mapel yang sudah disetujui" });
     }
 
-    const jadwal = await JadwalMengajar.create({ guru_user_id, kelas_id, mapel, hari, jam_mulai, jam_selesai });
+    const jadwal = await JadwalMengajar.create({ guru_user_id, kelas_id, mapel, hari, jam_mulai, jam_selesai, status });
     return res.status(201).json({ success: true, message: "Jadwal mengajar berhasil ditambahkan", data: jadwal });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Gagal menambahkan jadwal", error: error.message });
+  }
+};
+
+exports.updateJadwal = async (req, res) => {
+  try {
+    const jadwal = await JadwalMengajar.findByPk(req.params.id);
+    if (!jadwal) return res.status(404).json({ success: false, message: "Jadwal tidak ditemukan" });
+
+    const { guru_user_id, kelas_id, mapel, hari, jam_mulai, jam_selesai, status } = req.body;
+    if (!guru_user_id || !kelas_id || !mapel || !hari || !jam_mulai || !jam_selesai) {
+      return res.status(400).json({ success: false, message: "Guru, kelas, mapel, hari, dan jam wajib diisi" });
+    }
+
+    if (!DAY_NAMES.includes(hari) || (status && !VALID_JADWAL_STATUS.includes(status))) {
+      return res.status(400).json({ success: false, message: "Hari atau status jadwal tidak valid" });
+    }
+
+    const profile = await GuruProfile.findOne({ where: { user_id: guru_user_id } });
+    if (!profile || profile.verification_status !== "approved" || profile.teacher_type !== "mapel") {
+      return res.status(400).json({ success: false, message: "Jadwal hanya untuk guru mapel yang sudah disetujui" });
+    }
+
+    await jadwal.update({ guru_user_id, kelas_id, mapel, hari, jam_mulai, jam_selesai, status: status || "aktif" });
+    return res.json({ success: true, message: "Jadwal mengajar berhasil diperbarui", data: jadwal });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Gagal memperbarui jadwal", error: error.message });
   }
 };
 
@@ -301,13 +332,24 @@ exports.submitAbsensi = async (req, res) => {
 
     const students = await Siswa.findAll({ where: { kelas_id: classId, status: "aktif" } });
     const validStudentIds = new Set(students.map((item) => Number(item.id)));
-    let saved = 0;
+    const normalizedEntries = [];
 
     for (const entry of entries) {
       const siswaId = Number(entry.siswa_id);
-      if (!validStudentIds.has(siswaId)) continue;
-      if (!VALID_ABSENSI.includes(entry.status)) continue;
+      const status = String(entry.status || "").toLowerCase();
+      if (!validStudentIds.has(siswaId)) {
+        return res.status(400).json({ success: false, message: "Data siswa tidak sesuai kelas yang diabsen" });
+      }
+      if (!VALID_ABSENSI.includes(status)) {
+        return res.status(400).json({ success: false, message: "Status absensi tidak valid" });
+      }
+      normalizedEntries.push({ ...entry, siswa_id: siswaId, status });
+    }
 
+    let saved = 0;
+
+    for (const entry of normalizedEntries) {
+      const siswaId = entry.siswa_id;
       const where = { siswa_id: siswaId, tanggal, guru_user_id: req.user.id, jadwal_id: scheduleId };
       const existing = await AbsensiSiswa.findOne({ where });
       const payload = {

@@ -6,12 +6,14 @@ import {
   verifyGuruRegistration,
   getGuruJadwalAdmin,
   createGuruJadwal,
+  updateGuruJadwal,
   deleteGuruJadwal,
   getKelas,
   logout
 } from "../services/api";
 
 const HARI = ["senin", "selasa", "rabu", "kamis", "jumat", "sabtu"];
+const emptyJadwalForm = { guru_user_id: "", kelas_id: "", mapel: "", hari: "senin", jam_mulai: "07:00", jam_selesai: "08:00", status: "aktif" };
 
 function AdminVerifikasiGuru() {
   const navigate = useNavigate();
@@ -19,7 +21,8 @@ function AdminVerifikasiGuru() {
   const [kelas, setKelas] = useState([]);
   const [jadwal, setJadwal] = useState([]);
   const [draft, setDraft] = useState({});
-  const [jadwalForm, setJadwalForm] = useState({ guru_user_id: "", kelas_id: "", mapel: "", hari: "senin", jam_mulai: "07:00", jam_selesai: "08:00" });
+  const [editJadwalId, setEditJadwalId] = useState(null);
+  const [jadwalForm, setJadwalForm] = useState(emptyJadwalForm);
 
   const loadData = async () => {
     const [guruResult, kelasResult, jadwalResult] = await Promise.all([
@@ -67,12 +70,33 @@ function AdminVerifikasiGuru() {
 
   const handleCreateJadwal = async (e) => {
     e.preventDefault();
-    const result = await createGuruJadwal(jadwalForm);
+    const result = editJadwalId
+      ? await updateGuruJadwal(editJadwalId, jadwalForm)
+      : await createGuruJadwal(jadwalForm);
     alert(result.message);
     if (result.success) {
-      setJadwalForm({ guru_user_id: "", kelas_id: "", mapel: "", hari: "senin", jam_mulai: "07:00", jam_selesai: "08:00" });
+      setEditJadwalId(null);
+      setJadwalForm(emptyJadwalForm);
       loadData();
     }
+  };
+
+  const handleEditJadwal = (item) => {
+    setEditJadwalId(item.id);
+    setJadwalForm({
+      guru_user_id: item.guru_user_id || "",
+      kelas_id: item.kelas_id || "",
+      mapel: item.mapel || "",
+      hari: item.hari || "senin",
+      jam_mulai: String(item.jam_mulai || "07:00").slice(0, 5),
+      jam_selesai: String(item.jam_selesai || "08:00").slice(0, 5),
+      status: item.status || "aktif"
+    });
+  };
+
+  const resetJadwalForm = () => {
+    setEditJadwalId(null);
+    setJadwalForm(emptyJadwalForm);
   };
 
   const handleDeleteJadwal = async (id) => {
@@ -101,7 +125,7 @@ function AdminVerifikasiGuru() {
           </div>
           <div className="dashboard-actions">
             <Link to="/" className="btn secondary">Website</Link>
-            <button onClick={handleLogout} className="btn primary">Logout</button>
+            <button onClick={handleLogout} className="btn primary">Keluar</button>
           </div>
         </div>
 
@@ -155,7 +179,7 @@ function AdminVerifikasiGuru() {
         </section>
 
         <section className="dashboard-card admin-stack">
-          <h3>Roster Guru Mapel</h3>
+          <h3>{editJadwalId ? "Edit Roster Guru Mapel" : "Roster Guru Mapel"}</h3>
           <form className="verify-grid" onSubmit={handleCreateJadwal}>
             <label>Guru Mapel
               <select name="guru_user_id" value={jadwalForm.guru_user_id} onChange={handleJadwalChange} required>
@@ -175,7 +199,16 @@ function AdminVerifikasiGuru() {
             </label>
             <label>Jam Mulai<input type="time" name="jam_mulai" value={jadwalForm.jam_mulai} onChange={handleJadwalChange} required /></label>
             <label>Jam Selesai<input type="time" name="jam_selesai" value={jadwalForm.jam_selesai} onChange={handleJadwalChange} required /></label>
-            <button className="save-btn" type="submit">Tambah Roster</button>
+            <label>Status
+              <select name="status" value={jadwalForm.status} onChange={handleJadwalChange}>
+                <option value="aktif">Aktif</option>
+                <option value="non-aktif">Nonaktif</option>
+              </select>
+            </label>
+            <div className="button-row full">
+              <button className="save-btn" type="submit">{editJadwalId ? "Simpan Roster" : "Tambah Roster"}</button>
+              {editJadwalId && <button className="cancel-btn" type="button" onClick={resetJadwalForm}>Batal Edit</button>}
+            </div>
           </form>
 
           <div className="activity-admin-list">
@@ -186,7 +219,10 @@ function AdminVerifikasiGuru() {
                   <h4>{item.mapel} - {item.kelas?.nama_kelas || "Kelas"}</h4>
                   <p>{item.guru?.name || "Guru"} • {item.jam_mulai} - {item.jam_selesai}</p>
                 </div>
-                <div className="admin-action"><button onClick={() => handleDeleteJadwal(item.id)}>🗑</button></div>
+                <div className="admin-action">
+                  <button type="button" onClick={() => handleEditJadwal(item)}>Edit</button>
+                  <button type="button" onClick={() => handleDeleteJadwal(item.id)}>Hapus</button>
+                </div>
               </div>
             ))}
           </div>

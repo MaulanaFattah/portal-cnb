@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AdminSidebar from "../components/AdminSidebar";
 import { getAdminDashboard, logout } from "../services/api";
@@ -11,6 +11,7 @@ function DashboardAdmin() {
         totalGuru: 0,
         totalSiswa: 0,
         totalAdmin: 0,
+        totalKepalaSekolah: 0,
         loginHariIni: 0
     });
 
@@ -43,7 +44,7 @@ function DashboardAdmin() {
                 <div className="dashboard-header">
                     <div>
                         <h1>Dashboard Admin</h1>
-                        <p>Selamat datang, {dashboard.admin}</p>
+                        <p>Halo {dashboard.admin}, kelola data sekolah secara terpusat, rapi, dan aman melalui panel administrasi ini.</p>
                     </div>
 
                     <div className="dashboard-actions">
@@ -52,7 +53,7 @@ function DashboardAdmin() {
                         </Link>
 
                         <button onClick={handleLogout} className="btn primary">
-                            Logout
+                            Keluar
                         </button>
                     </div>
                 </div>
@@ -71,6 +72,11 @@ function DashboardAdmin() {
                     <div className="stat-box">
                         <h4>Total Admin</h4>
                         <h2>{dashboard.totalAdmin}</h2>
+                    </div>
+
+                    <div className="stat-box">
+                        <h4>Kepala Sekolah</h4>
+                        <h2>{dashboard.totalKepalaSekolah}</h2>
                     </div>
 
                     <div className="stat-box">

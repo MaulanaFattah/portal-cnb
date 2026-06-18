@@ -8,7 +8,8 @@ module.exports = (sequelize) => {
       title: { type: DataTypes.STRING, allowNull: false },
       date: { type: DataTypes.DATEONLY, allowNull: false },
       description: { type: DataTypes.TEXT, allowNull: false },
-      image: { type: DataTypes.STRING, allowNull: true }
+      image: { type: DataTypes.TEXT("long"), allowNull: true },
+      status: { type: DataTypes.ENUM("tampil", "tidak_tampil"), allowNull: false, defaultValue: "tampil" }
     },
     {
       tableName: "activity",

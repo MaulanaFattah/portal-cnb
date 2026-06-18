@@ -56,6 +56,14 @@ export async function getKegiatan() {
   return response.json();
 }
 
+export async function getKegiatanAdmin() {
+  const token = localStorage.getItem("token");
+  const response = await fetch("http://localhost:4000/api/kegiatan/admin/all", {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.json();
+}
+
 export async function createKegiatan(data) {
   const token = localStorage.getItem("token");
 
@@ -363,7 +371,10 @@ export async function deleteKelas(id) {
 
 // ========== SISWA API ==========
 export async function getSiswa() {
-  const response = await fetch("http://localhost:4000/api/siswa");
+  const token = localStorage.getItem("token");
+  const response = await fetch("http://localhost:4000/api/siswa", {
+    headers: { Authorization: `Bearer ${token}` }
+  });
   return response.json();
 }
 
@@ -518,6 +529,19 @@ export async function createGuruJadwal(data) {
   const token = localStorage.getItem("token");
   const response = await fetch("http://localhost:4000/api/admin-guru/jadwal", {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
+export async function updateGuruJadwal(id, data) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`http://localhost:4000/api/admin-guru/jadwal/${id}`, {
+    method: "PUT",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`

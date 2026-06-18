@@ -30,7 +30,7 @@ function Home() {
       ]);
       if (k.success) setKegiatan((k.data || []).slice(0, 3));
       if (p.success) setPengumuman((p.data || []).slice(0, 3));
-      if (g.success) setGaleri((g.data || []).slice(0, 2));
+      if (g.success) setGaleri(g.data || []);
     })();
   }, []);
 
@@ -138,7 +138,7 @@ function Home() {
               galeri.map((item) => (
                 <div className="gallery-card" key={item.id}>
                   <div className="gallery-photo">
-                    <img src={item.image || schoolLogo} alt={item.title} />
+                    <img src={item.image || schoolLogo} alt={item.title} loading="lazy" />
                   </div>
                   <div className="gallery-info">
                     <h3>{item.title}</h3>

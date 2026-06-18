@@ -8,6 +8,8 @@ const Kelas = db.Kelas;
 const KepalaSekolah = db.KepalaSekolah;
 const ProfilSekolah = db.ProfilSekolah;
 const Pengumuman = db.Pengumuman;
+const Kegiatan = db.Kegiatan;
+const GuruProfile = db.GuruProfile;
 const AbsensiSiswa = db.AbsensiSiswa;
 const PortalAccountLink = db.PortalAccountLink;
 
@@ -64,53 +66,11 @@ function attachClass(siswa, classMap) {
   return { ...data, kelas: classMap.get(Number(data.kelas_id)) || null };
 }
 
-async function persistLink(userId, siswaId, linkType) {
-  if (!PortalAccountLink || !userId || !siswaId || !linkType) return;
-
-  try {
-    const existing = await PortalAccountLink.findOne({ where: { user_id: userId, link_type: linkType } });
-    if (existing) await existing.update({ siswa_id: siswaId });
-    else await PortalAccountLink.create({ user_id: userId, siswa_id: siswaId, link_type: linkType });
-  } catch (error) {
-    console.warn("Gagal menyimpan link akun portal", error.message);
-  }
-}
-
 async function resolveStudentForUser(user, linkType) {
-  if (PortalAccountLink) {
-    const link = await PortalAccountLink.findOne({ where: { user_id: user.id, link_type: linkType } });
-    if (link) {
-      const linkedStudent = await Siswa.findByPk(link.siswa_id);
-      if (linkedStudent) return linkedStudent;
-    }
-  }
-
-  let student = null;
-
-  if (linkType === "siswa") {
-    student = await Siswa.findOne({ where: { email: user.email } });
-    if (!student) student = await Siswa.findOne({ where: { nama: user.name } });
-  } else {
-    const profession = String(user.profession || "");
-    const match = profession.match(/Orang tua dari\s*([^|]+)/i);
-    const childName = match?.[1]?.trim();
-
-    if (childName) student = await Siswa.findOne({ where: { nama: childName } });
-    if (!student) {
-      student = await Siswa.findOne({
-        where: {
-          [Op.or]: [
-            { nama_ayah: user.name },
-            { nama_ibu: user.name },
-            { email: user.email }
-          ]
-        }
-      });
-    }
-  }
-
-  if (student) await persistLink(user.id, student.id, linkType);
-  return student;
+  if (!PortalAccountLink) return null;
+  const link = await PortalAccountLink.findOne({ where: { user_id: user.id, link_type: linkType } });
+  if (!link) return null;
+  return Siswa.findByPk(link.siswa_id);
 }
 
 async function getAttendancePayload(siswa, query) {
@@ -296,12 +256,15 @@ exports.getKepalaSekolahDashboard = async (req, res) => {
     if (kelas_id) whereAbsensi.kelas_id = Number(kelas_id);
     formatDateFilter(whereAbsensi, dari, sampai);
 
-    const [profilSekolah, kepalaSekolah, guru, siswa, kelas, absensiRows] = await Promise.all([
+    const [profilSekolah, kepalaSekolah, guru, guruProfile, siswa, kelas, pengumuman, kegiatan, absensiRows] = await Promise.all([
       ProfilSekolah.findOne(),
       KepalaSekolah.findAll({ order: [["periode_mulai", "DESC"]] }),
       Guru.findAll({ order: [["nama", "ASC"]] }),
+      GuruProfile.findAll({ where: { verification_status: "approved" } }),
       Siswa.findAll({ order: [["nama", "ASC"]] }),
       Kelas.findAll({ order: [["tingkat", "ASC"], ["nama_kelas", "ASC"]] }),
+      Pengumuman.findAll({ order: [["date", "DESC"]], limit: 5 }),
+      Kegiatan.findAll({ where: { status: "tampil" }, order: [["date", "DESC"]], limit: 5 }),
       AbsensiSiswa.findAll({ where: whereAbsensi, order: [["tanggal", "DESC"], ["kelas_id", "ASC"]] })
     ]);
 
@@ -324,8 +287,19 @@ exports.getKepalaSekolahDashboard = async (req, res) => {
         kepalaSekolah: kepalaSekolah[0] || null,
         daftarKepalaSekolah: kepalaSekolah,
         guru,
+        guruProfile,
+        monitoring: {
+          totalSiswa: siswa.length,
+          totalGuruWaliKelas: guruProfile.filter((item) => item.teacher_type === "wali_kelas").length,
+          totalGuruMapel: guruProfile.filter((item) => item.teacher_type === "mapel").length,
+          totalKelas: kelas.length,
+          totalPengumuman: pengumuman.length,
+          totalKegiatan: kegiatan.length
+        },
         siswa: siswa.map((item) => attachClass(item, classMap)),
         kelas,
+        pengumuman,
+        kegiatan,
         absensi: {
           summary: summarizeAttendance(absensi),
           rows: absensi

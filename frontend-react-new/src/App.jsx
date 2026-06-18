@@ -15,6 +15,7 @@ import LoginGuru from "./pages/LoginGuru";
 import RegisterGuru from "./pages/RegisterGuru";
 import LoginSiswa from "./pages/LoginSiswa";
 import LoginOrangTua from "./pages/LoginOrangTua";
+import LoginKepalaSekolah from "./pages/LoginKepalaSekolah";
 import LupaPassword from "./pages/LupaPassword";
 import AdminKegiatan from "./pages/AdminKegiatan";
 import AdminPengumuman from "./pages/AdminPengumuman";
@@ -53,6 +54,7 @@ function App() {
         <Route path="/register-guru" element={<RegisterGuru />} />
         <Route path="/login-siswa" element={<LoginSiswa />} />
         <Route path="/login-orangtua" element={<LoginOrangTua />} />
+        <Route path="/login-kepala-sekolah" element={<LoginKepalaSekolah />} />
         <Route path="/lupa-password" element={<LupaPassword />} />
         <Route path="/admin/kegiatan" element={<AdminKegiatan />} />
         <Route path="/admin/pengumuman" element={<AdminPengumuman />} />

@@ -2,9 +2,9 @@
 const router = express.Router();
 
 const portalController = require("../controllers/portalController");
-const { verifyToken, onlyAdmin, onlySiswa, onlyOrangTua } = require("../middlewares/authMiddleware");
+const { verifyToken, onlySiswa, onlyOrangTua, onlyKepalaSekolahOrAdmin } = require("../middlewares/authMiddleware");
 
-router.get("/kepala-sekolah/dashboard", verifyToken, onlyAdmin, portalController.getKepalaSekolahDashboard);
+router.get("/kepala-sekolah/dashboard", verifyToken, onlyKepalaSekolahOrAdmin, portalController.getKepalaSekolahDashboard);
 
 router.get("/siswa/dashboard", verifyToken, onlySiswa, portalController.getSiswaDashboard);
 router.put("/siswa/profile", verifyToken, onlySiswa, portalController.updateSiswaProfile);

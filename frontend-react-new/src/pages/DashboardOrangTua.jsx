@@ -6,6 +6,7 @@ import {
   logout,
   updateOrangTuaProfile
 } from "../services/api";
+import { exportExcel } from "../utils/exportExcel";
 
 const MENU_ITEMS = [
   { id: "dashboard", label: "Dashboard" },
@@ -31,10 +32,6 @@ function formatDate(value) {
 
 function statusClass(status) {
   return `attend-status attend-${status}`;
-}
-
-function csvSafe(value) {
-  return `"${String(value || "").replace(/"/g, '""')}"`;
 }
 
 function groupByDate(rows) {
@@ -124,16 +121,27 @@ function DashboardOrangTua() {
 
   const exportAbsensi = () => {
     if (!absensi.rows.length) return;
-    const header = ["Tanggal", "Status", "Keterangan", "Mapel", "Guru"];
-    const rows = absensi.rows.map((row) => [row.tanggal, row.status, row.keterangan, row.mapel || "Wali Kelas", row.guru?.name]);
-    const csv = [header, ...rows].map((row) => row.map(csvSafe).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `absensi-anak-${filter.dari}-${filter.sampai}.csv`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+    exportExcel({
+      filename: `absensi-anak-${filter.dari}-${filter.sampai}.xls`,
+      title: "Absensi Anak",
+      subtitle: `${siswa?.nama || "Anak"} • ${filter.dari} sampai ${filter.sampai}`,
+      summary: [
+        { label: "Hadir", value: absensi.summary.hadir || 0 },
+        { label: "Izin", value: absensi.summary.izin || 0 },
+        { label: "Sakit", value: absensi.summary.sakit || 0 },
+        { label: "Alpha", value: absensi.summary.alpha || 0 },
+        { label: "Total", value: absensi.summary.total || 0 }
+      ],
+      columns: [
+        { header: "No", value: (_row, index) => index + 1 },
+        { header: "Tanggal", value: (row) => formatDate(row.tanggal) },
+        { header: "Mapel", value: (row) => row.mapel || "Wali Kelas" },
+        { header: "Guru", value: (row) => row.guru?.name || "-" },
+        { header: "Status", value: (row) => row.status?.toUpperCase() || "-" },
+        { header: "Keterangan", value: (row) => row.keterangan || "-" }
+      ],
+      rows: absensi.rows
+    });
   };
 
   const groupedAbsensi = useMemo(() => groupByDate(absensi.rows), [absensi.rows]);
@@ -306,7 +314,7 @@ function DashboardOrangTua() {
           {absensiLoading ? "Memuat..." : "Tampilkan"}
         </button>
         <button type="button" className="teacher-secondary action-height" onClick={exportAbsensi} disabled={!absensi.rows.length}>
-          Export
+          Export Excel
         </button>
       </div>
 
@@ -364,7 +372,7 @@ function DashboardOrangTua() {
             <small>Sistem Informasi Sekolah</small>
           </div>
         </div>
-        <button type="button" onClick={handleLogout} className="teacher-logout">Logout</button>
+        <button type="button" onClick={handleLogout} className="teacher-logout">Keluar</button>
       </header>
 
       <div className="teacher-layout">

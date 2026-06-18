@@ -48,9 +48,9 @@ function AdminPengumuman() {
       <main className="dashboard-content">
         <div className="dashboard-header">
           <div><h1>Pengumuman</h1><p>Kelola judul, tanggal, dan deskripsi pengumuman.</p></div>
-          <div className="dashboard-actions"><Link to="/pengumuman" className="btn secondary">Lihat Halaman</Link><button onClick={handleLogout} className="btn primary">Logout</button></div>
+          <div className="dashboard-actions"><Link to="/pengumuman" className="btn secondary">Lihat Halaman</Link><button onClick={handleLogout} className="btn primary">Keluar</button></div>
         </div>
-        <section className="admin-kegiatan-card">
+        <section className="admin-kegiatan-card announcement-admin-card">
           <div className="kegiatan-form-area">
             <h2>{editId ? "Edit Pengumuman" : "Tambah Pengumuman"}</h2>
             <form onSubmit={handleSubmit}>
@@ -64,7 +64,7 @@ function AdminPengumuman() {
             <h2>Daftar Pengumuman</h2>
             <div className="activity-admin-list">
               {pengumuman.length === 0 ? <p className="empty-text">Belum ada pengumuman.</p> : pengumuman.map((item, index) => (
-                <div className="activity-admin-item" key={item.id}><span>{index + 1}</span><div><h4>{item.title}</h4><p>{item.date} • {item.content}</p></div><div className="admin-action"><button onClick={() => handleEdit(item)}>✎</button><button onClick={() => handleDelete(item.id)}>🗑</button></div></div>
+                <div className="activity-admin-item announcement-admin-item" key={item.id}><span>{index + 1}</span><div><h4>{item.title}</h4><p>{item.date} • {item.content}</p></div><div className="admin-action"><button onClick={() => handleEdit(item)}>Edit</button><button onClick={() => handleDelete(item.id)}>Hapus</button></div></div>
               ))}
             </div>
           </div>

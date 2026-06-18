@@ -9,7 +9,8 @@
     "seed:admin": "node src/seedAdmin.js",
     "seed:users": "node src/seedUsers.js",
     "migrate:english-schema": "node src/migrateEnglishSingularSchema.js",
-    "migrate:admission-profile-fields": "node src/migrateAdmissionProfileFields.js"
+    "migrate:admission-profile-fields": "node src/migrateAdmissionProfileFields.js",
+    "migrate:portal-features": "node src/migratePortalFeatureEnhancements.js"
   },
   "keywords": [],
   "author": "",
