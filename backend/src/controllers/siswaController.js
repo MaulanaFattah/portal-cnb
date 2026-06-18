@@ -36,16 +36,19 @@ exports.getAllSiswa = async (req, res) => {
 
 exports.createSiswa = async (req, res) => {
   try {
-    const { nisn, nama, jenis_kelamin } = req.body;
+    const { nisn, nama, kelas_id, tanggal_lahir, jenis_kelamin } = req.body;
 
-    if (!nisn || !nama || !jenis_kelamin) {
+    if (!nisn || !nama || !kelas_id || !tanggal_lahir || !jenis_kelamin) {
       return res.status(400).json({
         success: false,
-        message: "NISN, nama, dan jenis kelamin wajib diisi"
+        message: "NISN, nama, kelas, tanggal lahir, dan jenis kelamin wajib diisi"
       });
     }
 
-    const siswa = await Siswa.create(req.body);
+    const siswa = await Siswa.create({
+      ...req.body,
+      kelas_id: Number(kelas_id)
+    });
 
     res.status(201).json({
       success: true,
@@ -64,6 +67,14 @@ exports.createSiswa = async (req, res) => {
 exports.updateSiswa = async (req, res) => {
   try {
     const { id } = req.params;
+    const { nisn, nama, kelas_id, tanggal_lahir, jenis_kelamin } = req.body;
+
+    if (!nisn || !nama || !kelas_id || !tanggal_lahir || !jenis_kelamin) {
+      return res.status(400).json({
+        success: false,
+        message: "NISN, nama, kelas, tanggal lahir, dan jenis kelamin wajib diisi"
+      });
+    }
 
     const siswa = await Siswa.findByPk(id);
 
@@ -74,7 +85,10 @@ exports.updateSiswa = async (req, res) => {
       });
     }
 
-    await siswa.update(req.body);
+    await siswa.update({
+      ...req.body,
+      kelas_id: Number(kelas_id)
+    });
 
     res.json({
       success: true,

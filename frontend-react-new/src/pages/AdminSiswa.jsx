@@ -149,7 +149,7 @@ function AdminSiswa() {
 
               <div className="form-group">
                 <label>Kelas</label>
-                <select name="kelas_id" value={formData.kelas_id || ""} onChange={handleChange}>
+                <select name="kelas_id" value={formData.kelas_id || ""} onChange={handleChange} required>
                   <option value="">Pilih kelas</option>
                   {kelas.map((item) => <option key={item.id} value={item.id}>{item.nama_kelas}</option>)}
                 </select>
@@ -162,7 +162,7 @@ function AdminSiswa() {
 
               <div className="form-group">
                 <label>Tanggal Lahir</label>
-                <input type="date" name="tanggal_lahir" value={formData.tanggal_lahir} onChange={handleChange} />
+                <input type="date" name="tanggal_lahir" value={formData.tanggal_lahir} onChange={handleChange} required />
               </div>
 
               <div className="form-group">

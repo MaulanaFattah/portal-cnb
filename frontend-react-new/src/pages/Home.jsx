@@ -150,27 +150,46 @@ function Home() {
           </div>
         </section>
 
-        <section className="section container">
-          <div className="section-header">
-            <h2>PPDB Online</h2>
-            <Link to="/ppdb">Daftar Sekarang</Link>
+        <section className="section container ppdb-landing-section">
+          <div className="ppdb-landing-panel">
+            <div className="ppdb-landing-copy">
+              <span className="section-kicker">PPDB Online</span>
+              <h2>Pendaftaran peserta didik baru jadi lebih mudah</h2>
+              <p>
+                Daftar dari rumah melalui portal sekolah. Data pendaftar akan masuk ke admin PPDB
+                untuk diverifikasi dan diinformasikan kembali kepada orang tua/wali.
+              </p>
+              <div className="ppdb-landing-actions">
+                <Link to="/ppdb" className="btn primary">Daftar Sekarang</Link>
+                <span>Jenjang tersedia: TK, SD, dan SMP</span>
+              </div>
+            </div>
+
+            <div className="ppdb-highlight-card" aria-label="Ringkasan PPDB">
+              <span>Tahun Ajaran</span>
+              <strong>2026/2027</strong>
+              <p>Pendaftaran baru dan siswa pindahan tersedia sesuai jenjang pilihan.</p>
+            </div>
           </div>
 
-          <div className="ppdb-grid">
-            <div className="ppdb-card">
+          <div className="ppdb-grid ppdb-landing-grid">
+            <div className="ppdb-card ppdb-feature-card">
+              <span className="ppdb-card-mark">01</span>
               <h3>Informasi Pendaftaran</h3>
               <p>
-                Pendaftaran peserta didik baru dapat dilakukan secara online
-                melalui portal sekolah.
+                Isi formulir sesuai jenis pendaftaran, lengkapi data calon siswa,
+                lalu tunggu proses verifikasi dari pihak sekolah.
               </p>
             </div>
 
-            <div className="ppdb-card">
-              <h3>Persyaratan</h3>
+            <div className="ppdb-card ppdb-feature-card">
+              <span className="ppdb-card-mark">02</span>
+              <h3>Persyaratan Utama</h3>
               <ul>
                 <li>Fotokopi kartu keluarga</li>
                 <li>Fotokopi akta kelahiran</li>
-                <li>Pas foto siswa</li>
+                <li>Foto calon siswa</li>
+                <li>Raport terakhir untuk jenjang SD dan SMP</li>
               </ul>
             </div>
           </div>

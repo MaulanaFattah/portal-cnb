@@ -3729,6 +3729,93 @@ button:focus-visible {
   }
 }
 
+@media (max-width: 760px) {
+  .dashboard-layout {
+    gap: 16px;
+    padding: 14px;
+  }
+
+  .admin-sidebar-card {
+    position: sticky;
+    top: 10px;
+    z-index: 20;
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 24px;
+  }
+
+  .admin-sidebar-card .sidebar-title {
+    margin: 0;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .admin-sidebar-card h3 {
+    margin: -8px 0 0;
+    font-size: 20px;
+  }
+
+  .admin-menu {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 10px;
+    margin: 0 -16px;
+    padding: 2px 16px 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .admin-menu::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-menu a {
+    flex: 0 0 auto;
+    min-height: 42px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    scroll-snap-align: start;
+    white-space: nowrap;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+    transform: none;
+  }
+
+  .admin-menu a:hover {
+    transform: none;
+  }
+
+  .admin-menu a.active {
+    box-shadow: 0 10px 24px rgba(2, 6, 23, 0.2);
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-layout {
+    padding: 10px;
+  }
+
+  .admin-sidebar-card {
+    padding: 14px;
+    border-radius: 20px;
+  }
+
+  .admin-menu {
+    margin-inline: -14px;
+    padding-inline: 14px;
+  }
+
+  .admin-menu a {
+    min-height: 40px;
+    padding: 9px 14px;
+    font-size: 13px;
+  }
+}
+
 .admin-kegiatan-card .kegiatan-list-area,
 .admin-kegiatan-card .activity-admin-list {
   min-width: 0;
@@ -4047,5 +4134,546 @@ button:focus-visible {
 
   .portal-account-admin-item .admin-action {
     grid-column: 1;
+  }
+}
+
+/* Elegant login role selector */
+.login-page-shell {
+  padding: 34px 0 72px;
+}
+
+.login-hero-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
+  gap: 28px;
+  align-items: stretch;
+  margin: 26px 0 24px;
+  padding: 42px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 34px;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(7, 20, 47, 0.08), transparent 34%),
+    linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 0 22px 55px rgba(15, 23, 42, 0.08);
+}
+
+.login-hero-card::after {
+  content: "";
+  position: absolute;
+  right: -80px;
+  bottom: -90px;
+  width: 260px;
+  height: 260px;
+  border-radius: 999px;
+  background: rgba(7, 20, 47, 0.05);
+  pointer-events: none;
+}
+
+.login-hero-copy,
+.login-hero-panel {
+  position: relative;
+  z-index: 1;
+}
+
+.login-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  margin-bottom: 18px;
+  padding: 8px 16px;
+  border: 1px solid #dbeafe;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #07142f;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.login-hero-copy h1 {
+  max-width: 720px;
+  margin-bottom: 14px;
+  color: #020617;
+  font-size: clamp(34px, 5vw, 58px);
+  line-height: 1.06;
+  letter-spacing: -0.04em;
+}
+
+.login-hero-copy p {
+  max-width: 720px;
+  color: #475569;
+  font-size: clamp(16px, 1.7vw, 19px);
+  line-height: 1.8;
+}
+
+.login-hero-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 210px;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 28px;
+  background: #07142f;
+  color: #ffffff;
+  box-shadow: 0 18px 38px rgba(7, 20, 47, 0.24);
+}
+
+.login-hero-logo {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  padding: 6px;
+  border-radius: 20px;
+  background: #ffffff;
+}
+
+.login-hero-panel strong,
+.login-hero-panel span {
+  display: block;
+}
+
+.login-hero-panel strong {
+  margin-bottom: 6px;
+  font-size: 20px;
+  line-height: 1.35;
+}
+
+.login-hero-panel span {
+  color: #cbd5e1;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.login-role-section {
+  margin-bottom: 72px;
+}
+
+.login-section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  margin-bottom: 18px;
+}
+
+.login-section-heading span {
+  display: block;
+  margin-bottom: 4px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.login-section-heading h2 {
+  color: #020617;
+  font-size: clamp(24px, 3vw, 32px);
+  line-height: 1.2;
+}
+
+.login-section-heading p {
+  max-width: 430px;
+  color: #64748b;
+  line-height: 1.65;
+}
+
+.login-grid.login-role-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 0;
+}
+
+.login-role-grid .login-role-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 230px;
+  padding: 24px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #07142f;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.login-role-grid .login-role-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: linear-gradient(90deg, #07142f, #64748b);
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+.login-role-grid .login-role-card:hover,
+.login-role-grid .login-role-card:focus-visible {
+  transform: translateY(-5px);
+  border-color: #07142f;
+  box-shadow: 0 22px 45px rgba(15, 23, 42, 0.12);
+}
+
+.login-role-grid .login-role-card:hover::before,
+.login-role-grid .login-role-card:focus-visible::before {
+  opacity: 1;
+}
+
+.role-mark {
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+  border-radius: 16px;
+  background: #eef2ff;
+  color: #07142f;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.login-role-grid .login-role-card h3 {
+  margin-bottom: 10px;
+  color: inherit;
+  font-size: 21px;
+  line-height: 1.25;
+}
+
+.login-role-grid .login-role-card p {
+  color: #475569;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.role-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 22px;
+  color: inherit;
+  font-weight: 900;
+}
+
+.role-action span {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.login-role-grid .admin-card {
+  border-color: #07142f;
+  background: #07142f;
+  color: #ffffff;
+}
+
+.login-role-grid .admin-card p,
+.login-role-grid .admin-card .role-action {
+  color: #e2e8f0;
+}
+
+.login-role-grid .admin-card .role-mark {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.login-role-grid .admin-card::before {
+  background: #ffffff;
+}
+
+@media (max-width: 1180px) {
+  .login-grid.login-role-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .login-hero-card {
+    grid-template-columns: 1fr;
+    padding: 30px;
+  }
+
+  .login-hero-panel {
+    min-height: 0;
+    gap: 20px;
+  }
+
+  .login-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .login-grid.login-role-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .login-page-shell {
+    padding: 20px 0 48px;
+  }
+
+  .login-hero-card {
+    margin-top: 18px;
+    padding: 24px;
+    border-radius: 26px;
+  }
+
+  .login-hero-panel {
+    padding: 20px;
+    border-radius: 22px;
+  }
+
+  .login-grid.login-role-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .login-role-grid .login-role-card {
+    min-height: 0;
+    padding: 22px;
+    border-radius: 24px;
+  }
+}
+
+/* Elegant PPDB section on landing page */
+.ppdb-landing-section {
+  position: relative;
+}
+
+.ppdb-landing-section::before {
+  content: "";
+  position: absolute;
+  inset: 28px auto auto 50%;
+  width: min(680px, 70vw);
+  height: 280px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.12), transparent 68%);
+  filter: blur(28px);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.ppdb-landing-panel {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 28px;
+  align-items: stretch;
+  margin-bottom: 24px;
+  padding: 38px;
+  overflow: hidden;
+  border: 1px solid #dbe2ea;
+  border-radius: 34px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92)),
+    radial-gradient(circle at 100% 0%, rgba(7, 20, 47, 0.08), transparent 36%);
+  box-shadow: 0 24px 65px rgba(15, 23, 42, 0.08);
+}
+
+.ppdb-landing-panel::after {
+  content: "";
+  position: absolute;
+  right: -90px;
+  bottom: -110px;
+  width: 260px;
+  height: 260px;
+  border-radius: 999px;
+  background: rgba(7, 20, 47, 0.06);
+  pointer-events: none;
+}
+
+.ppdb-landing-copy,
+.ppdb-highlight-card {
+  position: relative;
+  z-index: 1;
+}
+
+.section-kicker {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  margin-bottom: 16px;
+  padding: 8px 15px;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #07142f;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ppdb-landing-copy h2 {
+  max-width: 780px;
+  margin-bottom: 14px;
+  color: #020617;
+  font-size: clamp(32px, 4.8vw, 56px);
+  line-height: 1.06;
+  letter-spacing: -0.04em;
+}
+
+.ppdb-landing-copy p {
+  max-width: 760px;
+  color: #475569;
+  font-size: 17px;
+  line-height: 1.85;
+}
+
+.ppdb-landing-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 26px;
+}
+
+.ppdb-landing-actions span {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.ppdb-highlight-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 230px;
+  padding: 26px;
+  border-radius: 28px;
+  background: #07142f;
+  color: #ffffff;
+  box-shadow: 0 20px 44px rgba(7, 20, 47, 0.24);
+}
+
+.ppdb-highlight-card span {
+  margin-bottom: 10px;
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ppdb-highlight-card strong {
+  margin-bottom: 12px;
+  font-size: clamp(32px, 4vw, 46px);
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.ppdb-highlight-card p {
+  color: #dbeafe;
+  line-height: 1.7;
+}
+
+.ppdb-landing-grid {
+  gap: 22px;
+  margin-bottom: 0;
+}
+
+.ppdb-feature-card {
+  position: relative;
+  min-height: 230px;
+  padding: 30px;
+  overflow: hidden;
+  border-radius: 28px;
+}
+
+.ppdb-feature-card::after {
+  content: "";
+  position: absolute;
+  right: -46px;
+  top: -46px;
+  width: 140px;
+  height: 140px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.07);
+}
+
+.ppdb-card-mark {
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+  border-radius: 16px;
+  background: #eef2ff;
+  color: #07142f;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.ppdb-feature-card h3 {
+  color: #07142f;
+  font-size: 22px;
+}
+
+.ppdb-feature-card ul {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  padding-left: 0;
+  list-style: none;
+}
+
+.ppdb-feature-card li {
+  position: relative;
+  margin: 0;
+  padding-left: 26px;
+}
+
+.ppdb-feature-card li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.72em;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #07142f;
+  box-shadow: 0 0 0 4px #eef2ff;
+}
+
+@media (max-width: 900px) {
+  .ppdb-landing-panel {
+    grid-template-columns: 1fr;
+    padding: 30px;
+  }
+
+  .ppdb-highlight-card {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .ppdb-landing-panel {
+    padding: 24px;
+    border-radius: 26px;
+  }
+
+  .ppdb-landing-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ppdb-landing-actions .btn {
+    width: 100%;
+  }
+
+  .ppdb-feature-card {
+    min-height: 0;
+    padding: 24px;
+    border-radius: 24px;
   }
 }

@@ -1,51 +1,91 @@
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import schoolLogo from "../assets/logo.jpeg";
+
+const loginRoles = [
+  {
+    to: "/login-siswa",
+    code: "SW",
+    title: "Siswa",
+    description: "Lihat informasi akademik, data pribadi, dan riwayat absensi."
+  },
+  {
+    to: "/login-guru",
+    code: "GR",
+    title: "Guru",
+    description: "Kelola absensi, pembelajaran, roster, dan administrasi guru."
+  },
+  {
+    to: "/login-orangtua",
+    code: "OT",
+    title: "Orang Tua",
+    description: "Pantau perkembangan dan absensi anak secara aman."
+  },
+  {
+    to: "/admin-login",
+    code: "AD",
+    title: "Admin",
+    description: "Kelola data sekolah, akun portal, PPDB, dan konten website.",
+    highlight: true
+  },
+  {
+    to: "/login-kepala-sekolah",
+    code: "KS",
+    title: "Kepala Sekolah",
+    description: "Monitor data guru, siswa, kegiatan, dan rekap absensi sekolah."
+  }
+];
 
 function Login() {
   return (
     <>
       <Navbar />
 
-      <main className="container">
-        <section className="page-hero">
-          <span className="badge">Portal Login</span>
+      <main className="container login-page-shell">
+        <section className="login-hero-card">
+          <div className="login-hero-copy">
+            <span className="login-eyebrow">Portal Login CNB</span>
+            <h1>Masuk ke Portal Sekolah</h1>
+            <p>
+              Pilih akses sesuai peran kamu. Setiap portal dibuat terpisah agar data tetap rapi,
+              aman, dan mudah digunakan.
+            </p>
+          </div>
 
-          <h1>Masuk ke Sistem</h1>
-
-          <p>
-            Pilih jenis akun yang ingin digunakan untuk mengakses portal sekolah.
-          </p>
+          <div className="login-hero-panel" aria-label="Informasi portal sekolah">
+            <img src={schoolLogo} alt="Logo sekolah" className="login-hero-logo" />
+            <div>
+              <strong>Satu pintu akses sekolah</strong>
+              <span>Siswa, guru, orang tua, admin, dan kepala sekolah.</span>
+            </div>
+          </div>
         </section>
 
-        <div className="login-grid">
+        <section className="login-role-section" aria-labelledby="login-role-title">
+          <div className="login-section-heading">
+            <div>
+              <span>Pilih Portal</span>
+              <h2 id="login-role-title">Login sesuai kebutuhan</h2>
+            </div>
+            <p>Gunakan akun yang sudah terdaftar dan terverifikasi oleh sekolah.</p>
+          </div>
 
-          <Link to="/login-siswa" className="login-role-card">
-            <h3>Login Siswa</h3>
-            <p>Akses informasi akademik dan data siswa.</p>
-          </Link>
-
-          <Link to="/login-guru" className="login-role-card">
-            <h3>Login Guru</h3>
-            <p>Akses data pembelajaran dan administrasi guru.</p>
-          </Link>
-
-          <Link to="/login-orangtua" className="login-role-card">
-            <h3>Login Orang Tua</h3>
-            <p>Monitoring perkembangan dan informasi siswa.</p>
-          </Link>
-
-          <Link to="/admin-login" className="login-role-card admin-card">
-            <h3>Login Admin</h3>
-            <p>Kelola seluruh data portal sekolah.</p>
-          </Link>
-
-          <Link to="/login-kepala-sekolah" className="login-role-card">
-            <h3>Login Kepala Sekolah</h3>
-            <p>Monitoring data guru, siswa, kegiatan, dan absensi sekolah.</p>
-          </Link>
-
-        </div>
+          <div className="login-grid login-role-grid">
+            {loginRoles.map((role) => (
+              <Link
+                key={role.to}
+                to={role.to}
+                className={`login-role-card${role.highlight ? " admin-card" : ""}`}
+              >
+                <span className="role-mark" aria-hidden="true">{role.code}</span>
+                <h3>Login {role.title}</h3>
+                <p>{role.description}</p>
+                <span className="role-action">Masuk <span aria-hidden="true">›</span></span>
+              </Link>
+            ))}
+          </div>
+        </section>
       </main>
 
       <Footer />
