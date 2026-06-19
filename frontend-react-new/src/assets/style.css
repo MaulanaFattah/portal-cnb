@@ -2086,7 +2086,7 @@ button:focus-visible {
 }
 
 /* ============================================================
-   AUDIT FIX 3: Halaman Admin Login
+   AUDIT FIX 3: Halaman Masuk Administrator
    ============================================================ */
 
 .admin-login-page {
@@ -2140,7 +2140,7 @@ button:focus-visible {
   padding: 13px 16px;
 }
 
-/* Fix tombol Login: sebelumnya mengkerut jadi bulat kecil
+/* Fix tombol Masuk: sebelumnya mengkerut jadi bulat kecil
    karena .submit-btn global pakai grid-column + radius 999px */
 .admin-login-card .submit-btn {
   width: 100%;
@@ -3389,7 +3389,7 @@ button:focus-visible {
   }
 }
 
-/* Admin + PPDB refinements */
+/* Administrator + PPDB refinements */
 .admin-sidebar-card {
   background: #ffffff;
   border: 1px solid #e5e7eb;
@@ -4688,7 +4688,7 @@ button:focus-visible {
 }
 
 
-/* Revision RBAC + Upload Polish */
+/* Revisi RBAC + Polish Unggah */
 .profile-card {
   max-width: 920px;
   margin-inline: auto;

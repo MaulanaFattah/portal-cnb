@@ -16,7 +16,7 @@ exports.verifyToken = async (req, res, next) => {
     const user = await User.findByPk(decoded.id);
 
     if (!user) {
-      return res.status(401).json({ success: false, message: "User tidak valid" });
+      return res.status(401).json({ success: false, message: "Pengguna tidak valid" });
     }
 
     req.user = user;
@@ -28,7 +28,7 @@ exports.verifyToken = async (req, res, next) => {
 
 exports.onlyAdmin = (req, res, next) => {
   if (req.user.role !== "admin") {
-    return res.status(403).json({ success: false, message: "Akses hanya untuk admin" });
+    return res.status(403).json({ success: false, message: "Akses hanya untuk administrator" });
   }
 
   next();
@@ -61,7 +61,7 @@ exports.onlyOrangTua = (req, res, next) => {
 
 exports.onlyKepalaSekolahOrAdmin = (req, res, next) => {
   if (!["kepala_sekolah", "admin"].includes(req.user.role)) {
-    return res.status(403).json({ success: false, message: "Akses hanya untuk kepala sekolah atau admin" });
+    return res.status(403).json({ success: false, message: "Akses hanya untuk kepala sekolah atau administrator" });
   }
 
   next();

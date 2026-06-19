@@ -9,7 +9,7 @@ import {
 import { exportExcel } from "../utils/exportExcel";
 
 const MENU_ITEMS = [
-  { id: "dashboard", label: "Dashboard" },
+  { id: "dashboard", label: "Dasbor" },
   { id: "data-siswa", label: "Data Siswa" },
   { id: "kehadiran", label: "Kehadiran Siswa" }
 ];
@@ -166,7 +166,7 @@ function DashboardOrangTua() {
   const renderDashboard = () => (
     <section className="teacher-panel">
       <div className="teacher-panel-header">
-        <span>Dashboard</span>
+        <span>Dasbor</span>
         <h1>Informasi Sekolah</h1>
         <p>Pantau perkembangan anak dan informasi terbaru dari sekolah.</p>
       </div>
@@ -254,7 +254,7 @@ function DashboardOrangTua() {
             <div><span>Alamat</span><strong>{siswa?.alamat || "-"}</strong></div>
             <div><span>Email</span><strong>{dashboard.user?.email}</strong></div>
             <div className="teacher-actions-row">
-              <button type="button" className="teacher-primary" onClick={() => setEditing(true)}>Edit</button>
+              <button type="button" className="teacher-primary" onClick={() => setEditing(true)}>Ubah</button>
             </div>
           </div>
         </div>
@@ -280,7 +280,7 @@ function DashboardOrangTua() {
               <div><span>Nama</span><strong>{siswa.nama}</strong></div>
               <div><span>NIS</span><strong>{siswa.nisn}</strong></div>
               <div><span>Jenis Kelamin</span><strong>{siswa.jenis_kelamin === "P" ? "Perempuan" : "Laki-laki"}</strong></div>
-              <div><span>Email Login</span><strong>{siswa.email || "-"}</strong></div>
+              <div><span>Email Masuk</span><strong>{siswa.email || "-"}</strong></div>
             </div>
           </article>
           <article className="teacher-card">
@@ -314,7 +314,7 @@ function DashboardOrangTua() {
           {absensiLoading ? "Memuat..." : "Tampilkan"}
         </button>
         <button type="button" className="teacher-secondary action-height" onClick={exportAbsensi} disabled={!absensi.rows.length}>
-          Export Excel
+          Ekspor Excel
         </button>
       </div>
 

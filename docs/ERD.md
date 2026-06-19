@@ -238,9 +238,9 @@ erDiagram
 |---|---|---|---|
 | `id` | INTEGER | PK, auto increment | ID akun pengguna |
 | `name` | STRING | NOT NULL | Nama pengguna |
-| `email` | STRING | NOT NULL, UNIQUE | Email login |
-| `password` | STRING | NOT NULL | Password hash |
-| `role` | ENUM(`admin`, `guru`, `siswa`, `orangtua`) | DEFAULT `siswa` | Role akun |
+| `email` | STRING | NOT NULL, UNIQUE | Email masuk |
+| `password` | STRING | NOT NULL | Hash kata sandi |
+| `role` | ENUM(`admin`, `guru`, `siswa`, `orangtua`) | DEFAULT `siswa` | Peran akun |
 | `profession` | STRING | NULL | Profesi pengguna |
 | `created_at` | DATETIME | NOT NULL | Waktu dibuat |
 | `updated_at` | DATETIME | NOT NULL | Waktu diubah |
@@ -289,7 +289,7 @@ erDiagram
 | `classroom_id` | INTEGER | FK -> `classroom.id`, NULL | Kelas wali jika wali kelas |
 | `verification_status` | ENUM(`pending`, `approved`, `rejected`) | DEFAULT `pending` | Status verifikasi profil |
 | `note` | TEXT | NULL | Catatan verifikasi |
-| `approved_by_user_account_id` | INTEGER | FK -> `user_account.id`, NULL | Admin/pengguna yang menyetujui |
+| `approved_by_user_account_id` | INTEGER | FK -> `user_account.id`, NULL | Administrator/pengguna yang menyetujui |
 | `approved_at` | DATETIME | NULL | Waktu persetujuan |
 | `created_at` | DATETIME | NOT NULL | Waktu dibuat |
 | `updated_at` | DATETIME | NOT NULL | Waktu diubah |
@@ -410,7 +410,7 @@ erDiagram
 | `address` | TEXT | NULL | Alamat sekolah |
 | `phone_number` | STRING | NULL | Telepon sekolah |
 | `email` | STRING | NULL | Email sekolah |
-| `website` | STRING | NULL | Website sekolah |
+| `website` | STRING | NULL | Situs web sekolah |
 | `logo` | TEXT | NULL | Logo sekolah |
 | `vision` | TEXT | NULL | Visi |
 | `mission` | TEXT | NULL | Misi |
@@ -457,7 +457,7 @@ erDiagram
 
 ## Relasi Detail
 
-| Dari Tabel | Kolom FK | Ke Tabel | Kardinalitas | On Delete | On Update | Keterangan |
+| Dari Tabel | Kolom FK | Ke Tabel | Kardinalitas | Saat Dihapus | Saat Diperbarui | Keterangan |
 |---|---|---|---|---|---|---|
 | `student` | `classroom_id` | `classroom.id` | Banyak siswa ke satu kelas | SET NULL | CASCADE | Siswa boleh tidak punya kelas |
 | `teacher_profile` | `user_account_id` | `user_account.id` | Satu akun ke satu profil guru | CASCADE | CASCADE | `user_account_id` bersifat unique |

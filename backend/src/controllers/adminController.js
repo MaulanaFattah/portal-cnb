@@ -68,7 +68,7 @@ exports.dashboard = async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Dashboard admin berhasil diambil",
+      message: "Data dasbor administrator berhasil diambil",
       data: {
         admin: req.user.name,
         totalGuru,
@@ -121,12 +121,12 @@ exports.createUser = async (req, res) => {
     if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
-        message: "Nama, email, dan password wajib diisi"
+        message: "Nama, email, dan kata sandi wajib diisi"
       });
     }
 
     if (!VALID_ROLES.includes(role)) {
-      return res.status(400).json({ success: false, message: "Role akun tidak valid" });
+      return res.status(400).json({ success: false, message: "Peran akun tidak valid" });
     }
 
     if (LINKED_ROLES.includes(role) && !siswa_id) {
@@ -150,7 +150,7 @@ exports.createUser = async (req, res) => {
       await transaction.commit();
 
       const [payload] = await buildUsersPayload([user]);
-      return res.status(201).json({ success: true, message: "User berhasil ditambahkan", data: payload });
+      return res.status(201).json({ success: true, message: "Pengguna berhasil ditambahkan", data: payload });
     } catch (error) {
       await transaction.rollback();
       return res.status(400).json({ success: false, message: error.message });
@@ -173,7 +173,7 @@ exports.updateUser = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User tidak ditemukan"
+        message: "Pengguna tidak ditemukan"
       });
     }
 
@@ -188,7 +188,7 @@ exports.updateUser = async (req, res) => {
     }
 
     if (role && !VALID_ROLES.includes(role)) {
-      return res.status(400).json({ success: false, message: "Role akun tidak valid" });
+      return res.status(400).json({ success: false, message: "Peran akun tidak valid" });
     }
 
     if (role && LINKED_ROLES.includes(role) && !siswa_id) {
@@ -219,7 +219,7 @@ exports.updateUser = async (req, res) => {
 
     return res.json({
       success: true,
-      message: "User berhasil diperbarui",
+      message: "Pengguna berhasil diperbarui",
       data: payload
     });
   } catch (error) {
@@ -239,7 +239,7 @@ exports.deleteUser = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User tidak ditemukan"
+        message: "Pengguna tidak ditemukan"
       });
     }
 
@@ -254,7 +254,7 @@ exports.deleteUser = async (req, res) => {
 
     return res.json({
       success: true,
-      message: "User berhasil dihapus"
+      message: "Pengguna berhasil dihapus"
     });
   } catch (error) {
     return res.status(500).json({
@@ -276,12 +276,12 @@ exports.resetUserPassword = async (req, res) => {
     const requestedPassword = req.body.password || generatePassword();
 
     if (String(requestedPassword).length < 6) {
-      return res.status(400).json({ success: false, message: "Password minimal 6 karakter" });
+      return res.status(400).json({ success: false, message: "Kata sandi minimal 6 karakter" });
     }
 
     const user = await User.findByPk(id);
     if (!user) {
-      return res.status(404).json({ success: false, message: "User tidak ditemukan" });
+      return res.status(404).json({ success: false, message: "Pengguna tidak ditemukan" });
     }
 
     await user.update({
@@ -298,7 +298,7 @@ exports.resetUserPassword = async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Password user berhasil direset. User wajib mengganti password saat login berikutnya.",
+      message: "Kata sandi pengguna berhasil diatur ulang. Pengguna wajib mengganti kata sandi saat masuk berikutnya.",
       data: {
         user: safeUser(user),
         generated_password: req.body.password ? null : requestedPassword

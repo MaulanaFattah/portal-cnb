@@ -35,7 +35,7 @@ function RegisterGuru() {
     e.preventDefault();
 
     if (formData.password !== formData.confirmPassword) {
-      alert("Password dan konfirmasi password tidak sama.");
+      alert("Kata sandi dan konfirmasi kata sandi tidak sama.");
       return;
     }
 
@@ -98,13 +98,13 @@ function RegisterGuru() {
             {formData.is_homeroom && <div className="form-group"><label>Kelas Wali</label><select name="homeroom_classroom_id" value={formData.homeroom_classroom_id} onChange={handleChange} required><option value="">Pilih kelas</option>{kelas.map((item) => <option key={item.id} value={item.id}>{[item.nama_kelas, item.tingkat, item.tahun_ajaran].filter(Boolean).join(" - ")}</option>)}</select></div>}
             {formData.is_subject_teacher && <div className="form-group"><label>Mata Pelajaran</label><input type="text" name="subject" placeholder="Contoh: Matematika, IPA" value={formData.subject} onChange={handleChange} required /></div>}
 
-            <div className="form-group"><label>Password</label><input type="password" name="password" placeholder="Masukkan password" value={formData.password} onChange={handleChange} required /></div>
-            <div className="form-group"><label>Konfirmasi Password</label><input type="password" name="confirmPassword" placeholder="Ulangi password" value={formData.confirmPassword} onChange={handleChange} required /></div>
+            <div className="form-group"><label>Kata Sandi</label><input type="password" name="password" placeholder="Masukkan kata sandi" value={formData.password} onChange={handleChange} required /></div>
+            <div className="form-group"><label>Konfirmasi Kata Sandi</label><input type="password" name="confirmPassword" placeholder="Ulangi kata sandi" value={formData.confirmPassword} onChange={handleChange} required /></div>
 
             <button type="submit" className="submit-btn">Registrasi</button>
           </form>
 
-          <Link to="/login-guru" className="auth-link">Sudah punya akun? Login Guru</Link>
+          <Link to="/login-guru" className="auth-link">Sudah punya akun? Masuk Guru</Link>
         </div>
       </main>
 

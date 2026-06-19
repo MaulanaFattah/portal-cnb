@@ -64,7 +64,7 @@ async function seedUsers() {
         const existingLink = await PortalAccountLink.findOne({ where: { user_id: user.id, link_type: item.role } });
         if (!existingLink) {
           await PortalAccountLink.create({ user_id: user.id, siswa_id: firstStudent.id, link_type: item.role });
-          console.log(`link ${item.role} -> ${firstStudent.nama} dibuat`);
+          console.log(`Tautan ${item.role} -> ${firstStudent.nama} dibuat`);
         }
       }
     }

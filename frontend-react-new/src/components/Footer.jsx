@@ -30,7 +30,7 @@ function Footer() {
       </div>
 
       <div className="container footer-bottom">
-        Â© 2025 Cipta Nusa Bakti. All rights reserved.
+        © 2025 Cipta Nusa Bakti. Seluruh hak cipta dilindungi.
       </div>
     </footer>
   );

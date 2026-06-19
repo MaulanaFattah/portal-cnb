@@ -335,10 +335,10 @@ async function renameTables() {
       const newCount = await rowCount(newName);
 
       if (newCount === 0) {
-        console.log(`Drop empty duplicate table ${newName}`);
+        console.log(`Menghapus tabel duplikat kosong ${newName}`);
         await queryInterface.dropTable(newName);
       } else if (oldCount === 0) {
-        console.log(`Drop empty legacy table ${oldName}`);
+        console.log(`Menghapus tabel lama kosong ${oldName}`);
         await queryInterface.dropTable(oldName);
         continue;
       } else {
@@ -347,12 +347,12 @@ async function renameTables() {
     }
 
     if (await tableExists(oldName)) {
-      console.log(`Rename table ${oldName} -> ${newName}`);
+      console.log(`Mengubah nama tabel ${oldName} -> ${newName}`);
       await queryInterface.renameTable(oldName, newName);
     } else if (await tableExists(newName)) {
-      console.log(`Table ${newName} already exists`);
+      console.log(`Tabel ${newName} sudah ada`);
     } else {
-      console.log(`Skip missing table ${oldName}`);
+      console.log(`Melewati tabel ${oldName} yang tidak ditemukan`);
     }
   }
 }
@@ -371,7 +371,7 @@ async function renameColumns() {
       }
 
       if (hasOldColumn) {
-        console.log(`Rename column ${tableName}.${oldName} -> ${newName}`);
+        console.log(`Mengubah nama kolom ${tableName}.${oldName} -> ${newName}`);
         await queryInterface.renameColumn(tableName, oldName, newName);
       }
     }
@@ -391,17 +391,17 @@ async function assertNoOrphans() {
 async function ensureForeignKeys() {
   for (const item of foreignKeyPlan) {
     if (await foreignKeyExists(item)) {
-      console.log(`Foreign key exists for ${item.table}.${item.column}`);
+      console.log(`Foreign key sudah ada untuk ${item.table}.${item.column}`);
       continue;
     }
 
     if (!(await indexExistsForColumn(item.table, item.column))) {
       const indexName = `idx_${item.table}_${item.column}`;
-      console.log(`Add index ${indexName}`);
+      console.log(`Menambahkan indeks ${indexName}`);
       await queryInterface.addIndex(item.table, [item.column], { name: indexName });
     }
 
-    console.log(`Add foreign key ${item.name}`);
+    console.log(`Menambahkan foreign key ${item.name}`);
     await queryInterface.addConstraint(item.table, {
       fields: [item.column],
       type: "foreign key",
@@ -426,13 +426,13 @@ async function forceInnoDb() {
 
 async function migrate() {
   await sequelize.authenticate();
-  console.log(`Connected to database ${sequelize.config.database}`);
+  console.log(`Terhubung ke database ${sequelize.config.database}`);
   await renameTables();
   await renameColumns();
   await forceInnoDb();
   await assertNoOrphans();
   await ensureForeignKeys();
-  console.log("English singular schema migration completed");
+  console.log("Migrasi skema singular bahasa Inggris selesai");
 }
 
 migrate()

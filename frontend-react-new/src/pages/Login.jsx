@@ -25,8 +25,8 @@ const loginRoles = [
   {
     to: "/admin-login",
     code: "AD",
-    title: "Admin",
-    description: "Kelola data sekolah, akun portal, PPDB, dan konten website.",
+    title: "Administrator",
+    description: "Kelola data sekolah, akun portal, PPDB, dan konten situs web.",
     highlight: true
   },
   {
@@ -45,7 +45,7 @@ function Login() {
       <main className="container login-page-shell">
         <section className="login-hero-card">
           <div className="login-hero-copy">
-            <span className="login-eyebrow">Portal Login CNB</span>
+            <span className="login-eyebrow">Portal Masuk CNB</span>
             <h1>Masuk ke Portal Sekolah</h1>
             <p>
               Pilih akses sesuai peran kamu. Setiap portal dibuat terpisah agar data tetap rapi,
@@ -57,7 +57,7 @@ function Login() {
             <img src={schoolLogo} alt="Logo sekolah" className="login-hero-logo" />
             <div>
               <strong>Satu pintu akses sekolah</strong>
-              <span>Siswa, guru, orang tua, admin, dan kepala sekolah.</span>
+              <span>Siswa, guru, orang tua, administrator, dan kepala sekolah.</span>
             </div>
           </div>
         </section>
@@ -66,7 +66,7 @@ function Login() {
           <div className="login-section-heading">
             <div>
               <span>Pilih Portal</span>
-              <h2 id="login-role-title">Login sesuai kebutuhan</h2>
+              <h2 id="login-role-title">Masuk sesuai kebutuhan</h2>
             </div>
             <p>Gunakan akun yang sudah terdaftar dan terverifikasi oleh sekolah.</p>
           </div>
@@ -79,7 +79,7 @@ function Login() {
                 className={`login-role-card${role.highlight ? " admin-card" : ""}`}
               >
                 <span className="role-mark" aria-hidden="true">{role.code}</span>
-                <h3>Login {role.title}</h3>
+                <h3>Masuk {role.title}</h3>
                 <p>{role.description}</p>
                 <span className="role-action">Masuk <span aria-hidden="true">›</span></span>
               </Link>

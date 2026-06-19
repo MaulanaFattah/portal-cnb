@@ -23,13 +23,13 @@ async function columnExists(tableName, columnName) {
 
 async function addColumnIfMissing(tableName, columnName, definition) {
   if (!(await tableExists(tableName)) || await columnExists(tableName, columnName)) return;
-  console.log(`Add column ${tableName}.${columnName}`);
+  console.log(`Menambahkan kolom ${tableName}.${columnName}`);
   await queryInterface.addColumn(tableName, columnName, definition);
 }
 
 async function changeColumnIfExists(tableName, columnName, definition) {
   if (!(await tableExists(tableName)) || !(await columnExists(tableName, columnName))) return;
-  console.log(`Change column ${tableName}.${columnName}`);
+  console.log(`Mengubah kolom ${tableName}.${columnName}`);
   await queryInterface.changeColumn(tableName, columnName, definition);
 }
 
@@ -66,7 +66,7 @@ async function migrate() {
   await addColumnIfMissing("school_profile", "school_structure", { type: DataTypes.TEXT, allowNull: true });
   await changeColumnIfExists("gallery", "image", { type: DataTypes.TEXT("long"), allowNull: false });
 
-  console.log("Admission and school profile field migration completed");
+  console.log("Migrasi field penerimaan dan profil sekolah selesai");
 }
 
 migrate()

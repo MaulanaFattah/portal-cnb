@@ -9,7 +9,7 @@ import {
 import { exportExcel } from "../utils/exportExcel";
 
 const MENU_ITEMS = [
-  { id: "dashboard", label: "Dashboard" },
+  { id: "dashboard", label: "Dasbor" },
   { id: "profil", label: "Profil Siswa" },
   { id: "absensi", label: "Absensi" }
 ];
@@ -189,7 +189,7 @@ function DashboardSiswa() {
   const renderDashboard = () => (
     <section className="teacher-panel">
       <div className="teacher-panel-header">
-        <span>Dashboard</span>
+        <span>Dasbor</span>
         <h1>Informasi Sekolah</h1>
         <p>Ringkasan profil dan pengumuman terbaru dari sekolah.</p>
       </div>
@@ -309,7 +309,7 @@ function DashboardSiswa() {
           {absensiLoading ? "Memuat..." : "Tampilkan"}
         </button>
         <button type="button" className="teacher-secondary action-height" onClick={exportAbsensi} disabled={!absensi.rows.length}>
-          Export Excel
+          Ekspor Excel
         </button>
       </div>
 

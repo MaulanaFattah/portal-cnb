@@ -24,14 +24,14 @@ async function columnExists(tableName, columnName) {
 
 async function addColumnIfMissing(tableName, columnName, definition) {
   if (!(await tableExists(tableName)) || await columnExists(tableName, columnName)) return;
-  console.log(`Add column ${tableName}.${columnName}`);
+  console.log(`Menambahkan kolom ${tableName}.${columnName}`);
   await queryInterface.addColumn(tableName, columnName, definition);
 }
 
 async function createAuditLog() {
   if (await tableExists("audit_log")) return;
 
-  console.log("Create table audit_log");
+  console.log("Membuat tabel audit_log");
   await queryInterface.createTable("audit_log", {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     actor_user_account_id: {
@@ -54,7 +54,7 @@ async function createAuditLog() {
 async function migrateLegacyTeacherProfiles() {
   if (!(await tableExists("teacher_profile")) || !(await columnExists("teacher_profile", "is_homeroom"))) return;
 
-  console.log("Backfill teacher_profile.is_homeroom from legacy teacher_type");
+  console.log("Mengisi ulang teacher_profile.is_homeroom dari teacher_type lama");
   await sequelize.query("UPDATE `teacher_profile` SET `is_homeroom` = 1 WHERE `teacher_type` = 'wali_kelas'");
   await sequelize.query("UPDATE `teacher_profile` SET `is_homeroom` = 0 WHERE `is_homeroom` IS NULL");
 }
@@ -78,7 +78,7 @@ async function migrate() {
   await createAuditLog();
   await migrateLegacyTeacherProfiles();
 
-  console.log("RBAC absensi revision migration completed");
+  console.log("Migrasi revisi RBAC absensi selesai");
 }
 
 migrate()

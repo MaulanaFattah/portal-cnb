@@ -16,7 +16,7 @@ const ABSENSI_OPTIONS = [
 ];
 
 const MENU_ITEMS = [
-  { id: "dashboard", label: "Dashboard" },
+  { id: "dashboard", label: "Dasbor" },
   { id: "jadwal", label: "Jadwal Mengajar" },
   { id: "absensi", label: "Absensi" },
   { id: "rekap", label: "Rekapitulasi Absensi" }
@@ -238,7 +238,7 @@ function DashboardGuru() {
     return (
       <section className="teacher-panel">
         <div className="teacher-panel-header">
-          <span>Dashboard</span>
+          <span>Dasbor</span>
           <h1>Informasi Sekolah</h1>
           <p>Ringkasan sekolah, profil guru, dan pengumuman terbaru untuk aktivitas harian.</p>
         </div>
@@ -303,7 +303,7 @@ function DashboardGuru() {
   const renderJadwal = () => (
     <section className="teacher-panel">
       <div className="teacher-panel-header compact">
-        <span>Roster Guru</span>
+        <span>Jadwal Mengajar Guru</span>
         <h1>Jadwal Mengajar</h1>
         <p>{isWali ? "Wali kelas dapat melakukan absensi harian untuk kelas binaan." : "Guru mapel hanya dapat absensi sesuai roster yang disetujui admin."}</p>
       </div>
@@ -379,7 +379,7 @@ function DashboardGuru() {
               <input value={profile?.kelas?.nama_kelas || "Kelas belum diset admin"} readOnly />
             </label>
           ) : (
-            <label className="teacher-field">Jam / Roster
+            <label className="teacher-field">Jam / Jadwal Mengajar
               <select value={jadwalId} onChange={(event) => setJadwalId(event.target.value)} required>
                 {(dashboard.jadwal || []).map((item) => (
                   <option key={item.id} value={item.id}>
@@ -457,7 +457,7 @@ function DashboardGuru() {
         </label>
 
         {hasSubjectRoster && (
-          <label className="teacher-field">Roster
+          <label className="teacher-field">Jadwal Mengajar
             <select name="jadwal_id" value={rekapFilter.jadwal_id} onChange={handleRekapFilter}>
               <option value="">Semua roster</option>
               {(dashboard.jadwal || []).map((item) => (
@@ -481,7 +481,7 @@ function DashboardGuru() {
           {rekapLoading ? "Memuat..." : "Tampilkan"}
         </button>
         <button type="button" className="teacher-secondary" onClick={exportRekap} disabled={!rekap.rows.length}>
-          Export Excel
+          Ekspor Excel
         </button>
       </div>
 

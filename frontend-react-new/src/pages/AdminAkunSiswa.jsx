@@ -93,7 +93,7 @@ function AdminAkunSiswa() {
   };
 
   const handleResetPassword = async (item) => {
-    const customPassword = prompt("Masukkan password baru, atau kosongkan untuk generate otomatis:");
+    const customPassword = prompt("Masukkan kata sandi baru, atau kosongkan untuk dibuat otomatis:");
     if (customPassword === null) return;
     const result = await resetUserPassword(item.id, customPassword ? { password: customPassword } : {});
     alert(result.message);
@@ -120,22 +120,22 @@ function AdminAkunSiswa() {
           </div>
 
           <div className="dashboard-actions">
-            <Link to="/" className="btn secondary">Website</Link>
+            <Link to="/" className="btn secondary">Situs web</Link>
             <button onClick={handleLogout} className="btn primary">Keluar</button>
           </div>
         </div>
 
         {resetCredential && (
           <section className="dashboard-card credential-card">
-            <h3>Password baru digenerate</h3>
-            <p>Simpan password ini sekarang dan berikan ke pemilik akun.</p>
+            <h3>Kata sandi baru berhasil dibuat</h3>
+            <p>Simpan kata sandi ini sekarang dan berikan ke pemilik akun.</p>
             <div className="credential-grid"><div><strong>{resetCredential.email}</strong><code>{resetCredential.password}</code></div></div>
           </section>
         )}
 
         <section className="admin-kegiatan-card portal-account-admin-card">
           <div className="kegiatan-form-area">
-            <h2>{editId ? "Edit Akun Portal" : "Tambah Akun Portal"}</h2>
+            <h2>{editId ? "Ubah Akun Portal" : "Tambah Akun Portal"}</h2>
 
             <form onSubmit={handleSubmit}>
               <div className="form-group">
@@ -161,7 +161,7 @@ function AdminAkunSiswa() {
               </div>
 
               <div className="form-group">
-                <label>Password {editId && "(kosongkan jika tidak diubah)"}</label>
+                <label>Kata Sandi {editId && "(kosongkan jika tidak diubah)"}</label>
                 <input
                   type="password"
                   name="password"
@@ -230,7 +230,7 @@ function AdminAkunSiswa() {
                       {item.siswa && <p className="linked-student-text">Terhubung: {item.siswa.nama} • {item.siswa.kelas?.nama_kelas || "Kelas -"}</p>}
                     </div>
                     <div className="admin-action">
-                      <button onClick={() => handleEdit(item)}>Edit</button>
+                      <button onClick={() => handleEdit(item)}>Ubah</button>
                       <button onClick={() => handleResetPassword(item)}>Reset</button>
                       <button onClick={() => handleDelete(item.id)}>Hapus</button>
                     </div>

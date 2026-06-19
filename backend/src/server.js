@@ -9,11 +9,11 @@ async function startServer() {
   try {
     await db.sequelize.authenticate();
 
-    console.log("Database Connected");
+    console.log("Database terhubung");
 
     await db.sequelize.sync();
 
-    console.log("Database Synced");
+    console.log("Database tersinkronisasi");
 
     app.listen(PORT, () => {
       console.log(

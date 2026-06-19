@@ -25,7 +25,7 @@ function Navbar() {
         </nav>
 
         <Link to="/login" className="login-btn">
-          Login
+          Masuk
         </Link>
       </div>
     </header>

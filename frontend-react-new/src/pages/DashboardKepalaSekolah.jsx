@@ -7,7 +7,7 @@ import {
 import { exportExcel, exportPdf } from "../utils/exportExcel";
 
 const MENU_ITEMS = [
-  { id: "dashboard", label: "Dashboard" },
+  { id: "dashboard", label: "Dasbor" },
   { id: "guru", label: "Data Guru" },
   { id: "siswa", label: "Data Siswa" },
   { id: "rekap", label: "Rekapitulasi Absensi" }
@@ -141,7 +141,7 @@ function DashboardKepalaSekolah() {
   const renderProfil = () => (
     <section className="teacher-panel">
       <div className="teacher-panel-header compact">
-        <span>Dashboard</span>
+        <span>Dasbor</span>
         <h1>Monitoring Kepala Sekolah</h1>
         <p>Pantau kondisi sekolah, guru, siswa, kelas, pengumuman, kegiatan, dan rekap absensi dari satu halaman.</p>
       </div>
@@ -292,8 +292,8 @@ function DashboardKepalaSekolah() {
         </label>
         <div className="teacher-actions-row action-height" style={{ alignItems: "flex-end", paddingBottom: "2px" }}>
           <button type="button" className="teacher-primary" onClick={loadRekap} disabled={rekapLoading}>{rekapLoading ? "Memuat..." : "Tampilkan"}</button>
-          <button type="button" className="teacher-secondary" onClick={exportRekap} disabled={!absensi.rows.length}>Export Excel</button>
-          <button type="button" className="teacher-secondary" onClick={exportRekapPdf} disabled={!absensi.rows.length}>Export PDF</button>
+          <button type="button" className="teacher-secondary" onClick={exportRekap} disabled={!absensi.rows.length}>Ekspor Excel</button>
+          <button type="button" className="teacher-secondary" onClick={exportRekapPdf} disabled={!absensi.rows.length}>Ekspor PDF</button>
         </div>
       </div>
 

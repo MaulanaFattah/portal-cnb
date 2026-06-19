@@ -17,7 +17,7 @@ async function seedAdmin() {
     });
 
     if (existingAdmin) {
-      console.log("Admin sudah ada");
+      console.log("Administrator sudah ada");
       process.exit();
     }
 
@@ -28,12 +28,12 @@ async function seedAdmin() {
       email: "admin@cnb.sch.id",
       password: hashedPassword,
       role: "admin",
-      profession: "Admin Sekolah"
+      profession: "Administrator Sekolah"
     });
 
-    console.log("Admin berhasil dibuat");
+    console.log("Administrator berhasil dibuat");
     console.log("Email: admin@cnb.sch.id");
-    console.log("Password: admin123");
+    console.log("Kata sandi: admin123");
 
     process.exit();
   } catch (error) {

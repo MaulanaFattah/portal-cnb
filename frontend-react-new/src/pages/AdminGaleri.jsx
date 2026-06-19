@@ -69,11 +69,11 @@ function AdminGaleri() {
         </div>
         <section className="admin-kegiatan-card">
           <div className="kegiatan-form-area">
-            <h2>{editId ? "Edit Galeri" : "Tambah Galeri"}</h2>
+            <h2>{editId ? "Ubah Galeri" : "Tambah Galeri"}</h2>
             <form onSubmit={handleSubmit}>
               <div className="form-group"><label>Judul</label><input name="title" value={formData.title} onChange={handleChange} required /></div>
               <div className="form-group"><label>Deskripsi</label><textarea name="description" value={formData.description} onChange={handleChange} rows="3" /></div>
-              <div className="form-group"><label>Foto</label><label className="upload-box">{imagePreview || formData.image ? <img src={imagePreview || resolveMediaUrl(formData.image, schoolLogo)} alt="Preview" /> : <div><strong>Upload Foto</strong><span>JPG / PNG / WebP</span></div>}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImage} required={!editId} /></label></div>
+              <div className="form-group"><label>Foto</label><label className="upload-box">{imagePreview || formData.image ? <img src={imagePreview || resolveMediaUrl(formData.image, schoolLogo)} alt="Pratinjau" /> : <div><strong>Unggah Foto</strong><span>JPG / PNG / WebP</span></div>}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImage} required={!editId} /></label></div>
               <div className="button-row"><button type="submit" className="save-btn" disabled={isReadingImage || !formData.image}>{isReadingImage ? "Memuat Foto..." : editId ? "Simpan Perubahan" : "Simpan"}</button>{editId && <button type="button" onClick={resetForm} className="cancel-btn">Batal</button>}</div>
             </form>
           </div>
@@ -81,7 +81,7 @@ function AdminGaleri() {
             <h2>Daftar Galeri</h2>
             <div className="activity-admin-list">
               {galeri.length === 0 ? <p className="empty-text">Belum ada galeri.</p> : galeri.map((item, index) => (
-                <div className="activity-admin-item" key={item.id}><span>{index + 1}</span><img src={resolveMediaUrl(item.image, schoolLogo)} alt={item.title} loading="lazy" onError={(event) => { event.currentTarget.src = schoolLogo; }} /><div><h4>{item.title}</h4><p>{item.description || "Tanpa deskripsi"}</p></div><div className="admin-action"><button onClick={() => handleEdit(item)}>Edit</button><button onClick={() => handleDelete(item.id)}>Hapus</button></div></div>
+                <div className="activity-admin-item" key={item.id}><span>{index + 1}</span><img src={resolveMediaUrl(item.image, schoolLogo)} alt={item.title} loading="lazy" onError={(event) => { event.currentTarget.src = schoolLogo; }} /><div><h4>{item.title}</h4><p>{item.description || "Tanpa deskripsi"}</p></div><div className="admin-action"><button onClick={() => handleEdit(item)}>Ubah</button><button onClick={() => handleDelete(item.id)}>Hapus</button></div></div>
               ))}
             </div>
           </div>

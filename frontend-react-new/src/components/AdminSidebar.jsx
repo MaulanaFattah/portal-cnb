@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 
 const menu = [
-  ["/dashboard-admin", "Dashboard"],
+  ["/dashboard-admin", "Dasbor"],
   ["/admin/profil-sekolah", "Profil Sekolah"],
   ["/admin/kegiatan", "Kegiatan"],
   ["/admin/pengumuman", "Pengumuman"],
@@ -16,8 +16,8 @@ const menu = [
 function AdminSidebar({ active }) {
   return (
     <aside className="admin-sidebar-card">
-      <span className="sidebar-title">Dashboard</span>
-      <h3>Admin</h3>
+      <span className="sidebar-title">Dasbor</span>
+      <h3>Administrator</h3>
       <nav className="admin-menu">
         {menu.map(([to, label]) => (
           <Link key={to} className={active === to ? "active" : ""} to={to}>{label}</Link>

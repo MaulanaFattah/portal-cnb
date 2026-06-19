@@ -6,8 +6,8 @@ Dokumen ini menjelaskan Entity Relationship Diagram (ERD) untuk project Portal C
 
 Portal CNB adalah sistem informasi sekolah yang memiliki beberapa domain data utama:
 
-1. **Akun dan Role Pengguna**
-   - Menyimpan akun login untuk admin, guru, siswa, dan orang tua.
+1. **Akun dan Peran Pengguna**
+   - Menyimpan akun masuk untuk administrator, guru, siswa, dan orang tua.
    - Direpresentasikan oleh tabel `user_account`.
 
 2. **Akademik Sekolah**
@@ -18,7 +18,7 @@ Portal CNB adalah sistem informasi sekolah yang memiliki beberapa domain data ut
    - Menghubungkan akun portal dengan data siswa.
    - Direpresentasikan oleh tabel `portal_account_link`.
 
-4. **Konten Website Sekolah**
+4. **Konten Situs Web Sekolah**
    - Menyimpan kegiatan, pengumuman, galeri, profil sekolah, data guru, dan kepala sekolah.
    - Direpresentasikan oleh tabel `activity`, `announcement`, `gallery`, `school_profile`, `teacher`, dan `principal`.
 
@@ -56,9 +56,9 @@ Tabel ini menyimpan akun login seluruh pengguna sistem.
 |---|---|
 | `id` | Primary key akun pengguna |
 | `name` | Nama pengguna |
-| `email` | Email login, bersifat unik |
-| `password` | Password pengguna, idealnya berupa hash |
-| `role` | Role pengguna: `admin`, `guru`, `siswa`, atau `orangtua` |
+| `email` | Email masuk, bersifat unik |
+| `password` | Kata sandi pengguna, idealnya berupa hash |
+| `role` | Peran pengguna: `admin`, `guru`, `siswa`, atau `orangtua` |
 | `profession` | Profesi pengguna jika diperlukan |
 | `created_at` | Waktu data dibuat |
 | `updated_at` | Waktu data terakhir diperbarui |
@@ -146,7 +146,7 @@ Tabel ini menyimpan profil guru yang terhubung dengan akun login.
 | `classroom_id` | Foreign key ke kelas jika guru menjadi wali kelas atau terkait kelas tertentu |
 | `verification_status` | Status verifikasi: `pending`, `approved`, atau `rejected` |
 | `note` | Catatan verifikasi |
-| `approved_by_user_account_id` | User/admin yang menyetujui profil guru |
+| `approved_by_user_account_id` | Pengguna/administrator yang menyetujui profil guru |
 | `approved_at` | Waktu profil disetujui |
 | `created_at` | Waktu data dibuat |
 | `updated_at` | Waktu data terakhir diperbarui |
@@ -255,7 +255,7 @@ Contoh:
 
 Dengan desain ini, satu siswa bisa diakses oleh akun siswa dan akun orang tua.
 
-## 4. Entitas Konten Website
+## 4. Entitas Konten Situs Web
 
 ### 4.1 `teacher` - Data Guru
 
@@ -317,7 +317,7 @@ Tabel ini menyimpan informasi umum sekolah.
 | `address` | Alamat sekolah |
 | `phone_number` | Nomor telepon sekolah |
 | `email` | Email sekolah |
-| `website` | Website sekolah |
+| `website` | Situs web sekolah |
 | `logo` | Logo sekolah |
 | `vision` | Visi sekolah |
 | `mission` | Misi sekolah |
@@ -620,7 +620,7 @@ Satu siswa bisa memiliki akun siswa sendiri dan akun orang tua yang terhubung.
 
 ### 7.3 Alur Jadwal dan Absensi
 
-1. Admin/guru membuat jadwal mengajar di `teaching_schedule`.
+1. Administrator/guru membuat jadwal mengajar di `teaching_schedule`.
 2. Jadwal mengajar menghubungkan guru, kelas, mata pelajaran, hari, dan jam.
 3. Saat absensi dilakukan, sistem membuat data di `student_attendance`.
 4. Absensi dapat terhubung ke jadwal melalui `teaching_schedule_id`.
@@ -629,18 +629,18 @@ Satu siswa bisa memiliki akun siswa sendiri dan akun orang tua yang terhubung.
 
 1. Calon siswa mengisi formulir pendaftaran.
 2. Data masuk ke `admission_application`.
-3. Admin memproses status menjadi `pending`, `diterima`, atau `ditolak`.
+3. Administrator memproses status menjadi `pending`, `diterima`, atau `ditolak`.
 4. Jika diterima, data calon siswa dapat dibuat menjadi data siswa di `student`.
 5. Saat ini relasi PPDB ke siswa belum otomatis menggunakan FK.
 
-### 7.5 Alur Konten Website
+### 7.5 Alur Konten Situs Web
 
-1. Admin mengelola profil sekolah di `school_profile`.
-2. Admin mengelola data guru publik di `teacher`.
-3. Admin mengelola kepala sekolah di `principal`.
-4. Admin mengelola kegiatan di `activity`.
-5. Admin mengelola pengumuman di `announcement`.
-6. Admin mengelola galeri di `gallery`.
+1. Administrator mengelola profil sekolah di `school_profile`.
+2. Administrator mengelola data guru publik di `teacher`.
+3. Administrator mengelola kepala sekolah di `principal`.
+4. Administrator mengelola kegiatan di `activity`.
+5. Administrator mengelola pengumuman di `announcement`.
+6. Administrator mengelola galeri di `gallery`.
 
 ## 8. Tabel yang Berdiri Sendiri
 
@@ -675,7 +675,7 @@ Beberapa tabel belum memiliki foreign key langsung ke tabel lain.
 
 ## 10. Catatan Integritas Data
 
-### 10.1 Cascade Delete
+### 10.1 Hapus Berantai
 
 Beberapa relasi menggunakan `onDelete: CASCADE`. Artinya jika data induk dihapus, data anak ikut terhapus.
 
@@ -734,7 +734,7 @@ admission_application.student_id -> student.id
 Manfaat:
 
 - Riwayat asal siswa dari PPDB jelas.
-- Admin bisa melacak pendaftaran mana yang menghasilkan data siswa.
+- Administrator bisa melacak pendaftaran mana yang menghasilkan data siswa.
 
 ### 11.3 Batasi `school_profile` Menjadi Satu Data Aktif
 

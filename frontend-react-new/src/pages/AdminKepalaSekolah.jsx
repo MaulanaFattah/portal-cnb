@@ -106,11 +106,11 @@ function AdminKepalaSekolah() {
   return (
     <div className="dashboard-layout">
       <aside className="admin-sidebar-card">
-        <span className="sidebar-title">Dashboard</span>
-        <h3>Admin</h3>
+        <span className="sidebar-title">Dasbor</span>
+        <h3>Administrator</h3>
 
         <nav className="admin-menu">
-          <Link to="/dashboard-admin">Dashboard</Link>
+          <Link to="/dashboard-admin">Dasbor</Link>
           <Link to="/admin/kegiatan">Kegiatan</Link>
           <Link to="/admin/pengumuman">Pengumuman</Link>
           <Link to="/admin/galeri">Galeri</Link>
@@ -132,14 +132,14 @@ function AdminKepalaSekolah() {
           </div>
 
           <div className="dashboard-actions">
-            <Link to="/" className="btn secondary">Website</Link>
+            <Link to="/" className="btn secondary">Situs web</Link>
             <button onClick={handleLogout} className="btn primary">Keluar</button>
           </div>
         </div>
 
         <section className="admin-kegiatan-card">
           <div className="kegiatan-form-area">
-            <h2>{editId ? "Edit Data Kepala Sekolah" : "Tambah Data Kepala Sekolah"}</h2>
+            <h2>{editId ? "Ubah Data Kepala Sekolah" : "Tambah Data Kepala Sekolah"}</h2>
 
             <form onSubmit={handleSubmit}>
               <div className="form-group">
@@ -194,10 +194,10 @@ function AdminKepalaSekolah() {
                 <label>Foto (opsional)</label>
                 <label className="upload-box">
                   {formData.foto ? (
-                    <img src={formData.foto} alt="Preview" />
+                    <img src={formData.foto} alt="Pratinjau" />
                   ) : (
                     <div>
-                      <strong>Upload Foto</strong>
+                      <strong>Unggah Foto</strong>
                       <span>JPG / PNG</span>
                     </div>
                   )}
@@ -232,7 +232,7 @@ function AdminKepalaSekolah() {
                       <p>{item.periode_mulai} - {item.periode_akhir || "Sekarang"}</p>
                     </div>
                     <div className="admin-action">
-                      <button onClick={() => handleEdit(item)}>Edit</button>
+                      <button onClick={() => handleEdit(item)}>Ubah</button>
                       <button onClick={() => handleDelete(item.id)}>Hapus</button>
                     </div>
                   </div>

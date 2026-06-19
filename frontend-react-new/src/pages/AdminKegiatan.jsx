@@ -107,14 +107,14 @@ function AdminKegiatan() {
           </div>
 
           <div className="dashboard-actions">
-            <Link to="/" className="btn secondary">Website</Link>
+            <Link to="/" className="btn secondary">Situs web</Link>
             <button onClick={handleLogout} className="btn primary">Keluar</button>
           </div>
         </div>
 
         <section className="admin-kegiatan-card">
           <div className="kegiatan-form-area">
-            <h2>{editId ? "Edit Kegiatan" : "Tambah Kegiatan"}</h2>
+            <h2>{editId ? "Ubah Kegiatan" : "Tambah Kegiatan"}</h2>
 
             <form onSubmit={handleSubmit}>
               <div className="form-group">
@@ -155,10 +155,10 @@ function AdminKegiatan() {
                 <label>Foto Kegiatan</label>
                 <label className="upload-box">
                   {imagePreview || formData.image ? (
-                    <img src={imagePreview || resolveMediaUrl(formData.image, schoolLogo)} alt="Preview" />
+                    <img src={imagePreview || resolveMediaUrl(formData.image, schoolLogo)} alt="Pratinjau" />
                   ) : (
                     <div>
-                      <strong>Upload Foto</strong>
+                      <strong>Unggah Foto</strong>
                       <span>JPG / PNG</span>
                     </div>
                   )}
@@ -169,7 +169,7 @@ function AdminKegiatan() {
               <div className="form-group">
                 <label>Status Tampil</label>
                 <select name="status" value={formData.status} onChange={handleChange}>
-                  <option value="tampil">Tampilkan di Website</option>
+                  <option value="tampil">Tampilkan di situs web</option>
                   <option value="tidak_tampil">Sembunyikan</option>
                 </select>
               </div>
@@ -203,7 +203,7 @@ function AdminKegiatan() {
                       <p>{item.date} • {item.status === "tidak_tampil" ? "Tidak tampil" : "Tampil"}</p>
                     </div>
                     <div className="admin-action">
-                      <button onClick={() => handleEdit(item)}>Edit</button>
+                      <button onClick={() => handleEdit(item)}>Ubah</button>
                       <button onClick={() => handleDelete(item.id)}>Hapus</button>
                     </div>
                   </div>

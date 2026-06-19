@@ -27,7 +27,7 @@ function LoginKepalaSekolah() {
       <Navbar />
       <main className="auth-page container">
         <div className="auth-card">
-          <h1>Login Kepala Sekolah</h1>
+          <h1>Masuk Kepala Sekolah</h1>
           <p>Masuk untuk memantau data guru, siswa, kegiatan, pengumuman, dan rekap absensi sekolah.</p>
 
           <form onSubmit={handleLogin}>
@@ -37,14 +37,14 @@ function LoginKepalaSekolah() {
             </div>
 
             <div className="form-group">
-              <label>Password</label>
-              <input type="password" placeholder="Masukkan password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+              <label>Kata Sandi</label>
+              <input type="password" placeholder="Masukkan kata sandi" value={password} onChange={(event) => setPassword(event.target.value)} required />
             </div>
 
-            <button type="submit" className="submit-btn">Login</button>
+            <button type="submit" className="submit-btn">Masuk</button>
           </form>
 
-          <Link to="/login" className="auth-link auth-back-link">Kembali ke pilihan login</Link>
+          <Link to="/login" className="auth-link auth-back-link">Kembali ke pilihan masuk</Link>
         </div>
       </main>
       <Footer />

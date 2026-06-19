@@ -1,4 +1,4 @@
-﻿const API_URL = "http://localhost:4000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 const BACKEND_URL = API_URL.replace(/\/api$/, "");
 
 function toFormData(data) {
@@ -69,7 +69,7 @@ export async function changePassword(data) {
 export async function getAdminDashboard() {
   const token = localStorage.getItem("token");
 
-  const response = await fetch("http://localhost:4000/api/admin/dashboard", {
+  const response = await fetch(`${API_URL}/admin/dashboard`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`
@@ -80,13 +80,13 @@ export async function getAdminDashboard() {
 }
 
 export async function getKegiatan() {
-  const response = await fetch("http://localhost:4000/api/kegiatan");
+  const response = await fetch(`${API_URL}/kegiatan`);
   return response.json();
 }
 
 export async function getKegiatanAdmin() {
   const token = localStorage.getItem("token");
-  const response = await fetch("http://localhost:4000/api/kegiatan/admin/all", {
+  const response = await fetch(`${API_URL}/kegiatan/admin/all`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return response.json();
@@ -95,7 +95,7 @@ export async function getKegiatanAdmin() {
 export async function createKegiatan(data) {
   const token = localStorage.getItem("token");
 
-  const response = await fetch("http://localhost:4000/api/kegiatan", {
+  const response = await fetch(`${API_URL}/kegiatan`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: toFormData(data)
@@ -107,7 +107,7 @@ export async function createKegiatan(data) {
 export async function updateKegiatan(id, data) {
   const token = localStorage.getItem("token");
 
-  const response = await fetch(`http://localhost:4000/api/kegiatan/${id}`, {
+  const response = await fetch(`${API_URL}/kegiatan/${id}`, {
     method: "PUT",
     headers: { Authorization: `Bearer ${token}` },
     body: toFormData(data)
@@ -119,7 +119,7 @@ export async function updateKegiatan(id, data) {
 export async function deleteKegiatan(id) {
   const token = localStorage.getItem("token");
 
-  const response = await fetch(`http://localhost:4000/api/kegiatan/${id}`, {
+  const response = await fetch(`${API_URL}/kegiatan/${id}`, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${token}`
@@ -131,13 +131,13 @@ export async function deleteKegiatan(id) {
 
 // ========== PENGUMUMAN API ==========
 export async function getPengumuman() {
-  const response = await fetch("http://localhost:4000/api/pengumuman");
+  const response = await fetch(`${API_URL}/pengumuman`);
   return response.json();
 }
 
 export async function createPengumuman(data) {
   const token = localStorage.getItem("token");
-  const response = await fetch("http://localhost:4000/api/pengumuman", {
+  const response = await fetch(`${API_URL}/pengumuman`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -150,7 +150,7 @@ export async function createPengumuman(data) {
 
 export async function updatePengumuman(id, data) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:4000/api/pengumuman/${id}`, {
+  const response = await fetch(`${API_URL}/pengumuman/${id}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -163,7 +163,7 @@ export async function updatePengumuman(id, data) {
 
 export async function deletePengumuman(id) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:4000/api/pengumuman/${id}`, {
+  const response = await fetch(`${API_URL}/pengumuman/${id}`, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${token}`
@@ -174,13 +174,13 @@ export async function deletePengumuman(id) {
 
 // ========== GALERI API ==========
 export async function getGaleri() {
-  const response = await fetch("http://localhost:4000/api/galeri");
+  const response = await fetch(`${API_URL}/galeri`);
   return response.json();
 }
 
 export async function createGaleri(data) {
   const token = localStorage.getItem("token");
-  const response = await fetch("http://localhost:4000/api/galeri", {
+  const response = await fetch(`${API_URL}/galeri`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: toFormData(data)
@@ -190,7 +190,7 @@ export async function createGaleri(data) {
 
 export async function updateGaleri(id, data) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:4000/api/galeri/${id}`, {
+  const response = await fetch(`${API_URL}/galeri/${id}`, {
     method: "PUT",
     headers: { Authorization: `Bearer ${token}` },
     body: toFormData(data)
@@ -200,7 +200,7 @@ export async function updateGaleri(id, data) {
 
 export async function deleteGaleri(id) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:4000/api/galeri/${id}`, {
+  const response = await fetch(`${API_URL}/galeri/${id}`, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${token}`
@@ -212,7 +212,7 @@ export async function deleteGaleri(id) {
 // ========== PPDB API ==========
 export async function getPPDB() {
   const token = localStorage.getItem("token");
-  const response = await fetch("http://localhost:4000/api/ppdb", {
+  const response = await fetch(`${API_URL}/ppdb`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`
@@ -222,7 +222,7 @@ export async function getPPDB() {
 }
 
 export async function createPPDB(data) {
-  const response = await fetch("http://localhost:4000/api/ppdb", {
+  const response = await fetch(`${API_URL}/ppdb`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -234,7 +234,7 @@ export async function createPPDB(data) {
 
 export async function updatePPDB(id, data) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:4000/api/ppdb/${id}`, {
+  const response = await fetch(`${API_URL}/ppdb/${id}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -247,7 +247,7 @@ export async function updatePPDB(id, data) {
 
 export async function deletePPDB(id) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:4000/api/ppdb/${id}`, {
+  const response = await fetch(`${API_URL}/ppdb/${id}`, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${token}`
@@ -258,13 +258,13 @@ export async function deletePPDB(id) {
 
 // ========== GURU API ==========
 export async function getGuru() {
-  const response = await fetch("http://localhost:4000/api/guru");
+  const response = await fetch(`${API_URL}/guru`);
   return response.json();
 }
 
 export async function createGuru(data) {
   const token = localStorage.getItem("token");
-  const response = await fetch("http://localhost:4000/api/guru", {
+  const response = await fetch(`${API_URL}/guru`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -277,7 +277,7 @@ export async function createGuru(data) {
 
 export async function updateGuru(id, data) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:4000/api/guru/${id}`, {
+  const response = await fetch(`${API_URL}/guru/${id}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -290,7 +290,7 @@ export async function updateGuru(id, data) {
 
 export async function deleteGuru(id) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:4000/api/guru/${id}`, {
+  const response = await fetch(`${API_URL}/guru/${id}`, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${token}`
@@ -301,13 +301,13 @@ export async function deleteGuru(id) {
 
 // ========== KEPALA SEKOLAH API ==========
 export async function getKepalaSekolah() {
-  const response = await fetch("http://localhost:4000/api/kepala-sekolah");
+  const response = await fetch(`${API_URL}/kepala-sekolah`);
   return response.json();
 }
 
 export async function createKepalaSekolah(data) {
   const token = localStorage.getItem("token");
-  const response = await fetch("http://localhost:4000/api/kepala-sekolah", {
+  const response = await fetch(`${API_URL}/kepala-sekolah`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -320,7 +320,7 @@ export async function createKepalaSekolah(data) {
 
 export async function updateKepalaSekolah(id, data) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:4000/api/kepala-sekolah/${id}`, {
+  const response = await fetch(`${API_URL}/kepala-sekolah/${id}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -333,7 +333,7 @@ export async function updateKepalaSekolah(id, data) {
 
 export async function deleteKepalaSekolah(id) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:4000/api/kepala-sekolah/${id}`, {
+  const response = await fetch(`${API_URL}/kepala-sekolah/${id}`, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${token}`
@@ -344,13 +344,13 @@ export async function deleteKepalaSekolah(id) {
 
 // ========== KELAS API ==========
 export async function getKelas() {
-  const response = await fetch("http://localhost:4000/api/kelas");
+  const response = await fetch(`${API_URL}/kelas`);
   return response.json();
 }
 
 export async function createKelas(data) {
   const token = localStorage.getItem("token");
-  const response = await fetch("http://localhost:4000/api/kelas", {
+  const response = await fetch(`${API_URL}/kelas`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -363,7 +363,7 @@ export async function createKelas(data) {
 
 export async function updateKelas(id, data) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:4000/api/kelas/${id}`, {
+  const response = await fetch(`${API_URL}/kelas/${id}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -376,7 +376,7 @@ export async function updateKelas(id, data) {
 
 export async function deleteKelas(id) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:4000/api/kelas/${id}`, {
+  const response = await fetch(`${API_URL}/kelas/${id}`, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${token}`
@@ -388,7 +388,7 @@ export async function deleteKelas(id) {
 // ========== SISWA API ==========
 export async function getSiswa() {
   const token = localStorage.getItem("token");
-  const response = await fetch("http://localhost:4000/api/siswa", {
+  const response = await fetch(`${API_URL}/siswa`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return response.json();
@@ -396,7 +396,7 @@ export async function getSiswa() {
 
 export async function createSiswa(data) {
   const token = localStorage.getItem("token");
-  const response = await fetch("http://localhost:4000/api/siswa", {
+  const response = await fetch(`${API_URL}/siswa`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: toFormData(data)
@@ -406,7 +406,7 @@ export async function createSiswa(data) {
 
 export async function updateSiswa(id, data) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:4000/api/siswa/${id}`, {
+  const response = await fetch(`${API_URL}/siswa/${id}`, {
     method: "PUT",
     headers: { Authorization: `Bearer ${token}` },
     body: toFormData(data)
@@ -416,7 +416,7 @@ export async function updateSiswa(id, data) {
 
 export async function deleteSiswa(id) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:4000/api/siswa/${id}`, {
+  const response = await fetch(`${API_URL}/siswa/${id}`, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${token}`
@@ -427,13 +427,13 @@ export async function deleteSiswa(id) {
 
 // ========== PROFIL SEKOLAH API ==========
 export async function getProfilSekolah() {
-  const response = await fetch("http://localhost:4000/api/profil-sekolah");
+  const response = await fetch(`${API_URL}/profil-sekolah`);
   return response.json();
 }
 
 export async function createProfilSekolah(data) {
   const token = localStorage.getItem("token");
-  const response = await fetch("http://localhost:4000/api/profil-sekolah", {
+  const response = await fetch(`${API_URL}/profil-sekolah`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -446,7 +446,7 @@ export async function createProfilSekolah(data) {
 
 export async function updateProfilSekolah(data) {
   const token = localStorage.getItem("token");
-  const response = await fetch("http://localhost:4000/api/profil-sekolah", {
+  const response = await fetch(`${API_URL}/profil-sekolah`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -460,7 +460,7 @@ export async function updateProfilSekolah(data) {
 // ========== ADMIN USERS API ==========
 export async function getUsersByRole(role) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:4000/api/admin/users?role=${role}`, {
+  const response = await fetch(`${API_URL}/admin/users?role=${role}`, {
     headers: {
       Authorization: `Bearer ${token}`
     }
@@ -470,7 +470,7 @@ export async function getUsersByRole(role) {
 
 export async function createUser(data) {
   const token = localStorage.getItem("token");
-  const response = await fetch("http://localhost:4000/api/admin/users", {
+  const response = await fetch(`${API_URL}/admin/users`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -483,7 +483,7 @@ export async function createUser(data) {
 
 export async function updateUser(id, data) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:4000/api/admin/users/${id}`, {
+  const response = await fetch(`${API_URL}/admin/users/${id}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -496,7 +496,7 @@ export async function updateUser(id, data) {
 
 export async function deleteUser(id) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:4000/api/admin/users/${id}`, {
+  const response = await fetch(`${API_URL}/admin/users/${id}`, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${token}`
@@ -507,7 +507,7 @@ export async function deleteUser(id) {
 
 export async function resetUserPassword(id, data = {}) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:4000/api/admin/users/${id}/reset-password`, {
+  const response = await fetch(`${API_URL}/admin/users/${id}/reset-password`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -521,7 +521,7 @@ export async function resetUserPassword(id, data = {}) {
 // ========== GURU VERIFICATION & ATTENDANCE API ==========
 export async function getGuruRegistrations() {
   const token = localStorage.getItem("token");
-  const response = await fetch("http://localhost:4000/api/admin-guru/registrations", {
+  const response = await fetch(`${API_URL}/admin-guru/registrations`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return response.json();
@@ -529,7 +529,7 @@ export async function getGuruRegistrations() {
 
 export async function verifyGuruRegistration(userId, data) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:4000/api/admin-guru/registrations/${userId}`, {
+  const response = await fetch(`${API_URL}/admin-guru/registrations/${userId}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -542,7 +542,7 @@ export async function verifyGuruRegistration(userId, data) {
 
 export async function deleteGuruRegistration(userId) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:4000/api/admin-guru/registrations/${userId}`, {
+  const response = await fetch(`${API_URL}/admin-guru/registrations/${userId}`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${token}` }
   });
@@ -551,7 +551,7 @@ export async function deleteGuruRegistration(userId) {
 
 export async function getGuruJadwalAdmin() {
   const token = localStorage.getItem("token");
-  const response = await fetch("http://localhost:4000/api/admin-guru/jadwal", {
+  const response = await fetch(`${API_URL}/admin-guru/jadwal`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return response.json();
@@ -559,7 +559,7 @@ export async function getGuruJadwalAdmin() {
 
 export async function createGuruJadwal(data) {
   const token = localStorage.getItem("token");
-  const response = await fetch("http://localhost:4000/api/admin-guru/jadwal", {
+  const response = await fetch(`${API_URL}/admin-guru/jadwal`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -572,7 +572,7 @@ export async function createGuruJadwal(data) {
 
 export async function updateGuruJadwal(id, data) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:4000/api/admin-guru/jadwal/${id}`, {
+  const response = await fetch(`${API_URL}/admin-guru/jadwal/${id}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -585,7 +585,7 @@ export async function updateGuruJadwal(id, data) {
 
 export async function deleteGuruJadwal(id) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:4000/api/admin-guru/jadwal/${id}`, {
+  const response = await fetch(`${API_URL}/admin-guru/jadwal/${id}`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${token}` }
   });
@@ -594,7 +594,7 @@ export async function deleteGuruJadwal(id) {
 
 export async function getGuruDashboard() {
   const token = localStorage.getItem("token");
-  const response = await fetch("http://localhost:4000/api/guru-portal/dashboard", {
+  const response = await fetch(`${API_URL}/guru-portal/dashboard`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return response.json();
@@ -602,7 +602,7 @@ export async function getGuruDashboard() {
 
 export async function submitAbsensiGuru(data) {
   const token = localStorage.getItem("token");
-  const response = await fetch("http://localhost:4000/api/guru-portal/absensi", {
+  const response = await fetch(`${API_URL}/guru-portal/absensi`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -622,7 +622,7 @@ export async function getRekapAbsensiGuru(params = {}) {
   });
 
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  const response = await fetch(`http://localhost:4000/api/guru-portal/rekap${suffix}`, {
+  const response = await fetch(`${API_URL}/guru-portal/rekap${suffix}`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return response.json();
@@ -630,7 +630,7 @@ export async function getRekapAbsensiGuru(params = {}) {
 
 export async function createGuruStudentAccounts(data) {
   const token = localStorage.getItem("token");
-  const response = await fetch("http://localhost:4000/api/guru-portal/akun-siswa", {
+  const response = await fetch(`${API_URL}/guru-portal/akun-siswa`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -654,7 +654,7 @@ function buildQuery(params = {}) {
 
 export async function getSiswaDashboard() {
   const token = localStorage.getItem("token");
-  const response = await fetch("http://localhost:4000/api/portal/siswa/dashboard", {
+  const response = await fetch(`${API_URL}/portal/siswa/dashboard`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return response.json();
@@ -662,7 +662,7 @@ export async function getSiswaDashboard() {
 
 export async function updateSiswaProfile(data) {
   const token = localStorage.getItem("token");
-  const response = await fetch("http://localhost:4000/api/portal/siswa/profile", {
+  const response = await fetch(`${API_URL}/portal/siswa/profile`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -675,7 +675,7 @@ export async function updateSiswaProfile(data) {
 
 export async function getSiswaAbsensi(params = {}) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:4000/api/portal/siswa/absensi${buildQuery(params)}`, {
+  const response = await fetch(`${API_URL}/portal/siswa/absensi${buildQuery(params)}`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return response.json();
@@ -683,7 +683,7 @@ export async function getSiswaAbsensi(params = {}) {
 
 export async function getOrangTuaDashboard() {
   const token = localStorage.getItem("token");
-  const response = await fetch("http://localhost:4000/api/portal/orangtua/dashboard", {
+  const response = await fetch(`${API_URL}/portal/orangtua/dashboard`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return response.json();
@@ -691,7 +691,7 @@ export async function getOrangTuaDashboard() {
 
 export async function updateOrangTuaProfile(data) {
   const token = localStorage.getItem("token");
-  const response = await fetch("http://localhost:4000/api/portal/orangtua/profile", {
+  const response = await fetch(`${API_URL}/portal/orangtua/profile`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -704,7 +704,7 @@ export async function updateOrangTuaProfile(data) {
 
 export async function getOrangTuaAbsensi(params = {}) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:4000/api/portal/orangtua/absensi${buildQuery(params)}`, {
+  const response = await fetch(`${API_URL}/portal/orangtua/absensi${buildQuery(params)}`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return response.json();
@@ -712,7 +712,7 @@ export async function getOrangTuaAbsensi(params = {}) {
 
 export async function getKepalaSekolahDashboard(params = {}) {
   const token = localStorage.getItem("token");
-  const response = await fetch(`http://localhost:4000/api/portal/kepala-sekolah/dashboard${buildQuery(params)}`, {
+  const response = await fetch(`${API_URL}/portal/kepala-sekolah/dashboard${buildQuery(params)}`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return response.json();

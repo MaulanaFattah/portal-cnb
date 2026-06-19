@@ -52,7 +52,7 @@ function AdminPengumuman() {
         </div>
         <section className="admin-kegiatan-card announcement-admin-card">
           <div className="kegiatan-form-area">
-            <h2>{editId ? "Edit Pengumuman" : "Tambah Pengumuman"}</h2>
+            <h2>{editId ? "Ubah Pengumuman" : "Tambah Pengumuman"}</h2>
             <form onSubmit={handleSubmit}>
               <div className="form-group"><label>Judul</label><input name="title" value={formData.title} onChange={handleChange} required /></div>
               <div className="form-group"><label>Tanggal</label><input type="date" name="date" value={formData.date} onChange={handleChange} required /></div>
@@ -64,7 +64,7 @@ function AdminPengumuman() {
             <h2>Daftar Pengumuman</h2>
             <div className="activity-admin-list">
               {pengumuman.length === 0 ? <p className="empty-text">Belum ada pengumuman.</p> : pengumuman.map((item, index) => (
-                <div className="activity-admin-item announcement-admin-item" key={item.id}><span>{index + 1}</span><div><h4>{item.title}</h4><p>{item.date} • {item.content}</p></div><div className="admin-action"><button onClick={() => handleEdit(item)}>Edit</button><button onClick={() => handleDelete(item.id)}>Hapus</button></div></div>
+                <div className="activity-admin-item announcement-admin-item" key={item.id}><span>{index + 1}</span><div><h4>{item.title}</h4><p>{item.date} • {item.content}</p></div><div className="admin-action"><button onClick={() => handleEdit(item)}>Ubah</button><button onClick={() => handleDelete(item.id)}>Hapus</button></div></div>
               ))}
             </div>
           </div>

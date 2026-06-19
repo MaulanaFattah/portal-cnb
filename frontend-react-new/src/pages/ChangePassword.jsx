@@ -14,7 +14,7 @@ function ChangePassword() {
     event.preventDefault();
 
     if (newPassword !== confirmPassword) {
-      alert("Password baru dan konfirmasi tidak sama.");
+      alert("Kata sandi baru dan konfirmasi tidak sama.");
       return;
     }
 
@@ -31,13 +31,13 @@ function ChangePassword() {
       <Navbar />
       <main className="auth-page container">
         <div className="auth-card">
-          <h1>Ganti Password</h1>
-          <p>Akun ini memakai password awal dari admin. Buat password baru sebelum membuka dashboard.</p>
+          <h1>Ganti Kata Sandi</h1>
+          <p>Akun ini memakai kata sandi awal dari administrator. Buat kata sandi baru sebelum membuka dasbor.</p>
           <form onSubmit={handleSubmit}>
-            <div className="form-group"><label>Password Saat Ini</label><input type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} required /></div>
-            <div className="form-group"><label>Password Baru</label><input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} minLength="6" required /></div>
-            <div className="form-group"><label>Konfirmasi Password Baru</label><input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} minLength="6" required /></div>
-            <button type="submit" className="submit-btn">Simpan Password Baru</button>
+            <div className="form-group"><label>Kata Sandi Saat Ini</label><input type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} required /></div>
+            <div className="form-group"><label>Kata Sandi Baru</label><input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} minLength="6" required /></div>
+            <div className="form-group"><label>Konfirmasi Kata Sandi Baru</label><input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} minLength="6" required /></div>
+            <button type="submit" className="submit-btn">Simpan Kata Sandi Baru</button>
           </form>
         </div>
       </main>

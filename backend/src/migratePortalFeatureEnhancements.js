@@ -23,7 +23,7 @@ async function columnExists(tableName, columnName) {
 
 async function addColumnIfMissing(tableName, columnName, definition) {
   if (!(await tableExists(tableName)) || await columnExists(tableName, columnName)) return;
-  console.log(`Add column ${tableName}.${columnName}`);
+  console.log(`Menambahkan kolom ${tableName}.${columnName}`);
   await queryInterface.addColumn(tableName, columnName, definition);
 }
 
@@ -31,7 +31,7 @@ async function migrate() {
   await sequelize.authenticate();
 
   if (await tableExists("user_account")) {
-    console.log("Update user_account.role enum");
+    console.log("Memperbarui enum user_account.role");
     await sequelize.query("ALTER TABLE `user_account` MODIFY `role` ENUM('admin','guru','siswa','orangtua','kepala_sekolah') NOT NULL DEFAULT 'siswa'");
   }
 
@@ -41,16 +41,16 @@ async function migrate() {
       allowNull: false,
       defaultValue: "tampil"
     });
-    console.log("Update activity.image column");
+    console.log("Memperbarui kolom activity.image");
     await queryInterface.changeColumn("activity", "image", { type: DataTypes.TEXT("long"), allowNull: true });
   }
 
   if (await tableExists("student_attendance")) {
-    console.log("Update student_attendance.status column");
+    console.log("Memperbarui kolom student_attendance.status");
     await sequelize.query("ALTER TABLE `student_attendance` MODIFY `status` ENUM('hadir','izin','sakit','alpha') NOT NULL");
   }
 
-  console.log("Portal feature enhancement migration completed");
+  console.log("Migrasi peningkatan fitur portal selesai");
 }
 
 migrate()

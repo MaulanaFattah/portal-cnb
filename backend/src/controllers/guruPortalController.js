@@ -320,7 +320,7 @@ exports.getDashboard = async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Dashboard guru berhasil diambil",
+      message: "Data dasbor guru berhasil diambil",
       data: {
         user: safeUser(req.user),
         guruProfile: { ...profile.toJSON(), kelas: classMap.get(profile.kelas_id) || null },
@@ -365,7 +365,7 @@ exports.submitAbsensi = async (req, res) => {
       teacherType = "mapel";
     } else {
       if (!isHomeroomProfile(profile)) return res.status(403).json({ success: false, message: "Pilih jadwal aktif untuk absensi guru mapel" });
-      if (!classId) return res.status(400).json({ success: false, message: "Kelas wali belum ditentukan admin" });
+      if (!classId) return res.status(400).json({ success: false, message: "Kelas wali belum ditentukan administrator" });
       if (Number(profile.kelas_id) !== classId) {
         return res.status(403).json({ success: false, message: "Wali kelas hanya dapat absensi kelas sendiri" });
       }
@@ -577,7 +577,7 @@ exports.createStudentAccounts = async (req, res) => {
 
     if (String(siswa_password).length < 6) {
       await transaction.rollback();
-      return res.status(400).json({ success: false, message: "Password siswa minimal 6 karakter" });
+      return res.status(400).json({ success: false, message: "Kata sandi siswa minimal 6 karakter" });
     }
 
     if (parentRequested && (!normalizedParentEmail || !orangtua_password)) {
@@ -592,7 +592,7 @@ exports.createStudentAccounts = async (req, res) => {
 
     if (parentRequested && String(orangtua_password).length < 6) {
       await transaction.rollback();
-      return res.status(400).json({ success: false, message: "Password orang tua minimal 6 karakter" });
+      return res.status(400).json({ success: false, message: "Kata sandi orang tua minimal 6 karakter" });
     }
 
     const emails = [normalizedStudentEmail, normalizedParentEmail].filter(Boolean);

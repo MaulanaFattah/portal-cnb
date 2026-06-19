@@ -182,7 +182,7 @@ function AdminSiswa() {
             <p>Kelola data siswa, akun siswa, dan akun orang tua secara terpadu.</p>
           </div>
           <div className="dashboard-actions">
-            <Link to="/" className="btn secondary">Website</Link>
+            <Link to="/" className="btn secondary">Situs web</Link>
             <button onClick={handleLogout} className="btn primary">Keluar</button>
           </div>
         </div>
@@ -190,7 +190,7 @@ function AdminSiswa() {
         {credentials && (
           <section className="dashboard-card credential-card">
             <h3>Akun awal berhasil dibuat</h3>
-            <p>Simpan password ini sekarang. Password tidak ditampilkan lagi setelah halaman berubah.</p>
+            <p>Simpan kata sandi ini sekarang. Kata sandi tidak ditampilkan lagi setelah halaman berubah.</p>
             <div className="credential-grid">
               <div><strong>Siswa</strong><span>{credentials.siswa.email}</span><code>{credentials.siswa.password}</code></div>
               <div><strong>Orang Tua</strong><span>{credentials.orangtua.email}</span><code>{credentials.orangtua.password}</code></div>
@@ -200,7 +200,7 @@ function AdminSiswa() {
 
         <section className="admin-kegiatan-card student-admin-card">
           <div className="kegiatan-form-area">
-            <h2>{editId ? "Edit Data Siswa" : "Tambah Data Siswa"}</h2>
+            <h2>{editId ? "Ubah Data Siswa" : "Tambah Data Siswa"}</h2>
             <form onSubmit={handleSubmit}>
               <div className="form-section-title">Data Siswa</div>
               <div className="student-form-grid">
@@ -225,7 +225,7 @@ function AdminSiswa() {
                   <div className="form-group"><label>Agama <span className="field-optional">opsional</span></label><input name="agama" value={formData.agama || ""} onChange={handleChange} /></div>
                   <div className="form-group"><label>Nama Ibu <span className="field-optional">opsional</span></label><input name="nama_ibu" value={formData.nama_ibu || ""} onChange={handleChange} /></div>
                   <div className="form-group"><label>Status <span className="field-optional">opsional</span></label><select name="status" value={formData.status || "aktif"} onChange={handleChange}><option value="aktif">Aktif</option><option value="lulus">Lulus</option><option value="pindah">Pindah</option><option value="keluar">Keluar</option></select></div>
-                  <div className="form-group full"><label>Foto <span className="field-optional">opsional</span></label><label className="upload-box">{fotoPreview || formData.foto ? <img src={fotoPreview || resolveMediaUrl(formData.foto, schoolLogo)} alt="Preview" /> : <div><strong>Upload Foto</strong><span>JPG / PNG / WebP</span></div>}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImage} /></label></div>
+                  <div className="form-group full"><label>Foto <span className="field-optional">opsional</span></label><label className="upload-box">{fotoPreview || formData.foto ? <img src={fotoPreview || resolveMediaUrl(formData.foto, schoolLogo)} alt="Pratinjau" /> : <div><strong>Unggah Foto</strong><span>JPG / PNG / WebP</span></div>}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImage} /></label></div>
                 </div>
               </details>
 
@@ -271,7 +271,7 @@ function AdminSiswa() {
 
                   <div className="teacher-table-wrap student-table-wrap">
                     <table className="teacher-table student-table">
-                      <thead><tr><th>No</th><th>NIS/NISN</th><th>Nama</th><th>Kelas</th><th>Gender</th><th>Status</th><th>Aksi</th></tr></thead>
+                      <thead><tr><th>No</th><th>NIS/NISN</th><th>Nama</th><th>Kelas</th><th>Jenis Kelamin</th><th>Status</th><th>Aksi</th></tr></thead>
                       <tbody>
                         {group.students.length === 0 ? <tr><td colSpan="7" className="teacher-empty-cell">Tidak ada siswa pada kelas ini.</td></tr> : group.students.map((item, index) => (
                           <tr key={item.id}>
@@ -281,7 +281,7 @@ function AdminSiswa() {
                             <td>{item.kelas?.nama_kelas || classMap.get(getStudentClassId(item))?.nama_kelas || "-"}</td>
                             <td>{item.jenis_kelamin === "P" ? "Perempuan" : "Laki-laki"}</td>
                             <td><span className={item.status === "aktif" ? "teacher-badge active" : "teacher-badge"}>{item.status}</span></td>
-                            <td><div className="admin-action compact"><button type="button" onClick={() => handleEdit(item)}>Edit</button><button type="button" onClick={() => handleDelete(item.id)}>Hapus</button></div></td>
+                            <td><div className="admin-action compact"><button type="button" onClick={() => handleEdit(item)}>Ubah</button><button type="button" onClick={() => handleDelete(item.id)}>Hapus</button></div></td>
                           </tr>
                         ))}
                       </tbody>

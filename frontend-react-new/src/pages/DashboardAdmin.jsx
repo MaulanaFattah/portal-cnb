@@ -43,13 +43,13 @@ function DashboardAdmin() {
 <main className="dashboard-content">
                 <div className="dashboard-header">
                     <div>
-                        <h1>Dashboard Admin</h1>
+                        <h1>Dasbor Administrator</h1>
                         <p>Halo {dashboard.admin}, kelola data sekolah secara terpusat, rapi, dan aman melalui panel administrasi ini.</p>
                     </div>
 
                     <div className="dashboard-actions">
                         <Link to="/" className="btn secondary">
-                            Website
+                            Situs web
                         </Link>
 
                         <button onClick={handleLogout} className="btn primary">
@@ -70,7 +70,7 @@ function DashboardAdmin() {
                     </div>
 
                     <div className="stat-box">
-                        <h4>Total Admin</h4>
+                        <h4>Total Administrator</h4>
                         <h2>{dashboard.totalAdmin}</h2>
                     </div>
 
@@ -80,7 +80,7 @@ function DashboardAdmin() {
                     </div>
 
                     <div className="stat-box">
-                        <h4>Login Hari Ini</h4>
+                        <h4>Masuk Hari Ini</h4>
                         <h2>{dashboard.loginHariIni}</h2>
                     </div>
                 </div>
@@ -89,7 +89,7 @@ function DashboardAdmin() {
                     <h3>Aktivitas Terbaru</h3>
 
                     <ul>
-                        <li>Dashboard berhasil terhubung ke backend.</li>
+                        <li>Dasbor berhasil terhubung ke backend.</li>
                         <li>Data admin diambil dari database MySQL.</li>
                         <li>Token JWT aktif dan tervalidasi.</li>
                     </ul>

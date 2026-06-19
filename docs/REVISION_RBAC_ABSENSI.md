@@ -1,32 +1,32 @@
-# Revisi RBAC, Absensi, Upload, dan Portal Akun
+# Revisi RBAC, Absensi, Unggah, dan Portal Akun
 
-## Requirement Analysis
+## Analisis Kebutuhan
 
-Tujuan revisi adalah memperkuat project existing tanpa rewrite: UI publik lebih rapi, upload gambar tidak lagi menyimpan base64 baru, registrasi guru mendukung multi-peran, data siswa otomatis membuat akun siswa/orang tua, RBAC absensi tetap berbasis `student_id`, kepala sekolah read-only dengan export, admin bisa force reset password, dan aktivitas penting tercatat di audit log.
+Tujuan revisi adalah memperkuat proyek existing tanpa rewrite: UI publik lebih rapi, unggah gambar tidak lagi menyimpan base64 baru, registrasi guru mendukung multi-peran, data siswa otomatis membuat akun siswa/orang tua, RBAC absensi tetap berbasis `student_id`, kepala sekolah hanya baca dengan ekspor, administrator bisa mengatur ulang kata sandi secara paksa, dan aktivitas penting tercatat di audit log.
 
-## Role Matrix
+## Matriks Peran
 
-| Role internal | Label UI | Hak utama |
+| Peran internal | Label UI | Hak utama |
 | --- | --- | --- |
-| `admin` | Admin | Kelola konten, kelas, siswa, akun portal, guru, jadwal, reset password, upload, dan verifikasi guru. |
-| `guru` | Teacher | Melihat roster aktif, mengisi absensi berdasarkan `student_id`, melihat rekap sesuai roster/wali kelas. |
-| `siswa` | Student | Melihat data diri dan absensi miliknya sendiri melalui `portal_account_link`. |
+| `admin` | Administrator | Kelola konten, kelas, siswa, akun portal, guru, jadwal, atur ulang kata sandi, unggah, dan verifikasi guru. |
+| `guru` | Guru | Melihat jadwal mengajar aktif, mengisi absensi berdasarkan `student_id`, dan melihat rekap sesuai jadwal mengajar atau wali kelas. |
+| `siswa` | Siswa | Melihat data diri dan absensi miliknya sendiri melalui `portal_account_link`. |
 | `orangtua` | Parent | Melihat data dan absensi anak yang terhubung melalui `portal_account_link`. |
-| `kepala_sekolah` | Principal | Monitoring read-only data sekolah dan export laporan Excel/PDF. |
+| `kepala_sekolah` | Kepala Sekolah | Memantau data sekolah yang bersifat hanya baca dan mengekspor laporan Excel/PDF. |
 
-## System Design
+## Desain Sistem
 
-### Upload
+### Unggah
 
 - Backend memakai `multer` dengan validasi `image/jpeg`, `image/png`, `image/webp` dan ukuran maksimal 4 MB.
-- Folder upload dibuat otomatis di `backend/uploads` dengan subfolder `activities`, `students`, `gallery`, dan `principal`.
+- Folder unggah dibuat otomatis di `backend/uploads` dengan subfolder `activities`, `students`, `gallery`, dan `principal`.
 - Static serving tersedia melalui `/uploads`.
 - Data baru menyimpan path relatif seperti `/uploads/activities/file.webp`.
 - Data lama base64 tetap ditampilkan karena frontend `resolveMediaUrl()` hanya mengubah path `/uploads/...`.
 
-### Schema / Migration
+### Skema / Migrasi
 
-Migration baru: `npm run migrate:revision-rbac`.
+Migrasi baru: `npm run migrate:revision-rbac`.
 
 Perubahan DB:
 
@@ -40,7 +40,7 @@ Perubahan DB:
 - `teacher_type` tetap dipertahankan untuk kompatibilitas.
 - `is_homeroom` menjadi privilege wali kelas.
 - `subject` tetap menyimpan daftar mapel sederhana, dipisahkan koma.
-- Guru bisa `is_homeroom = true` sekaligus punya `subject` dan roster mapel.
+- Guru bisa `is_homeroom = true` sekaligus punya `subject` dan jadwal mengajar mapel.
 
 ### Absensi
 
@@ -56,17 +56,17 @@ Perubahan DB:
   2. membuat akun `siswa`,
   3. membuat akun `orangtua`,
   4. membuat `portal_account_link`,
-  5. mengembalikan password awal satu kali.
-- Password di-hash dengan bcrypt.
+  5. mengembalikan kata sandi awal satu kali.
+- Kata sandi di-hash dengan bcrypt.
 - Akun baru diset `must_change_password = true`.
 
-### Force Reset Password
+### Atur Ulang Kata Sandi Paksa
 
-- Endpoint admin: `PUT /api/admin/users/:id/reset-password`.
-- Admin dapat mengisi password manual atau generate otomatis.
-- User dipaksa mengganti password lewat `/change-password` saat login berikutnya.
+- Endpoint administrator: `PUT /api/admin/users/:id/reset-password`.
+- Administrator dapat mengisi kata sandi manual atau membuatnya otomatis.
+- Pengguna wajib mengganti kata sandi lewat `/change-password` saat masuk berikutnya.
 
-### Audit Log
+### Log Audit
 
 Model `audit_log` menyimpan:
 
@@ -81,27 +81,27 @@ Model `audit_log` menyimpan:
 
 Aktivitas yang sudah dicatat: upload/tambah/edit/hapus kegiatan dan galeri, tambah/edit/hapus siswa, buat akun siswa/orang tua, verifikasi/hapus registrasi guru, perubahan jadwal, input absensi, force reset password, ganti password, dan export laporan kepala sekolah.
 
-## API Changes
+## Perubahan API
 
 - `POST /api/kegiatan` dan `PUT /api/kegiatan/:id` menerima `multipart/form-data` field `image`.
 - `POST /api/galeri` dan `PUT /api/galeri/:id` menerima `multipart/form-data` field `image`.
 - `POST /api/siswa` dan `PUT /api/siswa/:id` menerima `multipart/form-data` field `foto`.
 - `POST /api/auth/register-guru` menerima `is_homeroom`, `is_subject_teacher`, `homeroom_classroom_id`, dan `subjects`.
 - `DELETE /api/admin-guru/registrations/:userId` menghapus registrasi guru pending/rejected dan menolak approved yang masih dipakai jadwal/absensi.
-- `PUT /api/auth/change-password` mengganti password user sendiri.
-- `PUT /api/admin/users/:id/reset-password` force reset password user.
+- `PUT /api/auth/change-password` mengganti kata sandi pengguna sendiri.
+- `PUT /api/admin/users/:id/reset-password` mengatur ulang kata sandi pengguna secara paksa.
 
-## UI Changes
+## Perubahan UI
 
 - Beranda profil dan kartu kegiatan memakai readable measure, `text-align: justify`, line-height lebih nyaman, dan card image aspect ratio stabil.
 - Halaman kegiatan dan galeri memakai lazy image + fallback image.
-- Admin kegiatan, siswa, dan galeri memakai file upload asli, bukan base64 baru.
-- Admin siswa dibuat lebih full-width, minim kolom tabel, ada search, grouping data siswa/orang tua, dan advanced field collapsible.
+- Administrator kegiatan, siswa, dan galeri memakai unggah berkas asli, bukan base64 baru.
+- Halaman administrator siswa dibuat lebih lebar, kolom tabel dipadatkan, tersedia pencarian, pengelompokan data siswa/orang tua, dan field lanjutan yang dapat diciutkan.
 - Registrasi guru memakai checkbox multi-peran.
-- Admin verifikasi guru menampilkan pengaturan multi-peran dan tombol `Hapus`.
-- Kepala sekolah memiliki export Excel dan PDF.
+- Administrator verifikasi guru menampilkan pengaturan multi-peran dan tombol `Hapus`.
+- Kepala sekolah memiliki ekspor Excel dan PDF.
 
-## Testing Checklist
+## Daftar Periksa Pengujian
 
 Backend:
 
@@ -115,20 +115,20 @@ Frontend:
 - `npm run build`.
 - `npm run lint` bila ingin mengecek rule lint existing.
 
-Manual check:
+Pemeriksaan manual:
 
-- Admin upload gambar kegiatan, galeri, dan foto siswa.
+- Administrator mengunggah gambar kegiatan, galeri, dan foto siswa.
 - Gambar tampil di Beranda, Kegiatan, dan Galeri.
-- Tambah siswa lalu simpan credential awal siswa/orang tua.
-- Login siswa/orang tua dengan password awal lalu diarahkan ke ganti password.
-- Registrasi guru dengan wali kelas + mapel, lalu admin approve.
-- Admin hapus registrasi guru pending/rejected.
-- Guru mapel input absensi dari roster aktif.
+- Tambah siswa lalu simpan kredensial awal siswa/orang tua.
+- Masuk sebagai siswa/orang tua dengan kata sandi awal lalu diarahkan ke ganti kata sandi.
+- Registrasi guru dengan wali kelas + mapel, lalu administrator menyetujui.
+- Administrator menghapus registrasi guru berstatus `pending` atau `rejected`.
+- Guru mapel menginput absensi dari jadwal mengajar aktif.
 - Wali kelas input absensi pembuka dan melihat rekap kelas.
-- Kepala sekolah melihat dashboard read-only dan export Excel/PDF.
-- Admin reset password user dan user wajib mengganti password.
+- Kepala sekolah melihat dasbor hanya baca dan mengekspor Excel/PDF.
+- Administrator mengatur ulang kata sandi pengguna dan pengguna wajib mengganti kata sandi.
 
-## Deployment Steps
+## Langkah Deployment
 
 1. Pull perubahan project.
 2. Jalankan `cd backend && npm install`.
@@ -137,10 +137,10 @@ Manual check:
 5. Restart backend.
 6. Build/deploy frontend dari `frontend-react-new`.
 
-## Maintenance / Rollback Notes
+## Catatan Pemeliharaan / Rollback
 
 - Rollback code aman selama DB tidak di-drop; kolom baru bersifat additive.
-- File upload lokal perlu backup bersama database karena DB hanya menyimpan path relatif.
+- Berkas unggah lokal perlu backup bersama database karena DB hanya menyimpan path relatif.
 - Jika rollback ke versi lama, data gambar path `/uploads/...` tetap berupa string di kolom lama, tetapi versi lama mungkin tidak melakukan static serving.
 - `audit_log` dapat dibersihkan berkala dengan archival policy bila tumbuh besar.
 - XLSX import siswa belum dibuat; CSV/XLSX import sebaiknya dikerjakan sebagai fase khusus agar validasi batch dan preview error bisa matang.

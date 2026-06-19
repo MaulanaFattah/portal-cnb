@@ -117,7 +117,7 @@ exports.getSiswaDashboard = async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Dashboard siswa berhasil diambil",
+      message: "Data dasbor siswa berhasil diambil",
       data: {
         user: safeUser(req.user),
         siswa: attachClass(siswa, classMap),
@@ -127,7 +127,7 @@ exports.getSiswaDashboard = async (req, res) => {
       }
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Gagal mengambil dashboard siswa", error: error.message });
+    return res.status(500).json({ success: false, message: "Gagal mengambil dasbor siswa", error: error.message });
   }
 };
 
@@ -187,7 +187,7 @@ exports.getOrangTuaDashboard = async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Dashboard orang tua berhasil diambil",
+      message: "Data dasbor orang tua berhasil diambil",
       data: {
         user: safeUser(req.user),
         orangtua: {
@@ -204,7 +204,7 @@ exports.getOrangTuaDashboard = async (req, res) => {
       }
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Gagal mengambil dashboard orang tua", error: error.message });
+    return res.status(500).json({ success: false, message: "Gagal mengambil dasbor orang tua", error: error.message });
   }
 };
 
@@ -299,7 +299,7 @@ exports.getKepalaSekolahDashboard = async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Dashboard kepala sekolah berhasil diambil",
+      message: "Data dasbor kepala sekolah berhasil diambil",
       data: {
         user: safeUser(req.user),
         profilSekolah,
@@ -331,6 +331,6 @@ exports.getKepalaSekolahDashboard = async (req, res) => {
       }
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Gagal mengambil dashboard kepala sekolah", error: error.message });
+    return res.status(500).json({ success: false, message: "Gagal mengambil dasbor kepala sekolah", error: error.message });
   }
 };

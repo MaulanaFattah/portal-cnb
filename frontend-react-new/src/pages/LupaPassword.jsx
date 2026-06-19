@@ -11,7 +11,7 @@ function LupaPassword() {
 
     console.log({ email });
 
-    alert("Permintaan reset password nanti disambungkan ke backend.");
+    alert("Permintaan atur ulang kata sandi akan disambungkan ke backend.");
   };
 
   return (
@@ -20,11 +20,10 @@ function LupaPassword() {
 
       <main className="auth-page container">
         <div className="auth-card">
-          <h1>Lupa Password</h1>
+          <h1>Lupa Kata Sandi</h1>
 
           <p>
-            Masukkan email akun kamu. Sistem akan memproses permintaan reset
-            password.
+            Masukkan email akun kamu. Sistem akan memproses permintaan atur ulang kata sandi.
           </p>
 
           <form onSubmit={handleSubmit}>
@@ -45,7 +44,7 @@ function LupaPassword() {
             </button>
           </form>
 
-          <Link to="/login" className="auth-link auth-back-link">Kembali ke Login</Link>
+          <Link to="/login" className="auth-link auth-back-link">Kembali ke Masuk</Link>
         </div>
       </main>
 

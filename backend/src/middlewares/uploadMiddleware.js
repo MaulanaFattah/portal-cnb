@@ -28,7 +28,7 @@ function imageUpload(destinationKey) {
     fileFilter(_req, file, cb) {
       const extension = path.extname(file.originalname || "").toLowerCase();
       if (!allowedImageMimeTypes.has(file.mimetype) || !allowedImageExtensions.has(extension)) {
-        return cb(new Error("File harus berupa gambar JPG, PNG, atau WebP maksimal 4 MB"));
+        return cb(new Error("Berkas harus berupa gambar JPG, PNG, atau WebP maksimal 4 MB"));
       }
 
       return cb(null, true);
@@ -43,7 +43,7 @@ function handleUploadError(error, _req, res, next) {
     return res.status(400).json({ success: false, message: "Ukuran gambar maksimal 4 MB" });
   }
 
-  return res.status(400).json({ success: false, message: error.message || "Upload file tidak valid" });
+  return res.status(400).json({ success: false, message: error.message || "Unggah berkas tidak valid" });
 }
 
 module.exports = { handleUploadError, imageUpload };

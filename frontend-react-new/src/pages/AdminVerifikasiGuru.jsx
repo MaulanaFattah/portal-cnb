@@ -134,7 +134,7 @@ function AdminVerifikasiGuru() {
             <p>Setujui registrasi guru dan atur roster guru mapel.</p>
           </div>
           <div className="dashboard-actions">
-            <Link to="/" className="btn secondary">Website</Link>
+            <Link to="/" className="btn secondary">Situs web</Link>
             <button onClick={handleLogout} className="btn primary">Keluar</button>
           </div>
         </div>
@@ -191,7 +191,7 @@ function AdminVerifikasiGuru() {
         </section>
 
         <section className="dashboard-card admin-stack">
-          <h3>{editJadwalId ? "Edit Roster Guru Mapel" : "Roster Guru Mapel"}</h3>
+          <h3>{editJadwalId ? "Ubah Jadwal Mengajar Guru Mapel" : "Jadwal Mengajar Guru Mapel"}</h3>
           <form className="verify-grid" onSubmit={handleCreateJadwal}>
             <label>Guru Mapel
               <select name="guru_user_id" value={jadwalForm.guru_user_id} onChange={handleJadwalChange} required>
@@ -218,8 +218,8 @@ function AdminVerifikasiGuru() {
               </select>
             </label>
             <div className="button-row full">
-              <button className="save-btn" type="submit">{editJadwalId ? "Simpan Roster" : "Tambah Roster"}</button>
-              {editJadwalId && <button className="cancel-btn" type="button" onClick={resetJadwalForm}>Batal Edit</button>}
+              <button className="save-btn" type="submit">{editJadwalId ? "Simpan Jadwal Mengajar" : "Tambah Jadwal Mengajar"}</button>
+              {editJadwalId && <button className="cancel-btn" type="button" onClick={resetJadwalForm}>Batal Ubah</button>}
             </div>
           </form>
 
@@ -232,7 +232,7 @@ function AdminVerifikasiGuru() {
                   <p>{item.guru?.name || "Guru"} • {item.jam_mulai} - {item.jam_selesai}</p>
                 </div>
                 <div className="admin-action">
-                  <button type="button" onClick={() => handleEditJadwal(item)}>Edit</button>
+                  <button type="button" onClick={() => handleEditJadwal(item)}>Ubah</button>
                   <button type="button" onClick={() => handleDeleteJadwal(item.id)}>Hapus</button>
                 </div>
               </div>

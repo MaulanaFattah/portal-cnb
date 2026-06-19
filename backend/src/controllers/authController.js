@@ -52,7 +52,7 @@ exports.registerGuru = async (req, res) => {
       await transaction.rollback();
       return res.status(400).json({
         success: false,
-        message: "Nama, email, dan password wajib diisi"
+        message: "Nama, email, dan kata sandi wajib diisi"
       });
     }
 
@@ -120,7 +120,7 @@ exports.registerGuru = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Registrasi guru berhasil. Akun menunggu verifikasi admin.",
+      message: "Registrasi guru berhasil. Akun menunggu verifikasi administrator.",
       user: {
         id: user.id,
         name: user.name,
@@ -141,7 +141,7 @@ exports.login = async (req, res) => {
     const { email, password, role } = req.body;
 
     if (!email || !password || !role) {
-      return res.status(400).json({ success: false, message: "Email, password, dan role wajib diisi" });
+      return res.status(400).json({ success: false, message: "Email, kata sandi, dan peran wajib diisi" });
     }
 
     const user = await User.findOne({ where: { email } });
@@ -150,12 +150,12 @@ exports.login = async (req, res) => {
     }
 
     if (user.role !== role) {
-      return res.status(403).json({ success: false, message: "Role tidak sesuai" });
+      return res.status(403).json({ success: false, message: "Peran tidak sesuai" });
     }
 
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
-      return res.status(401).json({ success: false, message: "Password salah" });
+      return res.status(401).json({ success: false, message: "Kata sandi salah" });
     }
 
     let guruProfile = null;
@@ -165,7 +165,7 @@ exports.login = async (req, res) => {
       if (!guruProfile || guruProfile.verification_status !== "approved") {
         return res.status(403).json({
           success: false,
-          message: "Akun guru belum diverifikasi admin"
+          message: "Akun guru belum diverifikasi administrator"
         });
       }
     }
@@ -174,7 +174,7 @@ exports.login = async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Login berhasil",
+      message: "Berhasil masuk",
       token,
       user: {
         id: user.id,
@@ -196,17 +196,17 @@ exports.changePassword = async (req, res) => {
     const { currentPassword, newPassword } = req.body;
 
     if (!currentPassword || !newPassword) {
-      return res.status(400).json({ success: false, message: "Password lama dan password baru wajib diisi" });
+      return res.status(400).json({ success: false, message: "Kata sandi lama dan kata sandi baru wajib diisi" });
     }
 
     if (String(newPassword).length < 6) {
-      return res.status(400).json({ success: false, message: "Password baru minimal 6 karakter" });
+      return res.status(400).json({ success: false, message: "Kata sandi baru minimal 6 karakter" });
     }
 
     const user = await User.findByPk(req.user.id);
     const validCurrentPassword = await bcrypt.compare(currentPassword, user.password);
     if (!validCurrentPassword) {
-      return res.status(401).json({ success: false, message: "Password lama tidak sesuai" });
+      return res.status(401).json({ success: false, message: "Kata sandi lama tidak sesuai" });
     }
 
     await user.update({
@@ -216,7 +216,7 @@ exports.changePassword = async (req, res) => {
 
     await logAudit(req, { action: "password.change", entityType: "user_account", entityId: user.id });
 
-    return res.json({ success: true, message: "Password berhasil diganti. Silakan masuk kembali." });
+    return res.json({ success: true, message: "Kata sandi berhasil diganti. Silakan masuk kembali." });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Gagal mengganti password", error: error.message });
   }

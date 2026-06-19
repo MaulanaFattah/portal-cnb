@@ -25,7 +25,7 @@ function LoginOrangTua() {
     }
 
     saveAuth(result.token, result.user);
-    alert("Login orang tua berhasil");
+    alert("Berhasil masuk sebagai orang tua");
     navigate(result.user?.must_change_password ? "/change-password" : "/dashboard-orangtua");
   };
 
@@ -35,10 +35,10 @@ function LoginOrangTua() {
 
       <main className="auth-page container">
         <div className="auth-card">
-          <h1>Login Orang Tua</h1>
+          <h1>Masuk Orang Tua</h1>
 
           <p>
-            Masukkan email dan password akun orang tua untuk melihat informasi siswa.
+            Masukkan email dan kata sandi akun orang tua untuk melihat informasi siswa.
           </p>
 
           <form onSubmit={handleLogin}>
@@ -55,11 +55,11 @@ function LoginOrangTua() {
             </div>
 
             <div className="form-group">
-              <label>Password</label>
+              <label>Kata Sandi</label>
 
               <input
                 type="password"
-                placeholder="Masukkan password"
+                placeholder="Masukkan kata sandi"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -67,15 +67,15 @@ function LoginOrangTua() {
             </div>
 
             <button type="submit" className="submit-btn">
-              Login
+              Masuk
             </button>
           </form>
 
           <Link to="/lupa-password" className="auth-link">
-            Lupa password?
+            Lupa kata sandi?
           </Link>
 
-          <Link to="/login" className="auth-link auth-back-link">Kembali ke pilihan login</Link>
+          <Link to="/login" className="auth-link auth-back-link">Kembali ke pilihan masuk</Link>
         </div>
       </main>
 

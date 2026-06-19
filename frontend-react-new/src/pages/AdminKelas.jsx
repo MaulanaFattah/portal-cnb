@@ -96,14 +96,14 @@ function AdminKelas() {
           </div>
 
           <div className="dashboard-actions">
-            <Link to="/" className="btn secondary">Website</Link>
+            <Link to="/" className="btn secondary">Situs web</Link>
             <button onClick={handleLogout} className="btn primary">Keluar</button>
           </div>
         </div>
 
         <section className="admin-kegiatan-card">
           <div className="kegiatan-form-area">
-            <h2>{editId ? "Edit Data Kelas" : "Tambah Data Kelas"}</h2>
+            <h2>{editId ? "Ubah Data Kelas" : "Tambah Data Kelas"}</h2>
 
             <form onSubmit={handleSubmit}>
               <div className="form-group">
@@ -202,7 +202,7 @@ function AdminKelas() {
                       <p>Tingkat {item.tingkat} • {item.tahun_ajaran} • {item.jumlah_siswa} siswa</p>
                     </div>
                     <div className="admin-action">
-                      <button onClick={() => handleEdit(item)}>Edit</button>
+                      <button onClick={() => handleEdit(item)}>Ubah</button>
                       <button onClick={() => handleDelete(item.id)}>Hapus</button>
                     </div>
                   </div>

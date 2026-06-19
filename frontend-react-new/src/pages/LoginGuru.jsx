@@ -25,7 +25,7 @@ function LoginGuru() {
     }
 
     saveAuth(result.token, result.user);
-    alert("Login guru berhasil");
+    alert("Berhasil masuk sebagai guru");
     navigate(result.user?.must_change_password ? "/change-password" : "/dashboard-guru");
   };
 
@@ -35,8 +35,8 @@ function LoginGuru() {
 
       <main className="auth-page container">
         <div className="auth-card">
-          <h1>Login Guru</h1>
-          <p>Masukkan email dan password akun guru untuk mengakses portal.</p>
+          <h1>Masuk Guru</h1>
+          <p>Masukkan email dan kata sandi akun guru untuk mengakses portal.</p>
 
           <form onSubmit={handleLogin}>
             <div className="form-group">
@@ -51,10 +51,10 @@ function LoginGuru() {
             </div>
 
             <div className="form-group">
-              <label>Password</label>
+              <label>Kata Sandi</label>
               <input
                 type="password"
-                placeholder="Masukkan password"
+                placeholder="Masukkan kata sandi"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -62,7 +62,7 @@ function LoginGuru() {
             </div>
 
             <button type="submit" className="submit-btn">
-              Login
+              Masuk
             </button>
           </form>
 
@@ -70,7 +70,7 @@ function LoginGuru() {
             Belum punya akun? Registrasi Guru
           </Link>
 
-          <Link to="/login" className="auth-link auth-back-link">Kembali ke pilihan login</Link>
+          <Link to="/login" className="auth-link auth-back-link">Kembali ke pilihan masuk</Link>
         </div>
       </main>
 

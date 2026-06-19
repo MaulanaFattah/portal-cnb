@@ -62,7 +62,7 @@ function AdminProfilSekolah() {
 
         <section className="admin-kegiatan-card profile-editor-card">
           <div className="kegiatan-form-area profile-editor-area">
-            <h2>{isEdit ? "Edit Profil Sekolah" : "Buat Profil Sekolah"}</h2>
+            <h2>{isEdit ? "Ubah Profil Sekolah" : "Buat Profil Sekolah"}</h2>
             <form className="profile-editor-grid" onSubmit={handleSubmit}>
               <div className="form-group"><label>Nama Sekolah</label><input type="text" name="nama_sekolah" value={formData.nama_sekolah} onChange={handleChange} required /></div>
               <div className="form-group"><label>Visi</label><textarea name="visi" value={formData.visi} onChange={handleChange} rows="3" /></div>

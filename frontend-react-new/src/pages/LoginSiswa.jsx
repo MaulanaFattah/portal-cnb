@@ -25,7 +25,7 @@ function LoginSiswa() {
     }
 
     saveAuth(result.token, result.user);
-    alert("Login siswa berhasil");
+    alert("Berhasil masuk sebagai siswa");
     navigate(result.user?.must_change_password ? "/change-password" : "/dashboard-siswa");
   };
 
@@ -35,10 +35,10 @@ function LoginSiswa() {
 
       <main className="auth-page container">
         <div className="auth-card">
-          <h1>Login Siswa</h1>
+          <h1>Masuk Siswa</h1>
 
           <p>
-            Masukkan email dan password akun siswa untuk masuk ke portal.
+            Masukkan email dan kata sandi akun siswa untuk masuk ke portal.
           </p>
 
           <form onSubmit={handleLogin}>
@@ -54,10 +54,10 @@ function LoginSiswa() {
             </div>
 
             <div className="form-group">
-              <label>Password</label>
+              <label>Kata Sandi</label>
               <input
                 type="password"
-                placeholder="Masukkan password"
+                placeholder="Masukkan kata sandi"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -65,11 +65,11 @@ function LoginSiswa() {
             </div>
 
             <button type="submit" className="submit-btn">
-              Login
+              Masuk
             </button>
           </form>
 
-          <Link to="/login" className="auth-link auth-back-link">Kembali ke pilihan login</Link>
+          <Link to="/login" className="auth-link auth-back-link">Kembali ke pilihan masuk</Link>
         </div>
       </main>
 

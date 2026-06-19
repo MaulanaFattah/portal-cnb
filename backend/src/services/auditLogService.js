@@ -14,7 +14,7 @@ async function logAudit(req, { action, entityType, entityId = null, metadata = n
       user_agent: req?.headers?.["user-agent"] || null
     }, options);
   } catch (error) {
-    console.error("Audit log failed:", error.message);
+    console.error("Audit log gagal:", error.message);
   }
 }
 

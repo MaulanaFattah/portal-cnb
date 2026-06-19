@@ -32,8 +32,8 @@ function AdminLogin() {
       <div className="admin-login-card">
         <img src={schoolLogo} alt="Logo" className="admin-login-logo" />
 
-        <h1>Admin Login</h1>
-        <p>Masukkan email dan password administrator.</p>
+        <h1>Masuk Administrator</h1>
+        <p>Masukkan email dan kata sandi administrator.</p>
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -47,7 +47,7 @@ function AdminLogin() {
           </div>
 
           <div className="form-group">
-            <label>Password</label>
+            <label>Kata Sandi</label>
             <input
               type="password"
               placeholder="********"
@@ -56,10 +56,10 @@ function AdminLogin() {
             />
           </div>
 
-          <button className="submit-btn">Login</button>
+          <button className="submit-btn">Masuk</button>
         </form>
 
-        <Link to="/login" className="auth-link auth-back-link">Kembali ke pilihan login</Link>
+        <Link to="/login" className="auth-link auth-back-link">Kembali ke pilihan masuk</Link>
       </div>
     </div>
   );
