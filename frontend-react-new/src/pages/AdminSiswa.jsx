@@ -21,8 +21,6 @@ const emptyForm = {
   alamat: "",
   nama_ayah: "",
   no_telepon: "",
-  email: "",
-  parent_email: "",
   tempat_lahir: "",
   agama: "",
   nama_ibu: "",
@@ -34,6 +32,10 @@ function classLabel(item) {
   return [item.nama_kelas, item.tingkat ? `Tingkat ${item.tingkat}` : null, item.tahun_ajaran].filter(Boolean).join(" - ");
 }
 
+function getStudentClassId(item) {
+  return String(item.kelas_id || item.kelas?.id || "");
+}
+
 function AdminSiswa() {
   const navigate = useNavigate();
   const [siswa, setSiswa] = useState([]);
@@ -42,6 +44,7 @@ function AdminSiswa() {
   const [formData, setFormData] = useState(emptyForm);
   const [fotoPreview, setFotoPreview] = useState("");
   const [search, setSearch] = useState("");
+  const [activeClassId, setActiveClassId] = useState("all");
   const [credentials, setCredentials] = useState(null);
 
   const loadSiswa = async () => {
@@ -52,12 +55,71 @@ function AdminSiswa() {
 
   useEffect(() => { (async () => { await loadSiswa(); })(); }, []);
 
+  const classMap = useMemo(() => new Map(kelas.map((item) => [String(item.id), item])), [kelas]);
+
+  const studentClassCounts = useMemo(() => {
+    const counts = new Map();
+    siswa.forEach((item) => {
+      const key = getStudentClassId(item) || "none";
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    return counts;
+  }, [siswa]);
+
+  const classTabs = useMemo(() => kelas.map((item) => ({
+    ...item,
+    label: classLabel(item) || item.nama_kelas || "Kelas tanpa nama",
+    count: studentClassCounts.get(String(item.id)) || 0
+  })), [kelas, studentClassCounts]);
+
+  const noClassCount = studentClassCounts.get("none") || 0;
+
   const filteredSiswa = useMemo(() => {
     const keyword = search.trim().toLowerCase();
-    if (!keyword) return siswa;
-    return siswa.filter((item) => [item.nisn, item.nama, item.kelas?.nama_kelas, item.status]
-      .some((value) => String(value || "").toLowerCase().includes(keyword)));
-  }, [search, siswa]);
+    return siswa.filter((item) => {
+      const itemClassId = getStudentClassId(item);
+      const matchesClass = activeClassId === "all" || (activeClassId === "none" ? !itemClassId : itemClassId === String(activeClassId));
+      const classItem = item.kelas || classMap.get(itemClassId);
+      const matchesKeyword = !keyword || [item.nisn, item.nama, classLabel(classItem || {}), item.status]
+        .some((value) => String(value || "").toLowerCase().includes(keyword));
+      return matchesClass && matchesKeyword;
+    });
+  }, [activeClassId, classMap, search, siswa]);
+
+  const groupedSiswa = useMemo(() => {
+    const groupsByClass = new Map();
+    filteredSiswa.forEach((item) => {
+      const key = getStudentClassId(item) || "none";
+      if (!groupsByClass.has(key)) groupsByClass.set(key, []);
+      groupsByClass.get(key).push(item);
+    });
+
+    const makeGroup = (key, students) => {
+      const firstStudent = students[0];
+      const kelasItem = key === "none" ? null : classMap.get(key) || firstStudent?.kelas;
+      return {
+        key,
+        title: key === "none" ? "Tanpa Kelas" : classLabel(kelasItem || {}) || "Kelas tidak ditemukan",
+        students
+      };
+    };
+
+    if (activeClassId !== "all") {
+      const key = String(activeClassId);
+      return [makeGroup(key, groupsByClass.get(key) || [])];
+    }
+
+    const orderedGroups = kelas
+      .map((item) => makeGroup(String(item.id), groupsByClass.get(String(item.id)) || []))
+      .filter((group) => group.students.length > 0);
+
+    groupsByClass.forEach((students, key) => {
+      if (key !== "none" && !classMap.has(key)) orderedGroups.push(makeGroup(key, students));
+    });
+
+    if (groupsByClass.has("none")) orderedGroups.push(makeGroup("none", groupsByClass.get("none")));
+    return orderedGroups;
+  }, [activeClassId, classMap, filteredSiswa, kelas]);
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -78,7 +140,10 @@ function AdminSiswa() {
     e.preventDefault();
     setCredentials(null);
 
-    const result = editId ? await updateSiswa(editId, formData) : await createSiswa(formData);
+    const submitData = { ...formData };
+    delete submitData.email;
+    delete submitData.parent_email;
+    const result = editId ? await updateSiswa(editId, submitData) : await createSiswa(submitData);
     if (!result.success) {
       alert(result.message);
       return;
@@ -151,18 +216,16 @@ function AdminSiswa() {
               <div className="student-form-grid">
                 <div className="form-group"><label>Nama Orang Tua</label><input name="nama_ayah" value={formData.nama_ayah || ""} onChange={handleChange} required /></div>
                 <div className="form-group"><label>Nomor HP</label><input name="no_telepon" value={formData.no_telepon || ""} onChange={handleChange} required /></div>
-                <div className="form-group"><label>Email Siswa (opsional)</label><input type="email" name="email" value={formData.email || ""} onChange={handleChange} placeholder="Jika kosong, sistem membuat email portal" /></div>
-                <div className="form-group"><label>Email Orang Tua (opsional)</label><input type="email" name="parent_email" value={formData.parent_email || ""} onChange={handleChange} placeholder="Jika kosong, sistem membuat email portal" /></div>
               </div>
 
               <details className="advanced-fields">
                 <summary>Field tambahan</summary>
                 <div className="student-form-grid">
-                  <div className="form-group"><label>Tempat Lahir</label><input name="tempat_lahir" value={formData.tempat_lahir || ""} onChange={handleChange} /></div>
-                  <div className="form-group"><label>Agama</label><input name="agama" value={formData.agama || ""} onChange={handleChange} /></div>
-                  <div className="form-group"><label>Nama Ibu</label><input name="nama_ibu" value={formData.nama_ibu || ""} onChange={handleChange} /></div>
-                  <div className="form-group"><label>Status</label><select name="status" value={formData.status || "aktif"} onChange={handleChange}><option value="aktif">Aktif</option><option value="lulus">Lulus</option><option value="pindah">Pindah</option><option value="keluar">Keluar</option></select></div>
-                  <div className="form-group full"><label>Foto</label><label className="upload-box">{fotoPreview || formData.foto ? <img src={fotoPreview || resolveMediaUrl(formData.foto, schoolLogo)} alt="Preview" /> : <div><strong>Upload Foto</strong><span>JPG / PNG / WebP</span></div>}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImage} /></label></div>
+                  <div className="form-group"><label>Tempat Lahir <span className="field-optional">opsional</span></label><input name="tempat_lahir" value={formData.tempat_lahir || ""} onChange={handleChange} /></div>
+                  <div className="form-group"><label>Agama <span className="field-optional">opsional</span></label><input name="agama" value={formData.agama || ""} onChange={handleChange} /></div>
+                  <div className="form-group"><label>Nama Ibu <span className="field-optional">opsional</span></label><input name="nama_ibu" value={formData.nama_ibu || ""} onChange={handleChange} /></div>
+                  <div className="form-group"><label>Status <span className="field-optional">opsional</span></label><select name="status" value={formData.status || "aktif"} onChange={handleChange}><option value="aktif">Aktif</option><option value="lulus">Lulus</option><option value="pindah">Pindah</option><option value="keluar">Keluar</option></select></div>
+                  <div className="form-group full"><label>Foto <span className="field-optional">opsional</span></label><label className="upload-box">{fotoPreview || formData.foto ? <img src={fotoPreview || resolveMediaUrl(formData.foto, schoolLogo)} alt="Preview" /> : <div><strong>Upload Foto</strong><span>JPG / PNG / WebP</span></div>}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImage} /></label></div>
                 </div>
               </details>
 
@@ -175,27 +238,57 @@ function AdminSiswa() {
 
           <div className="kegiatan-list-area">
             <div className="student-list-head">
-              <h2>Daftar Siswa</h2>
+              <div className="student-list-title">
+                <h2>Daftar Siswa per Kelas</h2>
+                <p>Pilih kelas untuk melihat dan mengelola siswa secara terpisah.</p>
+              </div>
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari nama, NISN, kelas..." />
             </div>
 
-            <div className="teacher-table-wrap">
-              <table className="teacher-table student-table">
-                <thead><tr><th>No</th><th>NIS/NISN</th><th>Nama</th><th>Kelas</th><th>Gender</th><th>Status</th><th>Aksi</th></tr></thead>
-                <tbody>
-                  {filteredSiswa.length === 0 ? <tr><td colSpan="7" className="teacher-empty-cell">Belum ada data siswa.</td></tr> : filteredSiswa.map((item, index) => (
-                    <tr key={item.id}>
-                      <td>{index + 1}</td>
-                      <td>{item.nisn}</td>
-                      <td>{item.nama}</td>
-                      <td>{item.kelas?.nama_kelas || kelas.find((kelasItem) => Number(kelasItem.id) === Number(item.kelas_id))?.nama_kelas || "-"}</td>
-                      <td>{item.jenis_kelamin === "P" ? "Perempuan" : "Laki-laki"}</td>
-                      <td><span className={item.status === "aktif" ? "teacher-badge active" : "teacher-badge"}>{item.status}</span></td>
-                      <td><div className="admin-action compact"><button type="button" onClick={() => handleEdit(item)}>Edit</button><button type="button" onClick={() => handleDelete(item.id)}>Hapus</button></div></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="student-class-tabs" role="tablist" aria-label="Filter kelas siswa">
+              <button type="button" role="tab" aria-selected={activeClassId === "all"} className={activeClassId === "all" ? "student-class-tab active" : "student-class-tab"} onClick={() => setActiveClassId("all")}><span>Semua Kelas</span><strong>{siswa.length}</strong></button>
+              {classTabs.map((item) => (
+                <button type="button" role="tab" aria-selected={activeClassId === String(item.id)} key={item.id} className={activeClassId === String(item.id) ? "student-class-tab active" : "student-class-tab"} onClick={() => setActiveClassId(String(item.id))}><span>{item.label}</span><strong>{item.count}</strong></button>
+              ))}
+              {noClassCount > 0 && <button type="button" role="tab" aria-selected={activeClassId === "none"} className={activeClassId === "none" ? "student-class-tab active" : "student-class-tab"} onClick={() => setActiveClassId("none")}><span>Tanpa Kelas</span><strong>{noClassCount}</strong></button>}
+            </div>
+
+            <div className="student-class-groups">
+              {groupedSiswa.length === 0 ? (
+                <div className="student-empty-state">
+                  <strong>Belum ada data siswa.</strong>
+                  <span>Tambahkan siswa baru atau ubah kata kunci pencarian.</span>
+                </div>
+              ) : groupedSiswa.map((group) => (
+                <section className="student-class-group" key={group.key}>
+                  <div className="student-class-group-header">
+                    <div>
+                      <h3>{group.title}</h3>
+                      <p>{group.students.length ? "Data siswa pada kelas ini." : "Tidak ada siswa sesuai filter saat ini."}</p>
+                    </div>
+                    <span className="student-class-count">{group.students.length} siswa</span>
+                  </div>
+
+                  <div className="teacher-table-wrap student-table-wrap">
+                    <table className="teacher-table student-table">
+                      <thead><tr><th>No</th><th>NIS/NISN</th><th>Nama</th><th>Kelas</th><th>Gender</th><th>Status</th><th>Aksi</th></tr></thead>
+                      <tbody>
+                        {group.students.length === 0 ? <tr><td colSpan="7" className="teacher-empty-cell">Tidak ada siswa pada kelas ini.</td></tr> : group.students.map((item, index) => (
+                          <tr key={item.id}>
+                            <td>{index + 1}</td>
+                            <td>{item.nisn}</td>
+                            <td>{item.nama}</td>
+                            <td>{item.kelas?.nama_kelas || classMap.get(getStudentClassId(item))?.nama_kelas || "-"}</td>
+                            <td>{item.jenis_kelamin === "P" ? "Perempuan" : "Laki-laki"}</td>
+                            <td><span className={item.status === "aktif" ? "teacher-badge active" : "teacher-badge"}>{item.status}</span></td>
+                            <td><div className="admin-action compact"><button type="button" onClick={() => handleEdit(item)}>Edit</button><button type="button" onClick={() => handleDelete(item.id)}>Hapus</button></div></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              ))}
             </div>
           </div>
         </section>
