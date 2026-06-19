@@ -18,7 +18,7 @@ const ABSENSI_OPTIONS = [
 const MENU_ITEMS = [
   { id: "dashboard", label: "Dashboard" },
   { id: "jadwal", label: "Jadwal Mengajar" },
-  { id: "absensi", label: "Absen 1" },
+  { id: "absensi", label: "Absensi" },
   { id: "rekap", label: "Rekapitulasi Absensi" }
 ];
 
@@ -54,6 +54,7 @@ function DashboardGuru() {
   const [notice, setNotice] = useState(null);
   const [tanggal, setTanggal] = useState(todayISO());
   const [jadwalId, setJadwalId] = useState("");
+  const [attendanceMode, setAttendanceMode] = useState("homeroom");
   const [entries, setEntries] = useState({});
   const [savedAttendanceSummary, setSavedAttendanceSummary] = useState(emptySummary);
   const [savingAbsensi, setSavingAbsensi] = useState(false);
@@ -78,8 +79,10 @@ function DashboardGuru() {
       const data = result.data;
       const firstJadwalId = data.jadwal?.[0]?.id ? String(data.jadwal[0].id) : "";
       const firstClassId = data.kelasAkses?.[0]?.id || data.guruProfile?.kelas_id || "";
+      const isHomeroom = Boolean(data.guruProfile?.is_homeroom) || data.guruProfile?.teacher_type === "wali_kelas";
       setJadwalId(firstJadwalId);
-      setRekapFilter((previous) => ({ ...previous, kelas_id: firstClassId ? String(firstClassId) : "" }));
+      setAttendanceMode(isHomeroom ? "homeroom" : "subject");
+      setRekapFilter((previous) => ({ ...previous, kelas_id: firstClassId ? String(firstClassId) : "" }));
       setDashboard(data);
       setLoading(false);
     };
@@ -88,8 +91,10 @@ function DashboardGuru() {
   }, [navigate]);
 
   const profile = dashboard?.guruProfile;
-  const isWali = profile?.teacher_type === "wali_kelas";
-  const roleLabel = isWali ? "Guru Wali Kelas" : "Guru Mapel";
+  const isWali = Boolean(profile?.is_homeroom) || profile?.teacher_type === "wali_kelas";
+  const hasSubjectRoster = Boolean(dashboard?.jadwal?.length);
+  const attendanceIsHomeroom = isWali && attendanceMode === "homeroom";
+  const roleLabel = isWali && hasSubjectRoster ? "Guru Wali Kelas + Mapel" : isWali ? "Guru Wali Kelas" : "Guru Mapel";
 
   const classOptions = useMemo(() => {
     if (!dashboard) return [];
@@ -102,7 +107,7 @@ function DashboardGuru() {
     return (dashboard.jadwal || []).find((item) => Number(item.id) === Number(jadwalId)) || null;
   }, [dashboard, jadwalId]);
 
-  const attendanceClassId = isWali ? profile?.kelas_id : selectedJadwal?.kelas_id;
+  const attendanceClassId = attendanceIsHomeroom ? profile?.kelas_id : selectedJadwal?.kelas_id;
 
   const siswaList = useMemo(() => {
     if (!dashboard || !attendanceClassId) return [];
@@ -151,7 +156,7 @@ function DashboardGuru() {
     const result = await submitAbsensiGuru({
       tanggal,
       kelas_id: attendanceClassId,
-      jadwal_id: isWali ? null : jadwalId,
+      jadwal_id: attendanceIsHomeroom ? null : jadwalId,
       entries: selectedEntries
     });
 
@@ -316,20 +321,21 @@ function DashboardGuru() {
             </tr>
           </thead>
           <tbody>
-            {isWali ? (
+            {isWali && (
               <tr>
                 <td>1</td>
                 <td>Wali Kelas</td>
                 <td>{profile?.kelas?.nama_kelas || "Belum diset"}</td>
                 <td>Senin - Sabtu</td>
-                <td>Absensi harian</td>
+                <td>Absensi utama awal masuk</td>
                 <td><span className="teacher-badge active">Aktif</span></td>
               </tr>
-            ) : (dashboard.jadwal || []).length === 0 ? (
+            )}
+            {!isWali && (dashboard.jadwal || []).length === 0 ? (
               <tr><td colSpan="6" className="teacher-empty-cell">Belum ada jadwal mengajar dari admin.</td></tr>
             ) : (dashboard.jadwal || []).map((item, index) => (
               <tr key={item.id}>
-                <td>{index + 1}</td>
+                <td>{index + (isWali ? 2 : 1)}</td>
                 <td>{item.mapel}</td>
                 <td>{item.kelas?.nama_kelas || "-"}</td>
                 <td>{item.hari}</td>
@@ -346,10 +352,21 @@ function DashboardGuru() {
   const renderAbsensi = () => (
     <section className="teacher-panel">
       <div className="teacher-panel-header compact">
-        <span>Absensi</span>
-          <h1>Absen 1</h1>
-        <p>Pilih tanggal dan kelas/jam mengajar, lalu simpan status hadir, izin, sakit, atau alpha.</p>
+        <span>{attendanceIsHomeroom ? "Absensi Utama" : "Absensi Mapel"}</span>
+        <h1>{attendanceIsHomeroom ? "Absensi Utama Harian" : "Absensi Guru Mata Pelajaran"}</h1>
+        <p>{attendanceIsHomeroom ? "Absensi utama hanya diinput Guru Wali Kelas saat awal masuk sekolah dan tampil di akun siswa." : "Absensi mapel tetap tersimpan untuk kebutuhan internal pembelajaran, tidak menjadi absensi utama siswa."}</p>
       </div>
+
+      {isWali && hasSubjectRoster && (
+        <div className="teacher-actions-row attendance-mode-switch">
+          <button type="button" className={attendanceMode === "homeroom" ? "teacher-primary" : "teacher-secondary"} onClick={() => setAttendanceMode("homeroom")}>
+            Absensi Utama Wali Kelas
+          </button>
+          <button type="button" className={attendanceMode === "subject" ? "teacher-primary" : "teacher-secondary"} onClick={() => setAttendanceMode("subject")}>
+            Absensi Mapel
+          </button>
+        </div>
+      )}
 
       <form onSubmit={handleSubmitAbsensi} className="teacher-form-stack">
         <div className="teacher-form-grid three-columns">
@@ -357,7 +374,7 @@ function DashboardGuru() {
             <input type="date" value={tanggal} onChange={(event) => setTanggal(event.target.value)} required />
           </label>
 
-          {isWali ? (
+          {attendanceIsHomeroom ? (
             <label className="teacher-field">Kelas
               <input value={profile?.kelas?.nama_kelas || "Kelas belum diset admin"} readOnly />
             </label>
@@ -374,7 +391,7 @@ function DashboardGuru() {
           )}
 
           <button type="button" className="teacher-secondary action-height" onClick={() => setNotice({ type: "success", text: "Sesi absensi siap diisi." })}>
-            Buka Absen 1
+            {attendanceIsHomeroom ? "Buka Absensi Utama" : "Buka Absensi Mapel"}
           </button>
         </div>
 
@@ -393,7 +410,7 @@ function DashboardGuru() {
             </thead>
             <tbody>
               {siswaList.length === 0 ? (
-                <tr><td colSpan="5" className="teacher-empty-cell">Belum ada siswa untuk kelas ini.</td></tr>
+                <tr><td colSpan="5" className="teacher-empty-cell">Belum ada siswa untuk kelas absensi ini.</td></tr>
               ) : siswaList.map((siswa, index) => (
                 <tr key={siswa.id}>
                   <td>{index + 1}</td>
@@ -415,8 +432,8 @@ function DashboardGuru() {
         </div>
 
         <div className="teacher-actions-row">
-          <button className="teacher-primary" type="submit" disabled={savingAbsensi || siswaList.length === 0 || (!isWali && !jadwalId)}>
-            {savingAbsensi ? "Menyimpan..." : "Simpan Absensi"}
+          <button className="teacher-primary" type="submit" disabled={savingAbsensi || siswaList.length === 0 || (!attendanceIsHomeroom && !jadwalId)}>
+            {savingAbsensi ? "Menyimpan..." : attendanceIsHomeroom ? "Simpan Absensi Utama" : "Simpan Absensi Mapel"}
           </button>
         </div>
       </form>
@@ -439,7 +456,7 @@ function DashboardGuru() {
           </select>
         </label>
 
-        {!isWali && (
+        {hasSubjectRoster && (
           <label className="teacher-field">Roster
             <select name="jadwal_id" value={rekapFilter.jadwal_id} onChange={handleRekapFilter}>
               <option value="">Semua roster</option>
@@ -546,16 +563,19 @@ function DashboardGuru() {
           <span className="teacher-role-pill">{profile?.subject || profile?.kelas?.nama_kelas || "Guru"}</span>
 
           <nav className="teacher-menu" aria-label="Menu dashboard guru">
-            {MENU_ITEMS.map((item) => (
-              <button
-                type="button"
-                key={item.id}
-                className={activeMenu === item.id ? "active" : ""}
-                onClick={() => setActiveMenu(item.id)}
-              >
-                {item.label}
-              </button>
-            ))}
+            {MENU_ITEMS.map((item) => {
+              const label = item.id === "absensi" ? (isWali ? "Absensi Utama" : "Absensi Mapel") : item.label;
+              return (
+                <button
+                  type="button"
+                  key={item.id}
+                  className={activeMenu === item.id ? "active" : ""}
+                  onClick={() => setActiveMenu(item.id)}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </nav>
         </aside>
 

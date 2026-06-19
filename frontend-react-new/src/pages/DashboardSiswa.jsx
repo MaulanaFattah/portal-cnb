@@ -150,8 +150,8 @@ function DashboardSiswa() {
     if (!absensi.rows.length) return;
     exportExcel({
       filename: `absensi-saya-${filter.dari}-${filter.sampai}.xls`,
-      title: "Absensi Saya",
-      subtitle: `${dashboard.siswa?.nama || dashboard.user?.name || "Siswa"} • ${filter.dari} sampai ${filter.sampai}`,
+      title: "Absensi Utama Saya",
+      subtitle: `${dashboard.siswa?.nama || dashboard.user?.name || "Siswa"} • Guru Wali Kelas • ${filter.dari} sampai ${filter.sampai}`,
       summary: [
         { label: "Hadir", value: absensi.summary.hadir || 0 },
         { label: "Izin", value: absensi.summary.izin || 0 },
@@ -162,8 +162,8 @@ function DashboardSiswa() {
       columns: [
         { header: "No", value: (_row, index) => index + 1 },
         { header: "Tanggal", value: (row) => formatDate(row.tanggal) },
-        { header: "Mapel", value: (row) => row.mapel || "Wali Kelas" },
-        { header: "Guru", value: (row) => row.guru?.name || "-" },
+        { header: "Sumber", value: () => "Absensi utama wali kelas" },
+        { header: "Guru Wali Kelas", value: (row) => row.guru?.name || "-" },
         { header: "Status", value: (row) => row.status?.toUpperCase() || "-" },
         { header: "Keterangan", value: (row) => row.keterangan || "-" }
       ],
@@ -294,8 +294,8 @@ function DashboardSiswa() {
     <section className="teacher-panel">
       <div className="teacher-panel-header compact">
         <span>Absensi</span>
-        <h1>Absensi Saya</h1>
-        <p>Lihat riwayat kehadiran berdasarkan rentang tanggal.</p>
+        <h1>Absensi Utama Saya</h1>
+        <p>Data yang tampil hanya absensi utama dari Guru Wali Kelas, satu data untuk setiap hari sekolah.</p>
       </div>
 
       <div className="teacher-form-grid four-columns">
@@ -339,6 +339,7 @@ function DashboardSiswa() {
                 <tr>
                   <th>No</th>
                   <th>Nama</th>
+                  <th>Guru Wali Kelas</th>
                   <th>Status</th>
                   <th>Keterangan</th>
                 </tr>
@@ -348,6 +349,7 @@ function DashboardSiswa() {
                   <tr key={row.id}>
                     <td>{index + 1}</td>
                     <td>{row.siswa?.nama || dashboard.siswa?.nama || "-"}</td>
+                    <td>{row.guru?.name || "-"}</td>
                     <td><span className={statusClass(row.status)}>{row.status.toUpperCase()}</span></td>
                     <td>{row.keterangan || "-"}</td>
                   </tr>

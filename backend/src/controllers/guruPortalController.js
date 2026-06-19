@@ -391,7 +391,9 @@ exports.submitAbsensi = async (req, res) => {
 
     for (const entry of normalizedEntries) {
       const siswaId = entry.siswa_id;
-      const where = { siswa_id: siswaId, tanggal, guru_user_id: req.user.id, jadwal_id: scheduleId };
+      const where = teacherType === "wali_kelas"
+        ? { siswa_id: siswaId, tanggal, tipe_guru: "wali_kelas" }
+        : { siswa_id: siswaId, tanggal, guru_user_id: req.user.id, jadwal_id: scheduleId };
       const existing = await AbsensiSiswa.findOne({ where });
       const payload = {
         siswa_id: siswaId,
@@ -411,7 +413,7 @@ exports.submitAbsensi = async (req, res) => {
       saved += 1;
     }
 
-    await logAudit(req, { action: "attendance.submit", entityType: "student_attendance", metadata: { tanggal, kelas_id: classId, jadwal_id: scheduleId, saved } });
+    await logAudit(req, { action: "attendance.submit", entityType: "student_attendance", metadata: { tanggal, kelas_id: classId, jadwal_id: scheduleId, tipe_guru: teacherType, saved } });
     return res.json({ success: true, message: `${saved} data absensi berhasil disimpan`, data: { saved } });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Gagal menyimpan absensi", error: error.message });

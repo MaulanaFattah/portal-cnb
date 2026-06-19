@@ -123,8 +123,8 @@ function DashboardOrangTua() {
     if (!absensi.rows.length) return;
     exportExcel({
       filename: `absensi-anak-${filter.dari}-${filter.sampai}.xls`,
-      title: "Absensi Anak",
-      subtitle: `${siswa?.nama || "Anak"} • ${filter.dari} sampai ${filter.sampai}`,
+      title: "Absensi Utama Anak",
+      subtitle: `${siswa?.nama || "Anak"} • Guru Wali Kelas • ${filter.dari} sampai ${filter.sampai}`,
       summary: [
         { label: "Hadir", value: absensi.summary.hadir || 0 },
         { label: "Izin", value: absensi.summary.izin || 0 },
@@ -135,8 +135,8 @@ function DashboardOrangTua() {
       columns: [
         { header: "No", value: (_row, index) => index + 1 },
         { header: "Tanggal", value: (row) => formatDate(row.tanggal) },
-        { header: "Mapel", value: (row) => row.mapel || "Wali Kelas" },
-        { header: "Guru", value: (row) => row.guru?.name || "-" },
+        { header: "Sumber", value: () => "Absensi utama wali kelas" },
+        { header: "Guru Wali Kelas", value: (row) => row.guru?.name || "-" },
         { header: "Status", value: (row) => row.status?.toUpperCase() || "-" },
         { header: "Keterangan", value: (row) => row.keterangan || "-" }
       ],
@@ -299,8 +299,8 @@ function DashboardOrangTua() {
     <section className="teacher-panel">
       <div className="teacher-panel-header compact">
         <span>Kehadiran</span>
-        <h1>Absensi Anak Saya</h1>
-        <p>Rekap kehadiran anak berdasarkan rentang tanggal.</p>
+        <h1>Absensi Utama Anak Saya</h1>
+        <p>Data yang tampil hanya absensi utama dari Guru Wali Kelas, satu data untuk setiap hari sekolah.</p>
       </div>
 
       <div className="teacher-form-grid four-columns">
@@ -332,13 +332,14 @@ function DashboardOrangTua() {
           <div className="teacher-table-wrap">
             <table className="teacher-table">
               <thead>
-                <tr><th>No</th><th>Nama</th><th>Status</th><th>Keterangan</th></tr>
+                <tr><th>No</th><th>Nama</th><th>Guru Wali Kelas</th><th>Status</th><th>Keterangan</th></tr>
               </thead>
               <tbody>
                 {group.items.map((row, index) => (
                   <tr key={row.id}>
                     <td>{index + 1}</td>
                     <td>{row.siswa?.nama || siswa?.nama || "-"}</td>
+                    <td>{row.guru?.name || "-"}</td>
                     <td><span className={statusClass(row.status)}>{row.status.toUpperCase()}</span></td>
                     <td>{row.keterangan || "-"}</td>
                   </tr>

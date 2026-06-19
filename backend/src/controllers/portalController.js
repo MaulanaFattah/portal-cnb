@@ -75,19 +75,26 @@ async function resolveStudentForUser(user, linkType) {
 }
 
 async function getAttendancePayload(siswa, query) {
-  const where = { siswa_id: siswa.id };
+  const where = { siswa_id: siswa.id, tipe_guru: "wali_kelas" };
   formatDateFilter(where, query.dari, query.sampai);
 
-  const rows = await AbsensiSiswa.findAll({ where, order: [["tanggal", "DESC"], ["createdAt", "DESC"]] });
+  const rows = await AbsensiSiswa.findAll({ where, order: [["tanggal", "DESC"], ["updatedAt", "DESC"], ["createdAt", "DESC"]] });
+  const seenDates = new Set();
+  const primaryRows = rows.filter((row) => {
+    if (seenDates.has(row.tanggal)) return false;
+    seenDates.add(row.tanggal);
+    return true;
+  });
   const classMap = await getClassMap();
-  const teacherIds = [...new Set(rows.map((row) => Number(row.guru_user_id)).filter(Boolean))];
+  const teacherIds = [...new Set(primaryRows.map((row) => Number(row.guru_user_id)).filter(Boolean))];
   const teachers = teacherIds.length ? await User.findAll({ where: { id: { [Op.in]: teacherIds } } }) : [];
   const teacherMap = new Map(teachers.map((item) => [Number(item.id), safeUser(item)]));
 
-  const dataRows = rows.map((row) => {
+  const dataRows = primaryRows.map((row) => {
     const data = row.toJSON();
     return {
       ...data,
+      sumber_absensi: "utama_wali_kelas",
       siswa: attachClass(siswa, classMap),
       kelas: classMap.get(Number(data.kelas_id)) || null,
       guru: teacherMap.get(Number(data.guru_user_id)) || null
@@ -95,6 +102,7 @@ async function getAttendancePayload(siswa, query) {
   });
 
   return {
+    scope: "absensi_utama_wali_kelas",
     summary: summarizeAttendance(dataRows),
     rows: dataRows
   };
