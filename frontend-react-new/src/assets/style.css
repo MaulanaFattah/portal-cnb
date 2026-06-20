@@ -588,6 +588,7 @@ body {
 
 .announcement-card p {
   color: #475569;
+  white-space: pre-line;
 }
 
 /* GALERI */
@@ -5106,6 +5107,10 @@ button:focus-visible {
   text-align-last: left;
 }
 
+.home-announcement-card p {
+  white-space: pre-line;
+}
+
 .home-announcement-grid {
   align-items: stretch;
 }
@@ -5668,6 +5673,19 @@ button:focus-visible {
 .teacher-register-form .role-field.full,
 .teacher-register-form .submit-btn {
   grid-column: 1 / -1;
+}
+
+.teacher-role-select {
+  min-height: 54px;
+  font-weight: 800;
+}
+
+.role-select-help {
+  display: block;
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .role-field.full,

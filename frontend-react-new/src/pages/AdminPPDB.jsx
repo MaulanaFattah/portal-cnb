@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AdminSidebar from "../components/AdminSidebar";
 import { getPPDB, updatePPDB, deletePPDB, logout } from "../services/api";
@@ -38,12 +38,12 @@ function AdminPPDB() {
 
   const handleVerify = async (item, status) => {
     const notification_note = status === "diterima"
-      ? `Diterima. Pengumuman otomatis dibuat di Beranda. Hubungi orang tua/wali melalui email ${item.email || "-"} atau WhatsApp ${item.no_telepon || "-"}.`
+      ? `Diterima. Pengumuman PPDB gabungan otomatis diperbarui di Beranda dan meminta siswa datang ke sekolah untuk pendaftaran ulang. Hubungi orang tua/wali melalui email ${item.email || "-"} atau WhatsApp ${item.no_telepon || "-"}.`
       : status === "ditolak"
         ? `Ditolak. Beri tahu orang tua/wali melalui email ${item.email || "-"} atau WhatsApp ${item.no_telepon || "-"}.`
         : "Menunggu verifikasi admin.";
     const result = await updatePPDB(item.id, { status, notification_note });
-    alert(status === "diterima" ? `${result.message}\n\nPengumuman penerimaan otomatis dibuat di Beranda.` : result.message);
+    alert(status === "diterima" ? `${result.message}\n\nPengumuman PPDB gabungan otomatis diperbarui di Beranda. Semua nama siswa yang diterima akan tercantum dan diminta datang ke sekolah untuk pendaftaran ulang.` : result.message);
     loadPPDB();
   };
 

@@ -1,35 +1,65 @@
-﻿const db = require("../models");
+const db = require("../models");
 
 const PPDB = db.PPDB;
 const Pengumuman = db.Pengumuman;
 const { notifyNewPPDB } = require("../services/ppdbNotifier");
 
+const ACCEPTED_PPDB_ANNOUNCEMENT_TITLE = "Pengumuman Siswa Diterima PPDB Sekolah Cipta Nusa Bakti";
+
 function todayDateOnly() {
   return new Date().toISOString().slice(0, 10);
 }
 
-async function createAcceptedPPDBAnnouncement(ppdb) {
-  if (!Pengumuman || !ppdb?.nama_lengkap) return null;
+function buildAcceptedPPDBAnnouncementContent(acceptedApplicants) {
+  const acceptedNames = acceptedApplicants
+    .map((item) => String(item.nama_lengkap || "").trim())
+    .filter(Boolean);
+  const nameList = acceptedNames
+    .map((name, index) => `${index + 1}. ${name}`)
+    .join("\n");
 
-  const title = `Selamat, ${ppdb.nama_lengkap} Diterima di Sekolah Cipta Nusa Bakti`;
-  const content = `${ppdb.nama_lengkap} dinyatakan lulus dan diterima sebagai peserta didik di Sekolah Cipta Nusa Bakti. Selamat bergabung dengan keluarga besar Sekolah Cipta Nusa Bakti.`;
+  return [
+    "Selamat kepada calon siswa berikut yang dinyatakan lulus dan diterima di Sekolah Cipta Nusa Bakti:",
+    nameList,
+    "",
+    "Seluruh calon siswa yang namanya tercantum dimohon datang ke Sekolah Cipta Nusa Bakti untuk melakukan pendaftaran ulang sesuai jadwal dan arahan panitia PPDB. Mohon membawa berkas asli dan dokumen pendukung yang diperlukan."
+  ].join("\n");
+}
+
+async function syncAcceptedPPDBAnnouncement() {
+  if (!Pengumuman) return null;
+
+  const acceptedApplicants = await PPDB.findAll({
+    where: { status: "diterima" },
+    order: [["updatedAt", "ASC"], ["createdAt", "ASC"], ["id", "ASC"]]
+  });
 
   const existing = await Pengumuman.findOne({
     where: {
-      title,
+      title: ACCEPTED_PPDB_ANNOUNCEMENT_TITLE,
       category: "PPDB"
     }
   });
 
-  if (existing) return existing;
+  if (acceptedApplicants.length === 0) {
+    if (existing) await existing.destroy();
+    return null;
+  }
 
-  return Pengumuman.create({
-    title,
+  const data = {
+    title: ACCEPTED_PPDB_ANNOUNCEMENT_TITLE,
     date: todayDateOnly(),
-    content,
+    content: buildAcceptedPPDBAnnouncementContent(acceptedApplicants),
     category: "PPDB",
     image: null
-  });
+  };
+
+  if (existing) {
+    await existing.update(data);
+    return existing;
+  }
+
+  return Pengumuman.create(data);
 }
 
 exports.getAllPPDB = async (req, res) => {
@@ -135,12 +165,19 @@ exports.updatePPDB = async (req, res) => {
       });
     }
 
+    if (req.body.status && !["pending", "diterima", "ditolak"].includes(req.body.status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Status PPDB tidak valid"
+      });
+    }
+
     const previousStatus = ppdb.status;
 
     await ppdb.update(req.body);
 
-    if (previousStatus !== "diterima" && ppdb.status === "diterima") {
-      await createAcceptedPPDBAnnouncement(ppdb);
+    if (previousStatus !== ppdb.status && ["diterima", "pending", "ditolak"].includes(ppdb.status)) {
+      await syncAcceptedPPDBAnnouncement();
     }
 
     res.json({
@@ -170,7 +207,13 @@ exports.deletePPDB = async (req, res) => {
       });
     }
 
+    const deletedStatus = ppdb.status;
+
     await ppdb.destroy();
+
+    if (deletedStatus === "diterima") {
+      await syncAcceptedPPDBAnnouncement();
+    }
 
     res.json({
       success: true,

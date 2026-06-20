@@ -31,12 +31,23 @@ function RegisterGuru() {
     setFormData({ ...formData, [name]: type === "checkbox" ? checked : value });
   };
 
-  const handleRoleChange = (name, checked) => {
+  const getRoleSelection = () => {
+    if (formData.is_homeroom && formData.is_subject_teacher) return "keduanya";
+    if (formData.is_homeroom) return "wali_kelas";
+    if (formData.is_subject_teacher) return "mapel";
+    return "";
+  };
+
+  const handleRoleSelect = (value) => {
+    const isHomeroom = value === "wali_kelas" || value === "keduanya";
+    const isSubjectTeacher = value === "mapel" || value === "keduanya";
+
     setFormData((current) => ({
       ...current,
-      [name]: checked,
-      ...(name === "is_homeroom" && !checked ? { homeroom_classroom_id: "" } : {}),
-      ...(name === "is_subject_teacher" && !checked ? { subject: "" } : {})
+      is_homeroom: isHomeroom,
+      is_subject_teacher: isSubjectTeacher,
+      homeroom_classroom_id: isHomeroom ? current.homeroom_classroom_id : "",
+      subject: isSubjectTeacher ? current.subject : ""
     }));
   };
 
@@ -104,26 +115,13 @@ function RegisterGuru() {
 
             <div className="form-group role-field full">
               <label>Peran Guru</label>
-              <div className="role-card-group register-role-card-group">
-                <label className={formData.is_homeroom ? "role-card-option selected" : "role-card-option"}>
-                  <input type="checkbox" name="is_homeroom" aria-label="Pilih peran guru wali kelas" checked={formData.is_homeroom} onChange={(event) => handleRoleChange("is_homeroom", event.target.checked)} />
-                  <span className="role-card-mark" aria-hidden="true">WK</span>
-                  <span className="role-card-copy">
-                    <strong>Guru Wali Kelas</strong>
-                    <small>Mengelola satu kelas wali dan absensi utama siswa.</small>
-                  </span>
-                  <span className="role-card-state">{formData.is_homeroom ? "Dipilih" : "Pilih"}</span>
-                </label>
-                <label className={formData.is_subject_teacher ? "role-card-option selected" : "role-card-option"}>
-                  <input type="checkbox" name="is_subject_teacher" aria-label="Pilih peran guru mata pelajaran" checked={formData.is_subject_teacher} onChange={(event) => handleRoleChange("is_subject_teacher", event.target.checked)} />
-                  <span className="role-card-mark" aria-hidden="true">MP</span>
-                  <span className="role-card-copy">
-                    <strong>Guru Mata Pelajaran</strong>
-                    <small>Mengajar mapel sesuai jadwal yang disetujui admin.</small>
-                  </span>
-                  <span className="role-card-state">{formData.is_subject_teacher ? "Dipilih" : "Pilih"}</span>
-                </label>
-              </div>
+              <select className="teacher-role-select" value={getRoleSelection()} onChange={(event) => handleRoleSelect(event.target.value)} required>
+                <option value="">Pilih peran guru</option>
+                <option value="wali_kelas">Guru Wali Kelas</option>
+                <option value="mapel">Guru Mata Pelajaran</option>
+                <option value="keduanya">Wali Kelas + Guru Mata Pelajaran</option>
+              </select>
+              <small className="role-select-help">Pilih satu opsi. Field kelas atau mata pelajaran akan muncul sesuai peran yang dipilih.</small>
             </div>
 
             {formData.is_homeroom && <div className="form-group"><label>Kelas Wali</label><select name="homeroom_classroom_id" value={formData.homeroom_classroom_id} onChange={handleChange} required><option value="">Pilih kelas</option>{kelas.map((item) => <option key={item.id} value={item.id}>{[item.nama_kelas, item.tingkat, item.tahun_ajaran].filter(Boolean).join(" - ")}</option>)}</select></div>}
