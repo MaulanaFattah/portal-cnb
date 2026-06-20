@@ -237,7 +237,6 @@ function DashboardGuru() {
   );
 
   const renderDashboard = () => {
-    const info = dashboard.informasiSekolah;
     const announcements = dashboard.pengumumanTerbaru || [];
 
     return (
@@ -262,28 +261,9 @@ function DashboardGuru() {
               <div><span>Status</span><strong>Aktif Terverifikasi</strong></div>
             </div>
           </article>
-
-          <article className="teacher-card school-card">
-            <div className="teacher-card-title">
-              <span>Informasi Sekolah</span>
-              <strong>{info?.akreditasi ? `Akreditasi ${info.akreditasi}` : "CNB"}</strong>
-            </div>
-            <h2>{info?.nama_sekolah || "Profil sekolah belum diisi"}</h2>
-            <p>{info?.alamat || "Alamat sekolah belum tersedia."}</p>
-            <div className="school-mini-grid">
-              <div><span>Telepon</span><strong>{info?.telepon || "-"}</strong></div>
-              <div><span>Email</span><strong>{info?.email || "-"}</strong></div>
-            </div>
-          </article>
         </div>
 
-        <div className="teacher-grid two-columns lower-grid">
-          <article className="teacher-card vision-card">
-            <h3>Visi & Misi</h3>
-            <p><strong>Visi:</strong> {info?.visi || "Visi sekolah belum diisi admin."}</p>
-            <p><strong>Misi:</strong> {info?.misi || "Misi sekolah belum diisi admin."}</p>
-          </article>
-
+        <div className="teacher-grid">
           <article className="teacher-card announcement-card">
             <h3>Pengumuman Terbaru</h3>
             {announcements.length === 0 ? (

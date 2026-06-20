@@ -94,7 +94,6 @@ function DashboardSiswa() {
     load();
   }, [navigate]);
 
-  const info = dashboard?.informasiSekolah;
   const announcements = dashboard?.pengumumanTerbaru || [];
 
   const handleLogout = () => {
@@ -202,16 +201,6 @@ function DashboardSiswa() {
           </div>
           <h2>{dashboard.siswa?.nama || dashboard.user?.name}</h2>
           <p>NISN: {dashboard.siswa?.nisn || "-"}</p>
-            <div className="student-vision-list">
-              <section>
-                <span>Visi Sekolah</span>
-                <p>{info?.visi || "Visi sekolah belum diisi admin."}</p>
-              </section>
-              <section>
-                <span>Misi Sekolah</span>
-                <p>{info?.misi || "Misi sekolah belum diisi admin."}</p>
-              </section>
-            </div>
         </article>
 
         <article className="teacher-card announcement-card">

@@ -159,7 +159,6 @@ function DashboardOrangTua() {
 
   if (!dashboard) return null;
 
-  const info = dashboard.informasiSekolah;
   const announcements = dashboard.pengumumanTerbaru || [];
   const siswa = dashboard.siswa;
 
@@ -202,12 +201,6 @@ function DashboardOrangTua() {
           )}
         </article>
       </div>
-
-      <article className="teacher-card vision-card">
-        <h3>Profil Sekolah</h3>
-        <p><strong>{info?.nama_sekolah || "Profil sekolah belum diisi"}</strong></p>
-        <p>{info?.alamat || "Alamat belum tersedia"}</p>
-      </article>
     </section>
   );
 
