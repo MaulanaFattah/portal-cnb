@@ -4,6 +4,7 @@ const app = require("./app");
 const db = require("./models");
 
 const PORT = process.env.APP_PORT || 4000;
+const HOST = process.env.APP_HOST || "0.0.0.0";
 
 async function startServer() {
   try {
@@ -15,9 +16,9 @@ async function startServer() {
 
     console.log("Database tersinkronisasi");
 
-    app.listen(PORT, () => {
+    app.listen(PORT, HOST, () => {
       console.log(
-        `Backend berjalan di http://localhost:${PORT}`
+        `Backend berjalan di http://${HOST}:${PORT}`
       );
     });
 

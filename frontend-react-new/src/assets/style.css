@@ -5846,3 +5846,444 @@ button:focus-visible {
     justify-self: start;
   }
 }
+
+/* ============================================================
+   FINAL RESPONSIVE HARDENING - whole website
+   ============================================================ */
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+html,
+body {
+  overflow-x: hidden;
+}
+
+body {
+  min-width: 320px;
+}
+
+#root,
+main,
+section,
+article,
+.container,
+.dashboard-layout,
+.dashboard-content,
+.dashboard-card,
+.admin-sidebar-card,
+.admin-kegiatan-card,
+.kegiatan-form-area,
+.kegiatan-list-area,
+.activity-admin-list,
+.activity-admin-item,
+.student-admin-page,
+.student-admin-card,
+.student-class-groups,
+.student-class-group,
+.student-card-list,
+.student-row-card,
+.student-row-main,
+.student-row-meta,
+.student-row-actions,
+.portal-account-admin-card,
+.portal-account-admin-item,
+.portal-account-info,
+.portal-relation-grid,
+.gallery-admin-grid,
+.gallery-admin-photo-card,
+.verify-card,
+.verify-grid,
+.teacher-panel,
+.teacher-main {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.auth-card,
+.admin-login-card {
+  min-width: 0;
+}
+
+img,
+video,
+canvas,
+svg,
+iframe {
+  max-width: 100%;
+}
+
+input,
+select,
+textarea,
+button {
+  max-width: 100%;
+}
+
+.table-responsive,
+.teacher-table-wrap,
+.student-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-table,
+.teacher-table {
+  min-width: max-content;
+}
+
+.student-row-card,
+.portal-account-admin-item,
+.activity-admin-item {
+  overflow: hidden;
+}
+
+.student-row-main span,
+.student-row-meta span,
+.portal-account-info p,
+.portal-relation-grid span,
+.activity-admin-item p,
+.announcement-card p,
+.profile-card p,
+.home-profile-card p,
+.home-announcement-card p {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.student-row-actions,
+.portal-account-admin-item .admin-action,
+.activity-admin-item .admin-action,
+.admin-action {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 1440px) {
+  .student-row-card {
+    grid-template-columns: 46px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .student-row-meta,
+  .student-row-actions {
+    grid-column: 2;
+  }
+
+  .student-row-meta {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    width: 100%;
+  }
+
+  .student-row-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 1180px) {
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+    padding: 24px;
+    gap: 22px;
+  }
+
+  .dashboard-content {
+    overflow: hidden;
+  }
+
+  .admin-sidebar-card {
+    position: sticky;
+    top: 10px;
+    z-index: 30;
+  }
+
+  .admin-kegiatan-card,
+  .class-admin-card,
+  .portal-account-admin-card,
+  .gallery-photo-admin-card,
+  .student-admin-card {
+    grid-template-columns: 1fr;
+  }
+
+  .kegiatan-form-area,
+  .student-admin-card .kegiatan-form-area,
+  .portal-account-admin-card .kegiatan-form-area,
+  .announcement-admin-card .kegiatan-form-area {
+    border-right: 0;
+    border-bottom: 1px solid #e2e8f0;
+    padding-right: 0;
+    padding-bottom: 26px;
+  }
+}
+
+@media (max-width: 900px) {
+  .container {
+    width: min(100% - 24px, 1180px);
+  }
+
+  .section,
+  .page-section {
+    padding-block: 54px;
+  }
+
+  .page-hero,
+  .hero,
+  .ppdb-landing-panel,
+  .login-hero-card,
+  .teacher-hero,
+  .teacher-action-panel,
+  .student-profile-hero,
+  .parent-child-grid,
+  .principal-dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .hero-content h1,
+  .page-title h1,
+  .page-hero h1,
+  .dashboard-header h1 {
+    font-size: clamp(28px, 8vw, 42px);
+    line-height: 1.12;
+  }
+
+  .activity-grid,
+  .cards,
+  .ppdb-grid,
+  .gallery-page-grid,
+  .contact-grid,
+  .profile-wrapper,
+  .student-summary-grid,
+  .teacher-stats,
+  .portal-relation-grid,
+  .verify-grid,
+  .login-role-grid,
+  .student-form-grid,
+  .credential-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dashboard-header,
+  .student-list-head,
+  .portal-account-list-head,
+  .section-header,
+  .teacher-topbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .dashboard-actions,
+  .hero-buttons,
+  .hero-actions,
+  .ppdb-landing-actions,
+  .student-list-controls,
+  .teacher-actions-row,
+  .button-row {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .dashboard-actions .btn,
+  .dashboard-actions button,
+  .hero-buttons a,
+  .hero-actions a,
+  .ppdb-landing-actions a,
+  .button-row button,
+  .teacher-actions-row button {
+    flex: 1 1 180px;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .student-list-controls,
+  .student-list-controls input,
+  .student-class-select,
+  .portal-account-list-head .student-class-select {
+    width: 100%;
+  }
+
+  .student-class-tabs,
+  .admin-menu,
+  .menu {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .student-class-tabs::-webkit-scrollbar,
+  .admin-menu::-webkit-scrollbar,
+  .menu::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .dashboard-layout {
+    padding: 12px;
+    gap: 14px;
+  }
+
+  .dashboard-content,
+  .admin-sidebar-card,
+  .dashboard-card,
+  .admin-kegiatan-card,
+  .student-class-group,
+  .auth-card,
+  .admin-login-card {
+    border-radius: 20px;
+    padding: 18px;
+  }
+
+  .student-card-list {
+    padding: 12px;
+  }
+
+  .student-row-card,
+  .portal-account-admin-item,
+  .announcement-admin-card .announcement-admin-item,
+  .activity-admin-item,
+  .verify-card {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .student-row-number,
+  .portal-account-admin-item > span:first-child,
+  .activity-admin-item > span:first-child {
+    width: 42px;
+    height: 42px;
+  }
+
+  .student-row-main,
+  .student-row-meta,
+  .student-row-actions,
+  .portal-account-admin-item .admin-action,
+  .announcement-admin-card .announcement-admin-item .admin-action,
+  .activity-admin-item img,
+  .activity-admin-item .admin-action,
+  .admin-action {
+    grid-column: 1 / -1 !important;
+  }
+
+  .student-row-meta,
+  .portal-relation-grid,
+  .gallery-admin-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .student-row-actions,
+  .portal-account-admin-item .admin-action,
+  .activity-admin-item .admin-action,
+  .admin-action {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .student-row-actions button,
+  .portal-account-admin-item .admin-action button,
+  .activity-admin-item .admin-action button,
+  .admin-action button {
+    flex: 1 1 120px;
+    min-width: 0;
+    min-height: 44px;
+  }
+
+  .student-class-group-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .student-class-count {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 560px) {
+  .container {
+    width: min(100% - 20px, 1180px);
+  }
+
+  .nav {
+    gap: 14px;
+    min-height: auto;
+  }
+
+  .brand {
+    gap: 10px;
+  }
+
+  .brand-logo {
+    width: 44px;
+    height: 44px;
+  }
+
+  .brand h1 {
+    font-size: 16px;
+  }
+
+  .brand p {
+    font-size: 11px;
+  }
+
+  .menu a {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .login-btn,
+  .btn,
+  .primary-btn,
+  .secondary-btn {
+    min-height: 44px;
+    padding: 12px 18px;
+  }
+
+  .hero-buttons,
+  .hero-actions,
+  .ppdb-landing-actions,
+  .button-row,
+  .dashboard-actions {
+    flex-direction: column;
+  }
+
+  .hero-buttons a,
+  .hero-actions a,
+  .ppdb-landing-actions a,
+  .button-row button,
+  .dashboard-actions .btn,
+  .dashboard-actions button,
+  .student-row-actions button,
+  .portal-account-admin-item .admin-action button,
+  .activity-admin-item .admin-action button,
+  .admin-action button {
+    width: 100%;
+    flex: none;
+  }
+
+  .section,
+  .page-section {
+    padding-block: 42px;
+  }
+
+  .profile-card,
+  .home-profile-card,
+  .activity-card,
+  .announcement-card,
+  .home-announcement-card,
+  .ppdb-card,
+  .gallery-card {
+    border-radius: 20px;
+  }
+
+  .student-class-tabs {
+    margin-inline: -6px;
+    border-radius: 20px;
+  }
+}

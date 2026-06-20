@@ -1,5 +1,5 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
-const BACKEND_URL = API_URL.replace(/\/api$/, "");
+const API_URL = import.meta.env.VITE_API_URL || "/api";
+const BACKEND_URL = API_URL.startsWith("http") ? API_URL.replace(/\/api$/, "") : "";
 
 function toFormData(data) {
   const formData = new FormData();

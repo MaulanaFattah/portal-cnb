@@ -1,4 +1,4 @@
-﻿const express = require("express");
+const express = require("express");
 const cors = require("cors");
 const { uploadRoot } = require("./utils/uploadStorage");
 
@@ -19,8 +19,23 @@ const portalRoutes = require("./routes/portalRoutes");
 
 const app = express();
 
+const allowedOrigins = [
+  /^http:\/\/localhost(?::\d+)?$/,
+  /^http:\/\/127\.0\.0\.1(?::\d+)?$/,
+  /^http:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(?::\d+)?$/,
+  /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}\.\d{1,3}(?::\d+)?$/,
+  /^http:\/\/172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}(?::\d+)?$/,
+];
+
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.some((pattern) => pattern.test(origin))) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error("Origin tidak diizinkan oleh CORS"));
+  },
   credentials: true
 }));
 
