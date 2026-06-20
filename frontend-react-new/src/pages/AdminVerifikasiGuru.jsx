@@ -85,12 +85,14 @@ function AdminVerifikasiGuru() {
     setDraft({ ...draft, [id]: { ...draft[id], [field]: value } });
   };
 
-  const handleRoleDraft = (id, field, checked) => {
+  const handleRoleSelect = (id, value) => {
     setDraft((current) => {
       const currentDraft = current[id] || {};
-      const nextDraft = { ...currentDraft, [field]: checked };
-      if (field === "is_subject_teacher" && !checked) nextDraft.subject = "";
-      if (field === "is_homeroom" && !checked) nextDraft.kelas_id = "";
+      const isHomeroom = value === "wali" || value === "keduanya";
+      const isSubjectTeacher = value === "mapel" || value === "keduanya";
+      const nextDraft = { ...currentDraft, is_homeroom: isHomeroom, is_subject_teacher: isSubjectTeacher };
+      if (!isSubjectTeacher) nextDraft.subject = "";
+      if (!isHomeroom) nextDraft.kelas_id = "";
       return { ...current, [id]: nextDraft };
     });
   };
@@ -199,29 +201,17 @@ function AdminVerifikasiGuru() {
                 </div>
 
                 <div className="verify-grid">
-                  <div className="form-field role-field full">
-                    <span className="field-label">Peran Guru</span>
-                    <div className="role-card-group verify-role-card-group">
-                      <label className={itemDraft.is_homeroom ? "role-card-option selected" : "role-card-option"}>
-                        <input type="checkbox" aria-label="Pilih peran guru wali kelas" checked={Boolean(itemDraft.is_homeroom)} onChange={(e) => handleRoleDraft(item.id, "is_homeroom", e.target.checked)} />
-                        <span className="role-card-mark" aria-hidden="true">WK</span>
-                        <span className="role-card-copy">
-                          <strong>Guru Wali Kelas</strong>
-                          <small>Akses hanya kelas wali untuk absensi utama dan monitoring siswa.</small>
-                        </span>
-                        <span className="role-card-state">{itemDraft.is_homeroom ? "Dipilih" : "Pilih"}</span>
-                      </label>
-                      <label className={itemDraft.is_subject_teacher ? "role-card-option selected" : "role-card-option"}>
-                        <input type="checkbox" aria-label="Pilih peran guru mata pelajaran" checked={Boolean(itemDraft.is_subject_teacher)} onChange={(e) => handleRoleDraft(item.id, "is_subject_teacher", e.target.checked)} />
-                        <span className="role-card-mark" aria-hidden="true">MP</span>
-                        <span className="role-card-copy">
-                          <strong>Guru Mata Pelajaran</strong>
-                          <small>Akses kelas mengikuti jadwal mengajar yang dibuat admin.</small>
-                        </span>
-                        <span className="role-card-state">{itemDraft.is_subject_teacher ? "Dipilih" : "Pilih"}</span>
-                      </label>
-                    </div>
-                  </div>
+                  <label className="full">Peran Guru
+                    <select
+                      value={itemDraft.is_homeroom && itemDraft.is_subject_teacher ? "keduanya" : itemDraft.is_homeroom ? "wali" : itemDraft.is_subject_teacher ? "mapel" : ""}
+                      onChange={(e) => handleRoleSelect(item.id, e.target.value)}
+                    >
+                      <option value="">Pilih peran guru</option>
+                      <option value="wali">Guru Wali Kelas</option>
+                      <option value="mapel">Guru Mata Pelajaran</option>
+                      <option value="keduanya">Wali Kelas + Guru Mata Pelajaran</option>
+                    </select>
+                  </label>
                   {itemDraft.is_subject_teacher && (
                     <label>Mata Pelajaran
                       <input value={itemDraft.subject || ""} onChange={(e) => handleDraft(item.id, "subject", e.target.value)} placeholder="Contoh: Matematika, IPA" />
