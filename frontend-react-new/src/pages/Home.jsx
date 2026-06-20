@@ -21,6 +21,8 @@ function Home() {
   const [pengumuman, setPengumuman] = useState([]);
   const [galeri, setGaleri] = useState([]);
 
+  const heroPhoto = galeri.find((item) => item.image)?.image || kegiatan.find((item) => item.image)?.image || "";
+
   useEffect(() => {
     (async () => {
       const [k, p, g] = await Promise.all([
@@ -60,18 +62,22 @@ function Home() {
             </div>
           </div>
 
-          <div className="hero-image">
-            <img src={schoolLogo} alt="Logo Sekolah" />
+          <div className="hero-image home-hero-photo">
+            <img
+              src={resolveMediaUrl(heroPhoto, schoolLogo)}
+              alt="Foto Sekolah Cipta Nusa Bakti"
+              onError={(event) => { event.currentTarget.src = schoolLogo; }}
+            />
           </div>
         </section>
 
-        <section className="section container">
+        <section className="section container home-profile-section">
           <div className="section-header">
             <h2>Profil Sekolah</h2>
             <Link to="/profil">Lihat Semua</Link>
           </div>
 
-          <div className="profile-card">
+          <div className="profile-card home-profile-card">
             <h3>Cipta Nusa Bakti</h3>
             <p>
               Sekolah yang berkomitmen membentuk siswa yang cerdas,
@@ -110,12 +116,12 @@ function Home() {
             <Link to="/pengumuman">Lihat Semua</Link>
           </div>
 
-          <div className="cards">
+          <div className="cards home-announcement-grid">
             {pengumuman.length === 0 ? (
               <p className="empty-text">Belum ada pengumuman.</p>
             ) : (
               pengumuman.map((item) => (
-                <div className="card" key={item.id}>
+                <div className="card home-announcement-card" key={item.id}>
                   <small>{formatTanggal(item.date)}</small>
                   <h3>{item.title}</h3>
                   <p>{item.content}</p>
@@ -131,21 +137,22 @@ function Home() {
             <Link to="/galeri">Lihat Semua</Link>
           </div>
 
-          <div className="gallery-page-grid">
+          <div className="home-gallery-carousel" aria-label="Slider foto galeri sekolah">
             {galeri.length === 0 ? (
               <p className="empty-text">Belum ada galeri.</p>
             ) : (
-              galeri.map((item) => (
-                <div className="gallery-card" key={item.id}>
-                  <div className="gallery-photo">
-                    <img src={resolveMediaUrl(item.image, schoolLogo)} alt={item.title} loading="lazy" onError={(event) => { event.currentTarget.src = schoolLogo; }} />
-                  </div>
-                  <div className="gallery-info">
-                    <h3>{item.title}</h3>
-                    <p>{item.description}</p>
-                  </div>
-                </div>
-              ))
+              <div className="home-gallery-track">
+                {galeri.map((item, index) => (
+                  <figure className="home-gallery-slide" key={item.id}>
+                    <img
+                      src={resolveMediaUrl(item.image, schoolLogo)}
+                      alt={item.title || `Foto galeri ${index + 1}`}
+                      loading="lazy"
+                      onError={(event) => { event.currentTarget.src = schoolLogo; }}
+                    />
+                  </figure>
+                ))}
+              </div>
             )}
           </div>
         </section>

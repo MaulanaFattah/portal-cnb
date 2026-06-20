@@ -2,17 +2,19 @@ const { DataTypes } = require("sequelize");
 
 module.exports = (sequelize) => {
   return sequelize.define(
-    "announcement",
+    "pengumuman",
     {
       id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-      title: { type: DataTypes.STRING, allowNull: false },
-      date: { type: DataTypes.DATEONLY, allowNull: false },
-      content: { type: DataTypes.TEXT, allowNull: false },
-      category: { type: DataTypes.STRING, allowNull: true },
-      image: { type: DataTypes.TEXT, allowNull: true }
+      title: { type: DataTypes.STRING, allowNull: false, field: "judul" },
+      date: { type: DataTypes.DATEONLY, allowNull: false, field: "tanggal" },
+      content: { type: DataTypes.TEXT, allowNull: false, field: "isi" },
+      category: { type: DataTypes.STRING, allowNull: true, field: "kategori" },
+      image: { type: DataTypes.TEXT, allowNull: true, field: "gambar" },
+      createdAt: { type: DataTypes.DATE, allowNull: false, field: "dibuat_pada" },
+      updatedAt: { type: DataTypes.DATE, allowNull: false, field: "diperbarui_pada" }
     },
     {
-      tableName: "announcement",
+      tableName: "pengumuman",
       freezeTableName: true,
       underscored: true,
       timestamps: true

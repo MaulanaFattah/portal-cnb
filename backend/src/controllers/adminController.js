@@ -102,13 +102,13 @@ exports.getUsers = async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Data user berhasil diambil",
+      message: "Data pengguna berhasil diambil",
       data
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Gagal mengambil data user",
+      message: "Gagal mengambil data pengguna",
       error: error.message
     });
   }
@@ -158,7 +158,7 @@ exports.createUser = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Gagal menambahkan user",
+      message: "Gagal menambahkan pengguna",
       error: error.message
     });
   }
@@ -225,7 +225,7 @@ exports.updateUser = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Gagal memperbarui user",
+      message: "Gagal memperbarui pengguna",
       error: error.message
     });
   }
@@ -259,7 +259,7 @@ exports.deleteUser = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Gagal menghapus user",
+      message: "Gagal menghapus pengguna",
       error: error.message
     });
   }
@@ -305,6 +305,6 @@ exports.resetUserPassword = async (req, res) => {
       }
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Gagal reset password user", error: error.message });
+    return res.status(500).json({ success: false, message: "Gagal mengatur ulang kata sandi pengguna", error: error.message });
   }
 };

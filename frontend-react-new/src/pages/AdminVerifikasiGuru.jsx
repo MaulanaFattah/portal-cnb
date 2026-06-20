@@ -62,7 +62,17 @@ function AdminVerifikasiGuru() {
   };
 
   const handleVerify = async (id, verification_status) => {
-    const result = await verifyGuruRegistration(id, { ...draft[id], verification_status });
+    const itemDraft = draft[id] || {};
+    const result = await verifyGuruRegistration(id, {
+      ...itemDraft,
+      verification_status,
+      status_verifikasi: verification_status,
+      wali_kelas: itemDraft.is_homeroom,
+      guru_mata_pelajaran: itemDraft.is_subject_teacher,
+      mata_pelajaran: itemDraft.subject,
+      kelas_wali_id: itemDraft.kelas_id,
+      catatan: itemDraft.note
+    });
     alert(result.message);
     loadData();
   };
@@ -131,7 +141,7 @@ function AdminVerifikasiGuru() {
         <div className="dashboard-header">
           <div>
             <h1>Verifikasi Guru</h1>
-            <p>Setujui registrasi guru dan atur roster guru mapel.</p>
+            <p>Setujui registrasi guru dan atur jadwal guru mata pelajaran.</p>
           </div>
           <div className="dashboard-actions">
             <Link to="/" className="btn secondary">Situs web</Link>
@@ -158,7 +168,7 @@ function AdminVerifikasiGuru() {
                   <label>Peran Guru
                     <span className="checkbox-stack compact">
                       <label><input type="checkbox" checked={Boolean(itemDraft.is_homeroom)} onChange={(e) => handleDraft(item.id, "is_homeroom", e.target.checked)} /> Wali Kelas</label>
-                      <label><input type="checkbox" checked={Boolean(itemDraft.is_subject_teacher)} onChange={(e) => handleDraft(item.id, "is_subject_teacher", e.target.checked)} /> Guru Mapel</label>
+                      <label><input type="checkbox" checked={Boolean(itemDraft.is_subject_teacher)} onChange={(e) => handleDraft(item.id, "is_subject_teacher", e.target.checked)} /> Guru Mata Pelajaran</label>
                     </span>
                   </label>
                   {itemDraft.is_subject_teacher && (
@@ -182,7 +192,7 @@ function AdminVerifikasiGuru() {
                 <div className="ppdb-verify-actions">
                   <button className="verify-accept" onClick={() => handleVerify(item.id, "approved")}>Setujui</button>
                   <button className="verify-reject" onClick={() => handleVerify(item.id, "rejected")}>Tolak</button>
-                  <button className="verify-pending" onClick={() => handleVerify(item.id, "pending")}>Pending</button>
+                  <button className="verify-pending" onClick={() => handleVerify(item.id, "pending")}>Menunggu</button>
                   <button className="verify-delete" onClick={() => handleDeleteRegistration(item.id)}>Hapus</button>
                 </div>
               </div>
@@ -191,9 +201,9 @@ function AdminVerifikasiGuru() {
         </section>
 
         <section className="dashboard-card admin-stack">
-          <h3>{editJadwalId ? "Ubah Jadwal Mengajar Guru Mapel" : "Jadwal Mengajar Guru Mapel"}</h3>
+          <h3>{editJadwalId ? "Ubah Jadwal Mengajar Guru Mata Pelajaran" : "Jadwal Mengajar Guru Mata Pelajaran"}</h3>
           <form className="verify-grid" onSubmit={handleCreateJadwal}>
-            <label>Guru Mapel
+            <label>Guru Mata Pelajaran
               <select name="guru_user_id" value={jadwalForm.guru_user_id} onChange={handleJadwalChange} required>
                 <option value="">Pilih guru</option>
                 {approvedMapel.map((item) => <option key={item.id} value={item.id}>{item.name} - {item.guruProfile?.subject}</option>)}
@@ -224,7 +234,7 @@ function AdminVerifikasiGuru() {
           </form>
 
           <div className="activity-admin-list">
-            {jadwal.length === 0 ? <p className="empty-text">Belum ada roster.</p> : jadwal.map((item) => (
+            {jadwal.length === 0 ? <p className="empty-text">Belum ada jadwal mengajar.</p> : jadwal.map((item) => (
               <div className="activity-admin-item" key={item.id}>
                 <span>{item.hari}</span>
                 <div>

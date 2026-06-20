@@ -14,7 +14,7 @@ const loginRoles = [
     to: "/login-guru",
     code: "GR",
     title: "Guru",
-    description: "Kelola absensi, pembelajaran, roster, dan administrasi guru."
+    description: "Kelola absensi, pembelajaran, jadwal mengajar, dan administrasi guru."
   },
   {
     to: "/login-orangtua",

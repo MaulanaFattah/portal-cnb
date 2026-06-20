@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AdminSidebar from "../components/AdminSidebar";
 import {
@@ -10,6 +10,25 @@ import {
   resetUserPassword,
   logout
 } from "../services/api";
+
+const roleLabels = {
+  siswa: "Siswa",
+  orangtua: "Orang Tua",
+  kepala_sekolah: "Kepala Sekolah"
+};
+
+function getAccountClassName(item) {
+  return item.siswa?.kelas?.nama_kelas || "Belum terhubung kelas";
+}
+
+function getLinkedStudentName(item) {
+  return item.siswa?.nama || "Belum terhubung siswa";
+}
+
+function getParentName(item) {
+  if (item.role === "orangtua") return item.name;
+  return item.siswa?.nama_ayah || item.siswa?.nama_ibu || "Belum ada data orang tua";
+}
 
 function AdminAkunSiswa() {
   const navigate = useNavigate();
@@ -43,6 +62,12 @@ function AdminAkunSiswa() {
       await loadUsers();
     })();
   }, []);
+
+  const sortedUsers = useMemo(() => [...users].sort((a, b) => {
+    const classCompare = getAccountClassName(a).localeCompare(getAccountClassName(b), "id-ID");
+    if (classCompare !== 0) return classCompare;
+    return (a.name || "").localeCompare(b.name || "", "id-ID");
+  }), [users]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -116,7 +141,7 @@ function AdminAkunSiswa() {
         <div className="dashboard-header">
           <div>
             <h1>Akun Siswa & Orang Tua</h1>
-            <p>Kelola akun login siswa dan orang tua dari dashboard admin.</p>
+            <p>Kelola akun masuk siswa dan orang tua dari dasbor administrator.</p>
           </div>
 
           <div className="dashboard-actions">
@@ -221,17 +246,24 @@ function AdminAkunSiswa() {
               {users.length === 0 ? (
                 <p className="empty-text">Belum ada akun siswa/orang tua.</p>
               ) : (
-                users.map((item, index) => (
+                sortedUsers.map((item, index) => (
                   <div className="activity-admin-item portal-account-admin-item" key={item.id}>
                     <span>{index + 1}</span>
                     <div className="portal-account-info">
-                      <h4>{item.name}</h4>
-                      <p>{item.email} • {item.role === "orangtua" ? "Orang Tua" : item.role === "kepala_sekolah" ? "Kepala Sekolah" : "Siswa"}</p>
-                      {item.siswa && <p className="linked-student-text">Terhubung: {item.siswa.nama} • {item.siswa.kelas?.nama_kelas || "Kelas -"}</p>}
+                      <div className="portal-account-title-row">
+                        <h4>{item.name}</h4>
+                        <span className={`portal-role-pill ${item.role}`}>{roleLabels[item.role] || item.role}</span>
+                      </div>
+                      <p>{item.email}</p>
+                      <div className="portal-relation-grid">
+                        <span><strong>Siswa</strong>{getLinkedStudentName(item)}</span>
+                        <span><strong>Orang Tua</strong>{getParentName(item)}</span>
+                        <span><strong>Kelas</strong>{getAccountClassName(item)}</span>
+                      </div>
                     </div>
                     <div className="admin-action">
                       <button onClick={() => handleEdit(item)}>Ubah</button>
-                      <button onClick={() => handleResetPassword(item)}>Reset</button>
+                      <button onClick={() => handleResetPassword(item)}>Atur Ulang</button>
                       <button onClick={() => handleDelete(item.id)}>Hapus</button>
                     </div>
                   </div>

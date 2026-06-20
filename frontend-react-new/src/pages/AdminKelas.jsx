@@ -9,19 +9,20 @@ import {
   logout
 } from "../services/api";
 
+const emptyKelasForm = {
+  nama_kelas: "",
+  tingkat: "",
+  wali_kelas: "",
+  tahun_ajaran: "",
+  jumlah_siswa: 0
+};
+
 function AdminKelas() {
   const navigate = useNavigate();
   const [kelas, setKelas] = useState([]);
   const [editId, setEditId] = useState(null);
 
-  const [formData, setFormData] = useState({
-    nama_kelas: "",
-    tingkat: "",
-    wali_kelas: "",
-    tahun_ajaran: "",
-    jumlah_siswa: 0,
-    ruangan: ""
-  });
+  const [formData, setFormData] = useState(emptyKelasForm);
 
   const loadKelas = async () => {
     const result = await getKelas();
@@ -40,14 +41,7 @@ function AdminKelas() {
 
   const resetForm = () => {
     setEditId(null);
-    setFormData({
-      nama_kelas: "",
-      tingkat: "",
-      wali_kelas: "",
-      tahun_ajaran: "",
-      jumlah_siswa: 0,
-      ruangan: ""
-    });
+    setFormData(emptyKelasForm);
   };
 
   const handleSubmit = async (e) => {
@@ -69,7 +63,13 @@ function AdminKelas() {
 
   const handleEdit = (item) => {
     setEditId(item.id);
-    setFormData({ ...item });
+    setFormData({
+      nama_kelas: item.nama_kelas || "",
+      tingkat: item.tingkat || "",
+      wali_kelas: item.wali_kelas || "",
+      tahun_ajaran: item.tahun_ajaran || "",
+      jumlah_siswa: item.jumlah_siswa || 0
+    });
   };
 
   const handleDelete = async (id) => {
@@ -92,7 +92,7 @@ function AdminKelas() {
         <div className="dashboard-header">
           <div>
             <h1>Kelas</h1>
-            <p>Kelola data kelas.</p>
+            <p>Kelola nama kelas, tingkat, wali kelas, dan tahun ajaran.</p>
           </div>
 
           <div className="dashboard-actions">
@@ -101,7 +101,7 @@ function AdminKelas() {
           </div>
         </div>
 
-        <section className="admin-kegiatan-card">
+        <section className="admin-kegiatan-card class-admin-card">
           <div className="kegiatan-form-area">
             <h2>{editId ? "Ubah Data Kelas" : "Tambah Data Kelas"}</h2>
 
@@ -159,17 +159,6 @@ function AdminKelas() {
                   type="number"
                   name="jumlah_siswa"
                   value={formData.jumlah_siswa}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Ruangan</label>
-                <input
-                  type="text"
-                  name="ruangan"
-                  placeholder="Contoh: R.101"
-                  value={formData.ruangan}
                   onChange={handleChange}
                 />
               </div>

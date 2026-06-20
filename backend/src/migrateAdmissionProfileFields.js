@@ -1,4 +1,4 @@
-require("dotenv").config();
+﻿require("dotenv").config();
 
 const { DataTypes } = require("sequelize");
 const sequelize = require("./config/database");
@@ -36,35 +36,38 @@ async function changeColumnIfExists(tableName, columnName, definition) {
 async function migrate() {
   await sequelize.authenticate();
 
-  await addColumnIfMissing("admission_application", "registration_type", {
+  await addColumnIfMissing("pendaftaran_ppdb", "jenis_pendaftaran", {
     type: DataTypes.ENUM("pendaftaran_baru", "siswa_pindahan"),
     allowNull: false,
     defaultValue: "pendaftaran_baru"
   });
-  await addColumnIfMissing("admission_application", "target_level", {
+  await addColumnIfMissing("pendaftaran_ppdb", "target_jenjang", {
     type: DataTypes.ENUM("tk", "sd", "smp"),
     allowNull: false,
     defaultValue: "tk"
   });
-  await addColumnIfMissing("admission_application", "parent_name", { type: DataTypes.STRING, allowNull: true });
-  await addColumnIfMissing("admission_application", "family_card_file", { type: DataTypes.TEXT("long"), allowNull: true });
-  await addColumnIfMissing("admission_application", "report_file", { type: DataTypes.TEXT("long"), allowNull: true });
-  await addColumnIfMissing("admission_application", "student_photo_file", { type: DataTypes.TEXT("long"), allowNull: true });
-  await addColumnIfMissing("admission_application", "transfer_letter_file", { type: DataTypes.TEXT("long"), allowNull: true });
-  await addColumnIfMissing("admission_application", "notification_note", { type: DataTypes.TEXT, allowNull: true });
+  await addColumnIfMissing("pendaftaran_ppdb", "nama_orang_tua", { type: DataTypes.STRING, allowNull: true });
+  await addColumnIfMissing("pendaftaran_ppdb", "berkas_kk", { type: DataTypes.TEXT("long"), allowNull: true });
+  await addColumnIfMissing("pendaftaran_ppdb", "berkas_raport", { type: DataTypes.TEXT("long"), allowNull: true });
+  await addColumnIfMissing("pendaftaran_ppdb", "foto_siswa", { type: DataTypes.TEXT("long"), allowNull: true });
+  await addColumnIfMissing("pendaftaran_ppdb", "berkas_surat_pindah", { type: DataTypes.TEXT("long"), allowNull: true });
+  await addColumnIfMissing("pendaftaran_ppdb", "catatan_notifikasi", { type: DataTypes.TEXT, allowNull: true });
 
-  await sequelize.query("UPDATE admission_application SET parent_name = COALESCE(parent_name, father_name, mother_name, 'Orang Tua/Wali') WHERE parent_name IS NULL");
-  await sequelize.query("UPDATE admission_application SET email = CONCAT('orangtua-', id, '@example.local') WHERE email IS NULL OR email = ''");
-  await changeColumnIfExists("admission_application", "parent_name", { type: DataTypes.STRING, allowNull: false });
-  await changeColumnIfExists("admission_application", "birthplace", { type: DataTypes.STRING, allowNull: true });
-  await changeColumnIfExists("admission_application", "religion", { type: DataTypes.STRING, allowNull: true });
-  await changeColumnIfExists("admission_application", "father_name", { type: DataTypes.STRING, allowNull: true });
-  await changeColumnIfExists("admission_application", "mother_name", { type: DataTypes.STRING, allowNull: true });
-  await changeColumnIfExists("admission_application", "email", { type: DataTypes.STRING, allowNull: false });
+  if (await tableExists("pendaftaran_ppdb")) {
+    await sequelize.query("UPDATE pendaftaran_ppdb SET nama_orang_tua = COALESCE(nama_orang_tua, nama_ayah, nama_ibu, 'Orang Tua/Wali') WHERE nama_orang_tua IS NULL");
+    await sequelize.query("UPDATE pendaftaran_ppdb SET email = CONCAT('orangtua-', id, '@example.local') WHERE email IS NULL OR email = ''");
+  }
 
-  await addColumnIfMissing("school_profile", "facility", { type: DataTypes.TEXT, allowNull: true });
-  await addColumnIfMissing("school_profile", "school_structure", { type: DataTypes.TEXT, allowNull: true });
-  await changeColumnIfExists("gallery", "image", { type: DataTypes.TEXT("long"), allowNull: false });
+  await changeColumnIfExists("pendaftaran_ppdb", "nama_orang_tua", { type: DataTypes.STRING, allowNull: false });
+  await changeColumnIfExists("pendaftaran_ppdb", "tempat_lahir", { type: DataTypes.STRING, allowNull: true });
+  await changeColumnIfExists("pendaftaran_ppdb", "agama", { type: DataTypes.STRING, allowNull: true });
+  await changeColumnIfExists("pendaftaran_ppdb", "nama_ayah", { type: DataTypes.STRING, allowNull: true });
+  await changeColumnIfExists("pendaftaran_ppdb", "nama_ibu", { type: DataTypes.STRING, allowNull: true });
+  await changeColumnIfExists("pendaftaran_ppdb", "email", { type: DataTypes.STRING, allowNull: false });
+
+  await addColumnIfMissing("profil_sekolah", "fasilitas", { type: DataTypes.TEXT, allowNull: true });
+  await addColumnIfMissing("profil_sekolah", "struktur_sekolah", { type: DataTypes.TEXT, allowNull: true });
+  await changeColumnIfExists("galeri", "gambar", { type: DataTypes.TEXT("long"), allowNull: false });
 
   console.log("Migrasi field penerimaan dan profil sekolah selesai");
 }

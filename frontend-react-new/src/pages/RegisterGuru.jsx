@@ -56,12 +56,18 @@ function RegisterGuru() {
 
     const result = await registerGuru({
       name: formData.name,
+      nama: formData.name,
       email: formData.email,
       password: formData.password,
+      kata_sandi: formData.password,
       is_homeroom: formData.is_homeroom,
+      wali_kelas: formData.is_homeroom,
       is_subject_teacher: formData.is_subject_teacher,
+      guru_mata_pelajaran: formData.is_subject_teacher,
       homeroom_classroom_id: formData.is_homeroom ? formData.homeroom_classroom_id : null,
+      kelas_wali_id: formData.is_homeroom ? formData.homeroom_classroom_id : null,
       subjects: formData.is_subject_teacher ? formData.subject : "",
+      mata_pelajaran: formData.is_subject_teacher ? formData.subject : "",
       profession: [formData.is_homeroom ? "Wali Kelas" : null, formData.is_subject_teacher ? formData.subject : null].filter(Boolean).join(" + ")
     });
 

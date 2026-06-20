@@ -121,6 +121,13 @@ function AdminSiswa() {
     return orderedGroups;
   }, [activeClassId, classMap, filteredSiswa, kelas]);
 
+  const summaryItems = useMemo(() => ([
+    { label: "Total Siswa", value: siswa.length },
+    { label: "Jumlah Kelas", value: kelas.length },
+    { label: "Hasil Filter", value: filteredSiswa.length },
+    { label: "Tanpa Kelas", value: noClassCount }
+  ]), [filteredSiswa.length, kelas.length, noClassCount, siswa.length]);
+
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleImage = (e) => {
@@ -198,9 +205,19 @@ function AdminSiswa() {
           </section>
         )}
 
+        <section className="student-summary-grid" aria-label="Ringkasan data siswa">
+          {summaryItems.map((item) => (
+            <div className="student-summary-card" key={item.label}>
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </div>
+          ))}
+        </section>
+
         <section className="admin-kegiatan-card student-admin-card">
           <div className="kegiatan-form-area">
             <h2>{editId ? "Ubah Data Siswa" : "Tambah Data Siswa"}</h2>
+            <p className="form-helper-text">Isi data utama siswa dan orang tua. Field tambahan tetap opsional agar proses input lebih cepat.</p>
             <form onSubmit={handleSubmit}>
               <div className="form-section-title">Data Siswa</div>
               <div className="student-form-grid">
@@ -271,15 +288,14 @@ function AdminSiswa() {
 
                   <div className="teacher-table-wrap student-table-wrap">
                     <table className="teacher-table student-table">
-                      <thead><tr><th>No</th><th>NIS/NISN</th><th>Nama</th><th>Kelas</th><th>Jenis Kelamin</th><th>Status</th><th>Aksi</th></tr></thead>
+                      <thead><tr><th>No</th><th>Siswa</th><th>Kelas</th><th>Orang Tua / HP</th><th>Status</th><th>Aksi</th></tr></thead>
                       <tbody>
-                        {group.students.length === 0 ? <tr><td colSpan="7" className="teacher-empty-cell">Tidak ada siswa pada kelas ini.</td></tr> : group.students.map((item, index) => (
+                        {group.students.length === 0 ? <tr><td colSpan="6" className="teacher-empty-cell">Tidak ada siswa pada kelas ini.</td></tr> : group.students.map((item, index) => (
                           <tr key={item.id}>
                             <td>{index + 1}</td>
-                            <td>{item.nisn}</td>
-                            <td>{item.nama}</td>
-                            <td>{item.kelas?.nama_kelas || classMap.get(getStudentClassId(item))?.nama_kelas || "-"}</td>
-                            <td>{item.jenis_kelamin === "P" ? "Perempuan" : "Laki-laki"}</td>
+                            <td><div className="student-name-cell"><strong>{item.nama}</strong><span>NIS/NISN: {item.nisn || "-"}</span><span>{item.jenis_kelamin === "P" ? "Perempuan" : "Laki-laki"}</span></div></td>
+                            <td><span className="student-class-chip">{item.kelas?.nama_kelas || classMap.get(getStudentClassId(item))?.nama_kelas || "-"}</span></td>
+                            <td><div className="student-name-cell"><strong>{item.nama_ayah || item.nama_ibu || "-"}</strong><span>{item.no_telepon || "No. HP belum diisi"}</span></div></td>
                             <td><span className={item.status === "aktif" ? "teacher-badge active" : "teacher-badge"}>{item.status}</span></td>
                             <td><div className="admin-action compact"><button type="button" onClick={() => handleEdit(item)}>Ubah</button><button type="button" onClick={() => handleDelete(item.id)}>Hapus</button></div></td>
                           </tr>

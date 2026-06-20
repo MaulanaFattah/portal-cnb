@@ -149,7 +149,7 @@ function DashboardKepalaSekolah() {
       <div className="teacher-stats principal-stats">
         <div className="teacher-stat teacher-stat-total"><span>Jumlah Siswa</span><strong>{monitoring.totalSiswa || 0}</strong></div>
         <div className="teacher-stat teacher-stat-hadir"><span>Guru Wali Kelas</span><strong>{monitoring.totalGuruWaliKelas || 0}</strong></div>
-        <div className="teacher-stat teacher-stat-sakit"><span>Guru Mapel</span><strong>{monitoring.totalGuruMapel || 0}</strong></div>
+        <div className="teacher-stat teacher-stat-sakit"><span>Guru Mata Pelajaran</span><strong>{monitoring.totalGuruMapel || 0}</strong></div>
         <div className="teacher-stat teacher-stat-izin"><span>Data Kelas</span><strong>{monitoring.totalKelas || 0}</strong></div>
         <div className="teacher-stat teacher-stat-alpha"><span>Absensi Tercatat</span><strong>{absensi.summary.total || 0}</strong></div>
       </div>

@@ -94,7 +94,7 @@ function DashboardGuru() {
   const isWali = Boolean(profile?.is_homeroom) || profile?.teacher_type === "wali_kelas";
   const hasSubjectRoster = Boolean(dashboard?.jadwal?.length);
   const attendanceIsHomeroom = isWali && attendanceMode === "homeroom";
-  const roleLabel = isWali && hasSubjectRoster ? "Guru Wali Kelas + Mapel" : isWali ? "Guru Wali Kelas" : "Guru Mapel";
+  const roleLabel = isWali && hasSubjectRoster ? "Guru Wali Kelas + Mata Pelajaran" : isWali ? "Guru Wali Kelas" : "Guru Mata Pelajaran";
 
   const classOptions = useMemo(() => {
     if (!dashboard) return [];
@@ -305,7 +305,7 @@ function DashboardGuru() {
       <div className="teacher-panel-header compact">
         <span>Jadwal Mengajar Guru</span>
         <h1>Jadwal Mengajar</h1>
-        <p>{isWali ? "Wali kelas dapat melakukan absensi harian untuk kelas binaan." : "Guru mapel hanya dapat absensi sesuai roster yang disetujui admin."}</p>
+        <p>{isWali ? "Wali kelas dapat melakukan absensi harian untuk kelas binaan." : "Guru mata pelajaran hanya dapat absensi sesuai jadwal mengajar yang disetujui admin."}</p>
       </div>
 
       <div className="teacher-table-wrap">
@@ -459,7 +459,7 @@ function DashboardGuru() {
         {hasSubjectRoster && (
           <label className="teacher-field">Jadwal Mengajar
             <select name="jadwal_id" value={rekapFilter.jadwal_id} onChange={handleRekapFilter}>
-              <option value="">Semua roster</option>
+              <option value="">Semua jadwal mengajar</option>
               {(dashboard.jadwal || []).map((item) => (
                 <option key={item.id} value={item.id}>{item.mapel} • {item.kelas?.nama_kelas} • {item.hari}</option>
               ))}

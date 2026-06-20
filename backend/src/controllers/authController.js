@@ -33,22 +33,30 @@ exports.registerGuru = async (req, res) => {
   try {
     const {
       name,
+      nama,
       email,
       password,
+      kata_sandi,
       profession,
       teacher_type,
+      tipe_guru,
       subject,
       subjects,
+      mata_pelajaran,
       kelas_id,
+      kelas_wali_id,
       homeroom_classroom_id
     } = req.body;
 
-    const isHomeroom = toBoolean(req.body.is_homeroom) || teacher_type === "wali_kelas";
-    const subjectList = normalizeSubjects(subjects || subject || profession);
-    const isSubjectTeacher = toBoolean(req.body.is_subject_teacher) || teacher_type === "mapel" || subjectList.length > 0;
-    const homeroomClassroomId = Number(homeroom_classroom_id || kelas_id || 0);
+    const namaGuru = nama || name;
+    const kataSandi = kata_sandi || password;
+    const tipeGuru = tipe_guru || teacher_type;
+    const isHomeroom = toBoolean(req.body.wali_kelas) || toBoolean(req.body.is_homeroom) || tipeGuru === "wali_kelas";
+    const subjectList = normalizeSubjects(mata_pelajaran || subjects || subject || profession);
+    const isSubjectTeacher = toBoolean(req.body.guru_mata_pelajaran) || toBoolean(req.body.is_subject_teacher) || tipeGuru === "mapel" || subjectList.length > 0;
+    const homeroomClassroomId = Number(kelas_wali_id || homeroom_classroom_id || kelas_id || 0);
 
-    if (!name || !email || !password) {
+    if (!namaGuru || !email || !kataSandi) {
       await transaction.rollback();
       return res.status(400).json({
         success: false,
@@ -68,7 +76,7 @@ exports.registerGuru = async (req, res) => {
 
     if (isSubjectTeacher && !subjectList.length) {
       await transaction.rollback();
-      return res.status(400).json({ success: false, message: "Minimal satu mata pelajaran wajib diisi untuk guru mapel" });
+      return res.status(400).json({ success: false, message: "Minimal satu mata pelajaran wajib diisi untuk guru mata pelajaran" });
     }
 
     if (isHomeroom) {
@@ -85,7 +93,7 @@ exports.registerGuru = async (req, res) => {
       return res.status(409).json({ success: false, message: "Email sudah terdaftar" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(kataSandi, 10);
     const teacherProfession = [
       isHomeroom ? "Wali Kelas" : null,
       isSubjectTeacher ? subjectList.join(", ") : null
@@ -93,7 +101,7 @@ exports.registerGuru = async (req, res) => {
     const legacyTeacherType = isSubjectTeacher ? "mapel" : "wali_kelas";
 
     const user = await User.create({
-      name,
+      name: namaGuru,
       email,
       password: hashedPassword,
       role: "guru",
@@ -138,9 +146,11 @@ exports.registerGuru = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
-    const { email, password, role } = req.body;
+    const { email, password, kata_sandi, role, peran } = req.body;
+    const kataSandi = kata_sandi || password;
+    const peranAkun = peran || role;
 
-    if (!email || !password || !role) {
+    if (!email || !kataSandi || !peranAkun) {
       return res.status(400).json({ success: false, message: "Email, kata sandi, dan peran wajib diisi" });
     }
 
@@ -149,11 +159,11 @@ exports.login = async (req, res) => {
       return res.status(404).json({ success: false, message: "Email tidak ditemukan" });
     }
 
-    if (user.role !== role) {
+    if (user.role !== peranAkun) {
       return res.status(403).json({ success: false, message: "Peran tidak sesuai" });
     }
 
-    const isValidPassword = await bcrypt.compare(password, user.password);
+    const isValidPassword = await bcrypt.compare(kataSandi, user.password);
     if (!isValidPassword) {
       return res.status(401).json({ success: false, message: "Kata sandi salah" });
     }
@@ -193,24 +203,26 @@ exports.login = async (req, res) => {
 
 exports.changePassword = async (req, res) => {
   try {
-    const { currentPassword, newPassword } = req.body;
+    const { currentPassword, newPassword, kata_sandi_lama, kata_sandi_baru } = req.body;
+    const kataSandiLama = kata_sandi_lama || currentPassword;
+    const kataSandiBaru = kata_sandi_baru || newPassword;
 
-    if (!currentPassword || !newPassword) {
+    if (!kataSandiLama || !kataSandiBaru) {
       return res.status(400).json({ success: false, message: "Kata sandi lama dan kata sandi baru wajib diisi" });
     }
 
-    if (String(newPassword).length < 6) {
+    if (String(kataSandiBaru).length < 6) {
       return res.status(400).json({ success: false, message: "Kata sandi baru minimal 6 karakter" });
     }
 
     const user = await User.findByPk(req.user.id);
-    const validCurrentPassword = await bcrypt.compare(currentPassword, user.password);
+    const validCurrentPassword = await bcrypt.compare(kataSandiLama, user.password);
     if (!validCurrentPassword) {
       return res.status(401).json({ success: false, message: "Kata sandi lama tidak sesuai" });
     }
 
     await user.update({
-      password: await bcrypt.hash(newPassword, 10),
+      password: await bcrypt.hash(kataSandiBaru, 10),
       must_change_password: false
     });
 
@@ -218,6 +230,6 @@ exports.changePassword = async (req, res) => {
 
     return res.json({ success: true, message: "Kata sandi berhasil diganti. Silakan masuk kembali." });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Gagal mengganti password", error: error.message });
+    return res.status(500).json({ success: false, message: "Gagal mengganti kata sandi", error: error.message });
   }
 };

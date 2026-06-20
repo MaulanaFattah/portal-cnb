@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
@@ -7,10 +8,10 @@ const allowedImageExtensions = new Set([".jpg", ".jpeg", ".png", ".webp"]);
 const maxImageSize = 4 * 1024 * 1024;
 
 const uploadFolders = {
-  activities: path.join(uploadRoot, "activities"),
-  students: path.join(uploadRoot, "students"),
-  gallery: path.join(uploadRoot, "gallery"),
-  principal: path.join(uploadRoot, "principal")
+  kegiatan: path.join(uploadRoot, "kegiatan"),
+  siswa: path.join(uploadRoot, "siswa"),
+  galeri: path.join(uploadRoot, "galeri"),
+  kepala_sekolah: path.join(uploadRoot, "kepala-sekolah")
 };
 
 function ensureUploadFolders() {
@@ -20,18 +21,19 @@ function ensureUploadFolders() {
 
 function sanitizeFilename(filename) {
   const extension = path.extname(filename || "").toLowerCase();
-  const base = path.basename(filename || "image", extension)
+  const base = path.basename(filename || "gambar", extension)
     .toLowerCase()
     .replace(/[^a-z0-9-_]+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .slice(0, 80) || "image";
+    .slice(0, 80) || "gambar";
 
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${base}${extension}`;
+  return `${Date.now()}-${crypto.randomBytes(4).toString("hex")}-${base}${extension}`;
 }
 
 function toRelativeUploadPath(file) {
   if (!file) return null;
-  return `/uploads/${file.destinationKey}/${file.filename}`;
+  const publicFolder = path.basename(uploadFolders[file.destinationKey] || file.destinationKey);
+  return `/uploads/${publicFolder}/${file.filename}`;
 }
 
 function isLocalUploadPath(value) {
@@ -42,7 +44,8 @@ function deleteLocalUpload(value) {
   if (!isLocalUploadPath(value)) return;
 
   const absolutePath = path.resolve(uploadRoot, value.replace(/^\/uploads\//, ""));
-  if (!absolutePath.startsWith(uploadRoot)) return;
+  const insideUploadRoot = absolutePath === uploadRoot || absolutePath.startsWith(`${uploadRoot}${path.sep}`);
+  if (!insideUploadRoot) return;
   if (fs.existsSync(absolutePath)) fs.unlinkSync(absolutePath);
 }
 

@@ -1,6 +1,6 @@
 ﻿# ERD Portal CNB
 
-Dokumen ini disusun dari model Sequelize di `backend/src/models`. Nama kolom memakai nama fisik database (`field` Sequelize), bukan alias property JavaScript. Semua tabel memakai `timestamps: true` dan `underscored: true`, sehingga memiliki kolom `created_at` dan `updated_at`.
+Dokumen ini disusun dari model Sequelize di `backend/src/models`. Nama kolom memakai nama fisik database (`field` Sequelize), bukan alias property JavaScript. Semua tabel memakai `timestamps: true` dan `underscored: true`, sehingga memiliki kolom `dibuat_pada` dan `diperbarui_pada`.
 
 ## Diagram ERD
 
@@ -29,27 +29,27 @@ erDiagram
     string password
     enum role
     string profession
-    datetime created_at
-    datetime updated_at
+    datetime dibuat_pada
+    datetime diperbarui_pada
   }
 
   CLASSROOM {
     int id PK
     string class_name
     string grade_level
-    string homeroom_teacher
+    string wali_kelas
     string academic_year
-    int student_count
+    int siswa_count
     string room
-    datetime created_at
-    datetime updated_at
+    datetime dibuat_pada
+    datetime diperbarui_pada
   }
 
   STUDENT {
     int id PK
-    string national_student_id UK
+    string national_siswa_id UK
     string name
-    int classroom_id FK
+    int kelas_id FK
     string birthplace
     date birth_date
     enum gender
@@ -61,60 +61,60 @@ erDiagram
     string email
     text photo
     enum status
-    datetime created_at
-    datetime updated_at
+    datetime dibuat_pada
+    datetime diperbarui_pada
   }
 
   TEACHER_PROFILE {
     int id PK
-    int user_account_id FK_UK
-    enum teacher_type
-    string subject
-    int classroom_id FK
+    int akun_pengguna_id FK_UK
+    enum tipe_guru
+    string mata_pelajaran
+    int kelas_id FK
     enum verification_status
     text note
-    int approved_by_user_account_id FK
+    int disetujui_oleh_akun_pengguna_id FK
     datetime approved_at
-    datetime created_at
-    datetime updated_at
+    datetime dibuat_pada
+    datetime diperbarui_pada
   }
 
   TEACHING_SCHEDULE {
     int id PK
-    int teacher_user_account_id FK
-    int classroom_id FK
-    string subject
+    int guru_akun_pengguna_id FK
+    int kelas_id FK
+    string mata_pelajaran
     enum day_name
     time start_time
     time end_time
     enum status
-    datetime created_at
-    datetime updated_at
+    datetime dibuat_pada
+    datetime diperbarui_pada
   }
 
   STUDENT_ATTENDANCE {
     int id PK
-    int student_id FK
-    int classroom_id FK
-    int teacher_user_account_id FK
-    int teaching_schedule_id FK
+    int siswa_id FK
+    int kelas_id FK
+    int guru_akun_pengguna_id FK
+    int jadwal_mengajar_id FK
     date attendance_date
     string day_name
-    enum teacher_type
-    string subject
+    enum tipe_guru
+    string mata_pelajaran
     enum status
     text note
-    datetime created_at
-    datetime updated_at
+    datetime dibuat_pada
+    datetime diperbarui_pada
   }
 
   PORTAL_ACCOUNT_LINK {
     int id PK
-    int user_account_id FK
-    int student_id FK
+    int akun_pengguna_id FK
+    int siswa_id FK
     enum link_type
-    datetime created_at
-    datetime updated_at
+    datetime dibuat_pada
+    datetime diperbarui_pada
   }
 
   TEACHER {
@@ -123,15 +123,15 @@ erDiagram
     string name
     string email
     string phone_number
-    string subject
+    string mata_pelajaran
     string last_education
     text photo
     text address
     date birth_date
     enum gender
     enum status
-    datetime created_at
-    datetime updated_at
+    datetime dibuat_pada
+    datetime diperbarui_pada
   }
 
   PRINCIPAL {
@@ -146,8 +146,8 @@ erDiagram
     text address
     string last_education
     enum status
-    datetime created_at
-    datetime updated_at
+    datetime dibuat_pada
+    datetime diperbarui_pada
   }
 
   ADMISSION_APPLICATION {
@@ -155,7 +155,7 @@ erDiagram
     enum registration_type
     enum target_level
     string full_name
-    string national_student_id
+    string national_siswa_id
     string birthplace
     date birth_date
     enum gender
@@ -173,11 +173,11 @@ erDiagram
     string academic_year
     longtext family_card_file
     longtext report_file
-    longtext student_photo_file
+    longtext siswa_photo_file
     longtext transfer_letter_file
     text notification_note
-    datetime created_at
-    datetime updated_at
+    datetime dibuat_pada
+    datetime diperbarui_pada
   }
 
   SCHOOL_PROFILE {
@@ -195,8 +195,8 @@ erDiagram
     text facility
     text school_structure
     string accreditation
-    datetime created_at
-    datetime updated_at
+    datetime dibuat_pada
+    datetime diperbarui_pada
   }
 
   ACTIVITY {
@@ -205,8 +205,8 @@ erDiagram
     date date
     text description
     string image
-    datetime created_at
-    datetime updated_at
+    datetime dibuat_pada
+    datetime diperbarui_pada
   }
 
   ANNOUNCEMENT {
@@ -216,8 +216,8 @@ erDiagram
     text content
     string category
     text image
-    datetime created_at
-    datetime updated_at
+    datetime dibuat_pada
+    datetime diperbarui_pada
   }
 
   GALLERY {
@@ -226,14 +226,14 @@ erDiagram
     longtext image
     text description
     string category
-    datetime created_at
-    datetime updated_at
+    datetime dibuat_pada
+    datetime diperbarui_pada
   }
 ```
 
 ## Daftar Tabel dan Kolom
 
-### 1. `user_account`
+### 1. `akun_pengguna`
 | Kolom | Tipe | Constraint | Keterangan |
 |---|---|---|---|
 | `id` | INTEGER | PK, auto increment | ID akun pengguna |
@@ -242,29 +242,29 @@ erDiagram
 | `password` | STRING | NOT NULL | Hash kata sandi |
 | `role` | ENUM(`admin`, `guru`, `siswa`, `orangtua`) | DEFAULT `siswa` | Peran akun |
 | `profession` | STRING | NULL | Profesi pengguna |
-| `created_at` | DATETIME | NOT NULL | Waktu dibuat |
-| `updated_at` | DATETIME | NOT NULL | Waktu diubah |
+| `dibuat_pada` | DATETIME | NOT NULL | Waktu dibuat |
+| `diperbarui_pada` | DATETIME | NOT NULL | Waktu diubah |
 
-### 2. `classroom`
+### 2. `kelas`
 | Kolom | Tipe | Constraint | Keterangan |
 |---|---|---|---|
 | `id` | INTEGER | PK, auto increment | ID kelas |
 | `class_name` | STRING | NOT NULL | Nama kelas |
 | `grade_level` | STRING | NOT NULL | Tingkat/jenjang kelas |
-| `homeroom_teacher` | STRING | NULL | Nama wali kelas teks/manual |
+| `wali_kelas` | STRING | NULL | Nama wali kelas teks/manual |
 | `academic_year` | STRING | NOT NULL | Tahun ajaran |
-| `student_count` | INTEGER | DEFAULT `0` | Jumlah siswa |
+| `siswa_count` | INTEGER | DEFAULT `0` | Jumlah siswa |
 | `room` | STRING | NULL | Ruangan kelas |
-| `created_at` | DATETIME | NOT NULL | Waktu dibuat |
-| `updated_at` | DATETIME | NOT NULL | Waktu diubah |
+| `dibuat_pada` | DATETIME | NOT NULL | Waktu dibuat |
+| `diperbarui_pada` | DATETIME | NOT NULL | Waktu diubah |
 
-### 3. `student`
+### 3. `siswa`
 | Kolom | Tipe | Constraint | Keterangan |
 |---|---|---|---|
 | `id` | INTEGER | PK, auto increment | ID siswa |
-| `national_student_id` | STRING | NOT NULL, UNIQUE | NISN |
+| `national_siswa_id` | STRING | NOT NULL, UNIQUE | NISN |
 | `name` | STRING | NOT NULL | Nama siswa |
-| `classroom_id` | INTEGER | FK -> `classroom.id`, NULL | Kelas siswa |
+| `kelas_id` | INTEGER | FK -> `kelas.id`, NULL | Kelas siswa |
 | `birthplace` | STRING | NULL | Tempat lahir |
 | `birth_date` | DATEONLY | NULL | Tanggal lahir |
 | `gender` | ENUM(`L`, `P`) | NOT NULL | Jenis kelamin |
@@ -276,66 +276,66 @@ erDiagram
 | `email` | STRING | NULL | Email siswa/orangtua |
 | `photo` | TEXT | NULL | Foto siswa |
 | `status` | ENUM(`aktif`, `lulus`, `pindah`, `keluar`) | DEFAULT `aktif` | Status siswa |
-| `created_at` | DATETIME | NOT NULL | Waktu dibuat |
-| `updated_at` | DATETIME | NOT NULL | Waktu diubah |
+| `dibuat_pada` | DATETIME | NOT NULL | Waktu dibuat |
+| `diperbarui_pada` | DATETIME | NOT NULL | Waktu diubah |
 
-### 4. `teacher_profile`
+### 4. `profil_guru`
 | Kolom | Tipe | Constraint | Keterangan |
 |---|---|---|---|
 | `id` | INTEGER | PK, auto increment | ID profil guru portal |
-| `user_account_id` | INTEGER | FK -> `user_account.id`, NOT NULL, UNIQUE | Akun guru |
-| `teacher_type` | ENUM(`wali_kelas`, `mapel`) | NOT NULL, DEFAULT `mapel` | Jenis guru |
-| `subject` | STRING | NULL | Mata pelajaran |
-| `classroom_id` | INTEGER | FK -> `classroom.id`, NULL | Kelas wali jika wali kelas |
+| `akun_pengguna_id` | INTEGER | FK -> `akun_pengguna.id`, NOT NULL, UNIQUE | Akun guru |
+| `tipe_guru` | ENUM(`wali_kelas`, `mapel`) | NOT NULL, DEFAULT `mapel` | Jenis guru |
+| `mata_pelajaran` | STRING | NULL | Mata pelajaran |
+| `kelas_id` | INTEGER | FK -> `kelas.id`, NULL | Kelas wali jika wali kelas |
 | `verification_status` | ENUM(`pending`, `approved`, `rejected`) | DEFAULT `pending` | Status verifikasi profil |
 | `note` | TEXT | NULL | Catatan verifikasi |
-| `approved_by_user_account_id` | INTEGER | FK -> `user_account.id`, NULL | Administrator/pengguna yang menyetujui |
+| `disetujui_oleh_akun_pengguna_id` | INTEGER | FK -> `akun_pengguna.id`, NULL | Administrator/pengguna yang menyetujui |
 | `approved_at` | DATETIME | NULL | Waktu persetujuan |
-| `created_at` | DATETIME | NOT NULL | Waktu dibuat |
-| `updated_at` | DATETIME | NOT NULL | Waktu diubah |
+| `dibuat_pada` | DATETIME | NOT NULL | Waktu dibuat |
+| `diperbarui_pada` | DATETIME | NOT NULL | Waktu diubah |
 
-### 5. `teaching_schedule`
+### 5. `jadwal_mengajar`
 | Kolom | Tipe | Constraint | Keterangan |
 |---|---|---|---|
 | `id` | INTEGER | PK, auto increment | ID jadwal mengajar |
-| `teacher_user_account_id` | INTEGER | FK -> `user_account.id`, NOT NULL | Akun guru pengajar |
-| `classroom_id` | INTEGER | FK -> `classroom.id`, NOT NULL | Kelas yang diajar |
-| `subject` | STRING | NOT NULL | Mata pelajaran |
+| `guru_akun_pengguna_id` | INTEGER | FK -> `akun_pengguna.id`, NOT NULL | Akun guru pengajar |
+| `kelas_id` | INTEGER | FK -> `kelas.id`, NOT NULL | Kelas yang diajar |
+| `mata_pelajaran` | STRING | NOT NULL | Mata pelajaran |
 | `day_name` | ENUM(`senin`, `selasa`, `rabu`, `kamis`, `jumat`, `sabtu`, `minggu`) | NOT NULL | Hari |
 | `start_time` | TIME | NOT NULL | Jam mulai |
 | `end_time` | TIME | NOT NULL | Jam selesai |
 | `status` | ENUM(`aktif`, `non-aktif`) | DEFAULT `aktif` | Status jadwal |
-| `created_at` | DATETIME | NOT NULL | Waktu dibuat |
-| `updated_at` | DATETIME | NOT NULL | Waktu diubah |
+| `dibuat_pada` | DATETIME | NOT NULL | Waktu dibuat |
+| `diperbarui_pada` | DATETIME | NOT NULL | Waktu diubah |
 
-### 6. `student_attendance`
+### 6. `absensi_siswa`
 | Kolom | Tipe | Constraint | Keterangan |
 |---|---|---|---|
 | `id` | INTEGER | PK, auto increment | ID absensi siswa |
-| `student_id` | INTEGER | FK -> `student.id`, NOT NULL | Siswa yang diabsen |
-| `classroom_id` | INTEGER | FK -> `classroom.id`, NOT NULL | Kelas absensi |
-| `teacher_user_account_id` | INTEGER | FK -> `user_account.id`, NOT NULL | Guru pencatat absensi |
-| `teaching_schedule_id` | INTEGER | FK -> `teaching_schedule.id`, NULL | Jadwal terkait |
+| `siswa_id` | INTEGER | FK -> `siswa.id`, NOT NULL | Siswa yang diabsen |
+| `kelas_id` | INTEGER | FK -> `kelas.id`, NOT NULL | Kelas absensi |
+| `guru_akun_pengguna_id` | INTEGER | FK -> `akun_pengguna.id`, NOT NULL | Guru pencatat absensi |
+| `jadwal_mengajar_id` | INTEGER | FK -> `jadwal_mengajar.id`, NULL | Jadwal terkait |
 | `attendance_date` | DATEONLY | NOT NULL | Tanggal absensi |
 | `day_name` | STRING | NOT NULL | Nama hari |
-| `teacher_type` | ENUM(`wali_kelas`, `mapel`) | NOT NULL | Jenis guru pencatat |
-| `subject` | STRING | NULL | Mata pelajaran jika guru mapel |
+| `tipe_guru` | ENUM(`wali_kelas`, `mapel`) | NOT NULL | Jenis guru pencatat |
+| `mata_pelajaran` | STRING | NULL | Mata pelajaran jika guru mapel |
 | `status` | ENUM(`hadir`, `izin`, `sakit`, `alpha`) | NOT NULL, DEFAULT `hadir` | Status kehadiran |
 | `note` | TEXT | NULL | Keterangan absensi |
-| `created_at` | DATETIME | NOT NULL | Waktu dibuat |
-| `updated_at` | DATETIME | NOT NULL | Waktu diubah |
+| `dibuat_pada` | DATETIME | NOT NULL | Waktu dibuat |
+| `diperbarui_pada` | DATETIME | NOT NULL | Waktu diubah |
 
-### 7. `portal_account_link`
+### 7. `tautan_akun_portal`
 | Kolom | Tipe | Constraint | Keterangan |
 |---|---|---|---|
 | `id` | INTEGER | PK, auto increment | ID link akun portal |
-| `user_account_id` | INTEGER | FK -> `user_account.id`, NOT NULL | Akun siswa/orangtua |
-| `student_id` | INTEGER | FK -> `student.id`, NOT NULL | Siswa yang terhubung |
+| `akun_pengguna_id` | INTEGER | FK -> `akun_pengguna.id`, NOT NULL | Akun siswa/orangtua |
+| `siswa_id` | INTEGER | FK -> `siswa.id`, NOT NULL | Siswa yang terhubung |
 | `link_type` | ENUM(`siswa`, `orangtua`) | NOT NULL | Jenis relasi akun |
-| `created_at` | DATETIME | NOT NULL | Waktu dibuat |
-| `updated_at` | DATETIME | NOT NULL | Waktu diubah |
+| `dibuat_pada` | DATETIME | NOT NULL | Waktu dibuat |
+| `diperbarui_pada` | DATETIME | NOT NULL | Waktu diubah |
 
-### 8. `teacher`
+### 8. `guru`
 | Kolom | Tipe | Constraint | Keterangan |
 |---|---|---|---|
 | `id` | INTEGER | PK, auto increment | ID data guru publik/admin |
@@ -343,17 +343,17 @@ erDiagram
 | `name` | STRING | NOT NULL | Nama guru |
 | `email` | STRING | NULL | Email guru |
 | `phone_number` | STRING | NULL | Nomor telepon |
-| `subject` | STRING | NULL | Mata pelajaran |
+| `mata_pelajaran` | STRING | NULL | Mata pelajaran |
 | `last_education` | STRING | NULL | Pendidikan terakhir |
 | `photo` | TEXT | NULL | Foto guru |
 | `address` | TEXT | NULL | Alamat |
 | `birth_date` | DATEONLY | NULL | Tanggal lahir |
 | `gender` | ENUM(`L`, `P`) | NULL | Jenis kelamin |
 | `status` | ENUM(`aktif`, `non-aktif`) | DEFAULT `aktif` | Status guru |
-| `created_at` | DATETIME | NOT NULL | Waktu dibuat |
-| `updated_at` | DATETIME | NOT NULL | Waktu diubah |
+| `dibuat_pada` | DATETIME | NOT NULL | Waktu dibuat |
+| `diperbarui_pada` | DATETIME | NOT NULL | Waktu diubah |
 
-### 9. `principal`
+### 9. `kepala_sekolah`
 | Kolom | Tipe | Constraint | Keterangan |
 |---|---|---|---|
 | `id` | INTEGER | PK, auto increment | ID kepala sekolah |
@@ -367,17 +367,17 @@ erDiagram
 | `address` | TEXT | NULL | Alamat |
 | `last_education` | STRING | NULL | Pendidikan terakhir |
 | `status` | ENUM(`aktif`, `non-aktif`) | DEFAULT `aktif` | Status kepala sekolah |
-| `created_at` | DATETIME | NOT NULL | Waktu dibuat |
-| `updated_at` | DATETIME | NOT NULL | Waktu diubah |
+| `dibuat_pada` | DATETIME | NOT NULL | Waktu dibuat |
+| `diperbarui_pada` | DATETIME | NOT NULL | Waktu diubah |
 
-### 10. `admission_application`
+### 10. `pendaftaran_ppdb`
 | Kolom | Tipe | Constraint | Keterangan |
 |---|---|---|---|
 | `id` | INTEGER | PK, auto increment | ID pendaftaran PPDB |
 | `registration_type` | ENUM(`pendaftaran_baru`, `siswa_pindahan`) | NOT NULL, DEFAULT `pendaftaran_baru` | Jenis pendaftaran |
 | `target_level` | ENUM(`tk`, `sd`, `smp`) | NOT NULL, DEFAULT `tk` | Target jenjang |
 | `full_name` | STRING | NOT NULL | Nama lengkap calon siswa |
-| `national_student_id` | STRING | NULL | NISN calon siswa |
+| `national_siswa_id` | STRING | NULL | NISN calon siswa |
 | `birthplace` | STRING | NULL | Tempat lahir |
 | `birth_date` | DATEONLY | NOT NULL | Tanggal lahir |
 | `gender` | ENUM(`L`, `P`) | NOT NULL | Jenis kelamin |
@@ -395,13 +395,13 @@ erDiagram
 | `academic_year` | STRING | NOT NULL | Tahun ajaran |
 | `family_card_file` | LONGTEXT | NULL | Berkas KK |
 | `report_file` | LONGTEXT | NULL | Berkas rapor |
-| `student_photo_file` | LONGTEXT | NULL | Foto siswa |
+| `siswa_photo_file` | LONGTEXT | NULL | Foto siswa |
 | `transfer_letter_file` | LONGTEXT | NULL | Surat pindah |
 | `notification_note` | TEXT | NULL | Catatan notifikasi |
-| `created_at` | DATETIME | NOT NULL | Waktu dibuat |
-| `updated_at` | DATETIME | NOT NULL | Waktu diubah |
+| `dibuat_pada` | DATETIME | NOT NULL | Waktu dibuat |
+| `diperbarui_pada` | DATETIME | NOT NULL | Waktu diubah |
 
-### 11. `school_profile`
+### 11. `profil_sekolah`
 | Kolom | Tipe | Constraint | Keterangan |
 |---|---|---|---|
 | `id` | INTEGER | PK, auto increment | ID profil sekolah |
@@ -418,10 +418,10 @@ erDiagram
 | `facility` | TEXT | NULL | Fasilitas |
 | `school_structure` | TEXT | NULL | Struktur sekolah |
 | `accreditation` | STRING | NULL | Akreditasi |
-| `created_at` | DATETIME | NOT NULL | Waktu dibuat |
-| `updated_at` | DATETIME | NOT NULL | Waktu diubah |
+| `dibuat_pada` | DATETIME | NOT NULL | Waktu dibuat |
+| `diperbarui_pada` | DATETIME | NOT NULL | Waktu diubah |
 
-### 12. `activity`
+### 12. `kegiatan`
 | Kolom | Tipe | Constraint | Keterangan |
 |---|---|---|---|
 | `id` | INTEGER | PK, auto increment | ID kegiatan |
@@ -429,10 +429,10 @@ erDiagram
 | `date` | DATEONLY | NOT NULL | Tanggal kegiatan |
 | `description` | TEXT | NOT NULL | Deskripsi kegiatan |
 | `image` | STRING | NULL | Gambar kegiatan |
-| `created_at` | DATETIME | NOT NULL | Waktu dibuat |
-| `updated_at` | DATETIME | NOT NULL | Waktu diubah |
+| `dibuat_pada` | DATETIME | NOT NULL | Waktu dibuat |
+| `diperbarui_pada` | DATETIME | NOT NULL | Waktu diubah |
 
-### 13. `announcement`
+### 13. `pengumuman`
 | Kolom | Tipe | Constraint | Keterangan |
 |---|---|---|---|
 | `id` | INTEGER | PK, auto increment | ID pengumuman |
@@ -441,10 +441,10 @@ erDiagram
 | `content` | TEXT | NOT NULL | Isi pengumuman |
 | `category` | STRING | NULL | Kategori |
 | `image` | TEXT | NULL | Gambar pengumuman |
-| `created_at` | DATETIME | NOT NULL | Waktu dibuat |
-| `updated_at` | DATETIME | NOT NULL | Waktu diubah |
+| `dibuat_pada` | DATETIME | NOT NULL | Waktu dibuat |
+| `diperbarui_pada` | DATETIME | NOT NULL | Waktu diubah |
 
-### 14. `gallery`
+### 14. `galeri`
 | Kolom | Tipe | Constraint | Keterangan |
 |---|---|---|---|
 | `id` | INTEGER | PK, auto increment | ID galeri |
@@ -452,40 +452,40 @@ erDiagram
 | `image` | LONGTEXT | NOT NULL | File/URL gambar |
 | `description` | TEXT | NULL | Deskripsi gambar |
 | `category` | STRING | NULL | Kategori galeri |
-| `created_at` | DATETIME | NOT NULL | Waktu dibuat |
-| `updated_at` | DATETIME | NOT NULL | Waktu diubah |
+| `dibuat_pada` | DATETIME | NOT NULL | Waktu dibuat |
+| `diperbarui_pada` | DATETIME | NOT NULL | Waktu diubah |
 
 ## Relasi Detail
 
 | Dari Tabel | Kolom FK | Ke Tabel | Kardinalitas | Saat Dihapus | Saat Diperbarui | Keterangan |
 |---|---|---|---|---|---|---|
-| `student` | `classroom_id` | `classroom.id` | Banyak siswa ke satu kelas | SET NULL | CASCADE | Siswa boleh tidak punya kelas |
-| `teacher_profile` | `user_account_id` | `user_account.id` | Satu akun ke satu profil guru | CASCADE | CASCADE | `user_account_id` bersifat unique |
-| `teacher_profile` | `approved_by_user_account_id` | `user_account.id` | Banyak profil disetujui satu user | SET NULL | CASCADE | Biasanya admin/verifikator |
-| `teacher_profile` | `classroom_id` | `classroom.id` | Banyak profil wali ke satu kelas | SET NULL | CASCADE | Dipakai untuk wali kelas |
-| `teaching_schedule` | `teacher_user_account_id` | `user_account.id` | Banyak jadwal ke satu guru | CASCADE | CASCADE | Guru pengajar berdasarkan akun |
-| `teaching_schedule` | `classroom_id` | `classroom.id` | Banyak jadwal ke satu kelas | CASCADE | CASCADE | Jadwal kelas |
-| `student_attendance` | `student_id` | `student.id` | Banyak absensi ke satu siswa | CASCADE | CASCADE | Riwayat absensi siswa |
-| `student_attendance` | `classroom_id` | `classroom.id` | Banyak absensi ke satu kelas | CASCADE | CASCADE | Kelas saat absensi dibuat |
-| `student_attendance` | `teacher_user_account_id` | `user_account.id` | Banyak absensi ke satu guru | CASCADE | CASCADE | Guru pencatat absensi |
-| `student_attendance` | `teaching_schedule_id` | `teaching_schedule.id` | Banyak absensi ke satu jadwal | SET NULL | CASCADE | Jadwal opsional |
-| `portal_account_link` | `user_account_id` | `user_account.id` | Banyak link ke satu akun | CASCADE | CASCADE | Akun siswa/orangtua |
-| `portal_account_link` | `student_id` | `student.id` | Banyak link ke satu siswa | CASCADE | CASCADE | Satu siswa bisa punya akun siswa dan orangtua |
+| `siswa` | `kelas_id` | `kelas.id` | Banyak siswa ke satu kelas | SET NULL | CASCADE | Siswa boleh tidak punya kelas |
+| `profil_guru` | `akun_pengguna_id` | `akun_pengguna.id` | Satu akun ke satu profil guru | CASCADE | CASCADE | `akun_pengguna_id` bersifat unique |
+| `profil_guru` | `disetujui_oleh_akun_pengguna_id` | `akun_pengguna.id` | Banyak profil disetujui satu user | SET NULL | CASCADE | Biasanya admin/verifikator |
+| `profil_guru` | `kelas_id` | `kelas.id` | Banyak profil wali ke satu kelas | SET NULL | CASCADE | Dipakai untuk wali kelas |
+| `jadwal_mengajar` | `guru_akun_pengguna_id` | `akun_pengguna.id` | Banyak jadwal ke satu guru | CASCADE | CASCADE | Guru pengajar berdasarkan akun |
+| `jadwal_mengajar` | `kelas_id` | `kelas.id` | Banyak jadwal ke satu kelas | CASCADE | CASCADE | Jadwal kelas |
+| `absensi_siswa` | `siswa_id` | `siswa.id` | Banyak absensi ke satu siswa | CASCADE | CASCADE | Riwayat absensi siswa |
+| `absensi_siswa` | `kelas_id` | `kelas.id` | Banyak absensi ke satu kelas | CASCADE | CASCADE | Kelas saat absensi dibuat |
+| `absensi_siswa` | `guru_akun_pengguna_id` | `akun_pengguna.id` | Banyak absensi ke satu guru | CASCADE | CASCADE | Guru pencatat absensi |
+| `absensi_siswa` | `jadwal_mengajar_id` | `jadwal_mengajar.id` | Banyak absensi ke satu jadwal | SET NULL | CASCADE | Jadwal opsional |
+| `tautan_akun_portal` | `akun_pengguna_id` | `akun_pengguna.id` | Banyak link ke satu akun | CASCADE | CASCADE | Akun siswa/orangtua |
+| `tautan_akun_portal` | `siswa_id` | `siswa.id` | Banyak link ke satu siswa | CASCADE | CASCADE | Satu siswa bisa punya akun siswa dan orangtua |
 
 ## Tabel Tanpa Relasi FK Langsung
 
 Tabel berikut berdiri sendiri berdasarkan model saat ini:
 
-- `teacher`
-- `principal`
-- `admission_application`
-- `school_profile`
-- `activity`
-- `announcement`
-- `gallery`
+- `guru`
+- `kepala_sekolah`
+- `pendaftaran_ppdb`
+- `profil_sekolah`
+- `kegiatan`
+- `pengumuman`
+- `galeri`
 
 ## Catatan Penting
 
-- Tabel `teacher` dan `teacher_profile` sama-sama menyimpan data guru, tetapi belum memiliki FK langsung satu sama lain. `teacher_profile` terhubung ke akun login `user_account`.
-- Kolom `classroom.homeroom_teacher` masih berupa teks, sedangkan relasi wali kelas yang lebih terstruktur ada di `teacher_profile.classroom_id` dengan `teacher_type = 'wali_kelas'`.
-- Tabel `admission_application` belum otomatis berelasi ke `student`, walaupun sama-sama memiliki NISN/nama siswa. Jika PPDB diterima lalu menjadi siswa, relasi atau proses migrasi data perlu ditentukan di level aplikasi.
+- Tabel `guru` dan `profil_guru` sama-sama menyimpan data guru, tetapi belum memiliki FK langsung satu sama lain. `profil_guru` terhubung ke akun login `akun_pengguna`.
+- Kolom `kelas.wali_kelas` masih berupa teks, sedangkan relasi wali kelas yang lebih terstruktur ada di `profil_guru.kelas_id` dengan `tipe_guru = 'wali_kelas'`.
+- Tabel `pendaftaran_ppdb` belum otomatis berelasi ke `siswa`, walaupun sama-sama memiliki NISN/nama siswa. Jika PPDB diterima lalu menjadi siswa, relasi atau proses migrasi data perlu ditentukan di level aplikasi.

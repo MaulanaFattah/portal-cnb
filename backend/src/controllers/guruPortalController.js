@@ -155,9 +155,11 @@ exports.getGuruRegistrations = async (req, res) => {
 exports.verifyGuruRegistration = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { verification_status, subject, subjects, kelas_id, homeroom_classroom_id, note } = req.body;
+    const { verification_status, status_verifikasi, subject, subjects, mata_pelajaran, kelas_id, kelas_wali_id, homeroom_classroom_id, note, catatan } = req.body;
+    const statusMap = { menunggu: "pending", disetujui: "approved", setuju: "approved", ditolak: "rejected", tolak: "rejected" };
+    const nextVerificationStatus = statusMap[status_verifikasi || verification_status] || status_verifikasi || verification_status;
 
-    if (!["pending", "approved", "rejected"].includes(verification_status)) {
+    if (!["pending", "approved", "rejected"].includes(nextVerificationStatus)) {
       return res.status(400).json({ success: false, message: "Status verifikasi tidak valid" });
     }
 
@@ -171,12 +173,13 @@ exports.verifyGuruRegistration = async (req, res) => {
       defaults: { teacher_type: "mapel", subject: user.profession }
     });
 
-    const subjectList = normalizeSubjects(subjects || subject || profile.subject);
-    const isHomeroom = toBoolean(req.body.is_homeroom) || req.body.teacher_type === "wali_kelas";
-    const isSubjectTeacher = toBoolean(req.body.is_subject_teacher) || req.body.teacher_type === "mapel" || subjectList.length > 0;
-    const nextClassId = Number(homeroom_classroom_id || kelas_id || profile.kelas_id || 0);
+    const subjectList = normalizeSubjects(mata_pelajaran || subjects || subject || profile.subject);
+    const tipeGuru = req.body.tipe_guru || req.body.teacher_type;
+    const isHomeroom = toBoolean(req.body.wali_kelas) || toBoolean(req.body.is_homeroom) || tipeGuru === "wali_kelas";
+    const isSubjectTeacher = toBoolean(req.body.guru_mata_pelajaran) || toBoolean(req.body.is_subject_teacher) || tipeGuru === "mapel" || subjectList.length > 0;
+    const nextClassId = Number(kelas_wali_id || homeroom_classroom_id || kelas_id || profile.kelas_id || 0);
 
-    if (verification_status === "approved") {
+    if (nextVerificationStatus === "approved") {
       if (!isHomeroom && !isSubjectTeacher) {
         return res.status(400).json({ success: false, message: "Pilih minimal satu peran guru" });
       }
@@ -184,20 +187,20 @@ exports.verifyGuruRegistration = async (req, res) => {
         return res.status(400).json({ success: false, message: "Kelas wajib dipilih untuk wali kelas" });
       }
       if (isSubjectTeacher && !subjectList.length) {
-        return res.status(400).json({ success: false, message: "Minimal satu mata pelajaran wajib diisi untuk guru mapel" });
+        return res.status(400).json({ success: false, message: "Minimal satu mata pelajaran wajib diisi untuk guru mata pelajaran" });
       }
     }
 
     const legacyTeacherType = isSubjectTeacher ? "mapel" : "wali_kelas";
     await profile.update({
-      verification_status,
+      verification_status: nextVerificationStatus,
       teacher_type: legacyTeacherType,
       subject: isSubjectTeacher ? subjectList.join(", ") : null,
       is_homeroom: isHomeroom,
       kelas_id: isHomeroom ? nextClassId : null,
-      note: note || null,
-      approved_by: verification_status === "approved" ? req.user.id : profile.approved_by,
-      approved_at: verification_status === "approved" ? new Date() : profile.approved_at
+      note: catatan || note || null,
+      approved_by: nextVerificationStatus === "approved" ? req.user.id : profile.approved_by,
+      approved_at: nextVerificationStatus === "approved" ? new Date() : profile.approved_at
     });
 
     await user.update({
@@ -208,7 +211,7 @@ exports.verifyGuruRegistration = async (req, res) => {
       action: "teacher.verify",
       entityType: "teacher_profile",
       entityId: profile.id,
-      metadata: { userId: user.id, verification_status, isHomeroom, subjects: subjectList }
+      metadata: { userId: user.id, verification_status: nextVerificationStatus, isHomeroom, subjects: subjectList }
     });
 
     return res.json({ success: true, message: "Status guru berhasil diperbarui", data: profile });

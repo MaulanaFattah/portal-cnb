@@ -1,4 +1,4 @@
-require("dotenv").config();
+﻿require("dotenv").config();
 
 const { DataTypes } = require("sequelize");
 const sequelize = require("./config/database");
@@ -29,47 +29,51 @@ async function addColumnIfMissing(tableName, columnName, definition) {
 }
 
 async function createAuditLog() {
-  if (await tableExists("audit_log")) return;
+  if (await tableExists("log_audit")) return;
 
-  console.log("Membuat tabel audit_log");
-  await queryInterface.createTable("audit_log", {
+  console.log("Membuat tabel log_audit");
+  await queryInterface.createTable("log_audit", {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-    actor_user_account_id: {
+    pelaku_akun_pengguna_id: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      references: { model: "user_account", key: "id" },
+      references: { model: "akun_pengguna", key: "id" },
       onDelete: "SET NULL",
       onUpdate: "CASCADE"
     },
-    action: { type: DataTypes.STRING, allowNull: false },
-    entity_type: { type: DataTypes.STRING, allowNull: false },
-    entity_id: { type: DataTypes.STRING, allowNull: true },
+    aksi: { type: DataTypes.STRING, allowNull: false },
+    jenis_entitas: { type: DataTypes.STRING, allowNull: false },
+    entitas_id: { type: DataTypes.STRING, allowNull: true },
     metadata: { type: DataTypes.TEXT, allowNull: true },
-    ip_address: { type: DataTypes.STRING, allowNull: true },
-    user_agent: { type: DataTypes.TEXT, allowNull: true },
-    created_at: { type: DataTypes.DATE, allowNull: false }
+    alamat_ip: { type: DataTypes.STRING, allowNull: true },
+    agen_pengguna: { type: DataTypes.TEXT, allowNull: true },
+    dibuat_pada: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: sequelize.literal("CURRENT_TIMESTAMP")
+    }
   });
 }
 
 async function migrateLegacyTeacherProfiles() {
-  if (!(await tableExists("teacher_profile")) || !(await columnExists("teacher_profile", "is_homeroom"))) return;
+  if (!(await tableExists("profil_guru")) || !(await columnExists("profil_guru", "wali_kelas"))) return;
 
-  console.log("Mengisi ulang teacher_profile.is_homeroom dari teacher_type lama");
-  await sequelize.query("UPDATE `teacher_profile` SET `is_homeroom` = 1 WHERE `teacher_type` = 'wali_kelas'");
-  await sequelize.query("UPDATE `teacher_profile` SET `is_homeroom` = 0 WHERE `is_homeroom` IS NULL");
+  console.log("Mengisi ulang profil_guru.wali_kelas dari tipe_guru lama");
+  await sequelize.query("UPDATE `profil_guru` SET `wali_kelas` = 1 WHERE `tipe_guru` = 'wali_kelas'");
+  await sequelize.query("UPDATE `profil_guru` SET `wali_kelas` = 0 WHERE `wali_kelas` IS NULL");
 }
 
 async function migrate() {
   ensureUploadFolders();
   await sequelize.authenticate();
 
-  await addColumnIfMissing("user_account", "must_change_password", {
+  await addColumnIfMissing("akun_pengguna", "wajib_ganti_kata_sandi", {
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: false
   });
 
-  await addColumnIfMissing("teacher_profile", "is_homeroom", {
+  await addColumnIfMissing("profil_guru", "wali_kelas", {
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: false

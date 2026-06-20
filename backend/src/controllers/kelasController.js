@@ -2,6 +2,19 @@
 
 const Kelas = db.Kelas;
 
+function buildKelasPayload(body) {
+  const payload = {};
+  ["nama_kelas", "tingkat", "wali_kelas", "tahun_ajaran"].forEach((field) => {
+    if (body[field] !== undefined) payload[field] = body[field];
+  });
+
+  if (body.jumlah_siswa !== undefined && body.jumlah_siswa !== "") {
+    payload.jumlah_siswa = Number(body.jumlah_siswa) || 0;
+  }
+
+  return payload;
+}
+
 exports.getAllKelas = async (req, res) => {
   try {
     const kelas = await Kelas.findAll({
@@ -24,7 +37,8 @@ exports.getAllKelas = async (req, res) => {
 
 exports.createKelas = async (req, res) => {
   try {
-    const { nama_kelas, tingkat, tahun_ajaran } = req.body;
+    const payload = buildKelasPayload(req.body);
+    const { nama_kelas, tingkat, tahun_ajaran } = payload;
 
     if (!nama_kelas || !tingkat || !tahun_ajaran) {
       return res.status(400).json({
@@ -33,7 +47,7 @@ exports.createKelas = async (req, res) => {
       });
     }
 
-    const kelas = await Kelas.create(req.body);
+    const kelas = await Kelas.create(payload);
 
     res.status(201).json({
       success: true,
@@ -62,7 +76,7 @@ exports.updateKelas = async (req, res) => {
       });
     }
 
-    await kelas.update(req.body);
+    await kelas.update(buildKelasPayload(req.body));
 
     res.json({
       success: true,

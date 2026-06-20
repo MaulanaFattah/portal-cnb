@@ -1,7 +1,36 @@
 ﻿const db = require("../models");
 
 const PPDB = db.PPDB;
+const Pengumuman = db.Pengumuman;
 const { notifyNewPPDB } = require("../services/ppdbNotifier");
+
+function todayDateOnly() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+async function createAcceptedPPDBAnnouncement(ppdb) {
+  if (!Pengumuman || !ppdb?.nama_lengkap) return null;
+
+  const title = `Selamat, ${ppdb.nama_lengkap} Diterima di Sekolah Cipta Nusa Bakti`;
+  const content = `${ppdb.nama_lengkap} dinyatakan lulus dan diterima sebagai peserta didik di Sekolah Cipta Nusa Bakti. Selamat bergabung dengan keluarga besar Sekolah Cipta Nusa Bakti.`;
+
+  const existing = await Pengumuman.findOne({
+    where: {
+      title,
+      category: "PPDB"
+    }
+  });
+
+  if (existing) return existing;
+
+  return Pengumuman.create({
+    title,
+    date: todayDateOnly(),
+    content,
+    category: "PPDB",
+    image: null
+  });
+}
 
 exports.getAllPPDB = async (req, res) => {
   try {
@@ -54,7 +83,7 @@ exports.createPPDB = async (req, res) => {
     }
 
     if (!["tk", "sd", "smp"].includes(target_jenjang)) {
-      return res.status(400).json({ success: false, message: "Target jenjang tidak valid" });
+      return res.status(400).json({ success: false, message: "Jenjang tujuan tidak valid" });
     }
 
     if (["sd", "smp"].includes(target_jenjang) && !berkas_raport) {
@@ -106,7 +135,13 @@ exports.updatePPDB = async (req, res) => {
       });
     }
 
+    const previousStatus = ppdb.status;
+
     await ppdb.update(req.body);
+
+    if (previousStatus !== "diterima" && ppdb.status === "diterima") {
+      await createAcceptedPPDBAnnouncement(ppdb);
+    }
 
     res.json({
       success: true,

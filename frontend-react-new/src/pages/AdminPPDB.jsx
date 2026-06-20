@@ -38,12 +38,12 @@ function AdminPPDB() {
 
   const handleVerify = async (item, status) => {
     const notification_note = status === "diterima"
-      ? `Diterima. Hubungi orang tua/wali melalui email ${item.email || "-"} atau WhatsApp ${item.no_telepon || "-"}.`
+      ? `Diterima. Pengumuman otomatis dibuat di Beranda. Hubungi orang tua/wali melalui email ${item.email || "-"} atau WhatsApp ${item.no_telepon || "-"}.`
       : status === "ditolak"
         ? `Ditolak. Beri tahu orang tua/wali melalui email ${item.email || "-"} atau WhatsApp ${item.no_telepon || "-"}.`
         : "Menunggu verifikasi admin.";
     const result = await updatePPDB(item.id, { status, notification_note });
-    alert(status === "diterima" ? `${result.message}\n\nNotifikasi paling gampang untuk demo dosen: admin kirim WhatsApp/email manual dari data pendaftar.` : result.message);
+    alert(status === "diterima" ? `${result.message}\n\nPengumuman penerimaan otomatis dibuat di Beranda.` : result.message);
     loadPPDB();
   };
 

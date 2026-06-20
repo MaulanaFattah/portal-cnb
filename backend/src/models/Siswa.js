@@ -2,31 +2,33 @@ const { DataTypes } = require("sequelize");
 
 module.exports = (sequelize) => {
   return sequelize.define(
-    "student",
+    "siswa",
     {
       id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-      nisn: { type: DataTypes.STRING, allowNull: false, unique: true, field: "national_student_id" },
-      nama: { type: DataTypes.STRING, allowNull: false, field: "name" },
+      nisn: { type: DataTypes.STRING, allowNull: false, unique: true },
+      nama: { type: DataTypes.STRING, allowNull: false },
       kelas_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
-        field: "classroom_id",
-        references: { model: "classroom", key: "id" }
+        field: "kelas_id",
+        references: { model: "kelas", key: "id" }
       },
-      tempat_lahir: { type: DataTypes.STRING, allowNull: true, field: "birthplace" },
-      tanggal_lahir: { type: DataTypes.DATEONLY, allowNull: true, field: "birth_date" },
-      jenis_kelamin: { type: DataTypes.ENUM("L", "P"), allowNull: false, field: "gender" },
-      agama: { type: DataTypes.STRING, allowNull: true, field: "religion" },
-      alamat: { type: DataTypes.TEXT, allowNull: true, field: "address" },
-      nama_ayah: { type: DataTypes.STRING, allowNull: true, field: "father_name" },
-      nama_ibu: { type: DataTypes.STRING, allowNull: true, field: "mother_name" },
-      no_telepon: { type: DataTypes.STRING, allowNull: true, field: "phone_number" },
+      tempat_lahir: { type: DataTypes.STRING, allowNull: true },
+      tanggal_lahir: { type: DataTypes.DATEONLY, allowNull: true },
+      jenis_kelamin: { type: DataTypes.ENUM("L", "P"), allowNull: false },
+      agama: { type: DataTypes.STRING, allowNull: true },
+      alamat: { type: DataTypes.TEXT, allowNull: true },
+      nama_ayah: { type: DataTypes.STRING, allowNull: true },
+      nama_ibu: { type: DataTypes.STRING, allowNull: true },
+      no_telepon: { type: DataTypes.STRING, allowNull: true },
       email: { type: DataTypes.STRING, allowNull: true },
-      foto: { type: DataTypes.TEXT, allowNull: true, field: "photo" },
-      status: { type: DataTypes.ENUM("aktif", "lulus", "pindah", "keluar"), defaultValue: "aktif" }
+      foto: { type: DataTypes.TEXT, allowNull: true },
+      status: { type: DataTypes.ENUM("aktif", "lulus", "pindah", "keluar"), defaultValue: "aktif" },
+      createdAt: { type: DataTypes.DATE, allowNull: false, field: "dibuat_pada" },
+      updatedAt: { type: DataTypes.DATE, allowNull: false, field: "diperbarui_pada" }
     },
     {
-      tableName: "student",
+      tableName: "siswa",
       freezeTableName: true,
       underscored: true,
       timestamps: true

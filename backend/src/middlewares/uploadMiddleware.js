@@ -10,7 +10,7 @@ const {
 
 function imageUpload(destinationKey) {
   const destination = uploadFolders[destinationKey];
-  if (!destination) throw new Error("Folder upload tidak valid");
+  if (!destination) throw new Error("Folder unggah tidak valid");
 
   const storage = multer.diskStorage({
     destination(_req, file, cb) {

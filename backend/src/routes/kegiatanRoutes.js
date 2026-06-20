@@ -13,8 +13,8 @@ router.get("/admin/all", verifyToken, onlyAdmin, (req, res, next) => {
 });
 
 // admin only: tambah, edit, hapus kegiatan
-router.post("/", verifyToken, onlyAdmin, imageUpload("activities").single("image"), handleUploadError, kegiatanController.createKegiatan);
-router.put("/:id", verifyToken, onlyAdmin, imageUpload("activities").single("image"), handleUploadError, kegiatanController.updateKegiatan);
+router.post("/", verifyToken, onlyAdmin, imageUpload("kegiatan").single("image"), handleUploadError, kegiatanController.createKegiatan);
+router.put("/:id", verifyToken, onlyAdmin, imageUpload("kegiatan").single("image"), handleUploadError, kegiatanController.updateKegiatan);
 router.delete("/:id", verifyToken, onlyAdmin, kegiatanController.deleteKegiatan);
 
 module.exports = router;

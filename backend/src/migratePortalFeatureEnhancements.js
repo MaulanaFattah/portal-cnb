@@ -1,4 +1,4 @@
-require("dotenv").config();
+﻿require("dotenv").config();
 
 const { DataTypes } = require("sequelize");
 const sequelize = require("./config/database");
@@ -30,24 +30,24 @@ async function addColumnIfMissing(tableName, columnName, definition) {
 async function migrate() {
   await sequelize.authenticate();
 
-  if (await tableExists("user_account")) {
-    console.log("Memperbarui enum user_account.role");
-    await sequelize.query("ALTER TABLE `user_account` MODIFY `role` ENUM('admin','guru','siswa','orangtua','kepala_sekolah') NOT NULL DEFAULT 'siswa'");
+  if (await tableExists("akun_pengguna")) {
+    console.log("Memperbarui enum akun_pengguna.peran");
+    await sequelize.query("ALTER TABLE `akun_pengguna` MODIFY `peran` ENUM('admin','guru','siswa','orangtua','kepala_sekolah') NOT NULL DEFAULT 'siswa'");
   }
 
-  if (await tableExists("activity")) {
-    await addColumnIfMissing("activity", "status", {
+  if (await tableExists("kegiatan")) {
+    await addColumnIfMissing("kegiatan", "status", {
       type: DataTypes.ENUM("tampil", "tidak_tampil"),
       allowNull: false,
       defaultValue: "tampil"
     });
-    console.log("Memperbarui kolom activity.image");
-    await queryInterface.changeColumn("activity", "image", { type: DataTypes.TEXT("long"), allowNull: true });
+    console.log("Memperbarui kolom kegiatan.gambar");
+    await queryInterface.changeColumn("kegiatan", "gambar", { type: DataTypes.TEXT("long"), allowNull: true });
   }
 
-  if (await tableExists("student_attendance")) {
-    console.log("Memperbarui kolom student_attendance.status");
-    await sequelize.query("ALTER TABLE `student_attendance` MODIFY `status` ENUM('hadir','izin','sakit','alpha') NOT NULL");
+  if (await tableExists("absensi_siswa")) {
+    console.log("Memperbarui kolom absensi_siswa.status");
+    await sequelize.query("ALTER TABLE `absensi_siswa` MODIFY `status` ENUM('hadir','izin','sakit','alpha') NOT NULL");
   }
 
   console.log("Migrasi peningkatan fitur portal selesai");

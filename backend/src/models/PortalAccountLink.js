@@ -2,28 +2,31 @@ const { DataTypes } = require("sequelize");
 
 module.exports = (sequelize) => {
   return sequelize.define(
-    "portal_account_link",
+    "tautan_akun_portal",
     {
       id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
       user_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        field: "user_account_id",
-        references: { model: "user_account", key: "id" }
+        field: "akun_pengguna_id",
+        references: { model: "akun_pengguna", key: "id" }
       },
       siswa_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        field: "student_id",
-        references: { model: "student", key: "id" }
+        field: "siswa_id",
+        references: { model: "siswa", key: "id" }
       },
       link_type: {
         type: DataTypes.ENUM("siswa", "orangtua"),
+        field: "jenis_tautan",
         allowNull: false
-      }
+      },
+      createdAt: { type: DataTypes.DATE, allowNull: false, field: "dibuat_pada" },
+      updatedAt: { type: DataTypes.DATE, allowNull: false, field: "diperbarui_pada" }
     },
     {
-      tableName: "portal_account_link",
+      tableName: "tautan_akun_portal",
       freezeTableName: true,
       underscored: true,
       timestamps: true

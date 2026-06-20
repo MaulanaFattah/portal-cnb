@@ -2,18 +2,19 @@ const { DataTypes } = require("sequelize");
 
 module.exports = (sequelize) => {
   return sequelize.define(
-    "classroom",
+    "kelas",
     {
       id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-      nama_kelas: { type: DataTypes.STRING, allowNull: false, field: "class_name" },
-      tingkat: { type: DataTypes.STRING, allowNull: false, field: "grade_level" },
-      wali_kelas: { type: DataTypes.STRING, allowNull: true, field: "homeroom_teacher" },
-      tahun_ajaran: { type: DataTypes.STRING, allowNull: false, field: "academic_year" },
-      jumlah_siswa: { type: DataTypes.INTEGER, defaultValue: 0, field: "student_count" },
-      ruangan: { type: DataTypes.STRING, allowNull: true, field: "room" }
+      nama_kelas: { type: DataTypes.STRING, allowNull: false },
+      tingkat: { type: DataTypes.STRING, allowNull: false },
+      wali_kelas: { type: DataTypes.STRING, allowNull: true },
+      tahun_ajaran: { type: DataTypes.STRING, allowNull: false },
+      jumlah_siswa: { type: DataTypes.INTEGER, defaultValue: 0 },
+      createdAt: { type: DataTypes.DATE, allowNull: false, field: "dibuat_pada" },
+      updatedAt: { type: DataTypes.DATE, allowNull: false, field: "diperbarui_pada" }
     },
     {
-      tableName: "classroom",
+      tableName: "kelas",
       freezeTableName: true,
       underscored: true,
       timestamps: true
