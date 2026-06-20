@@ -55,12 +55,31 @@ function toBoolean(value) {
   return value === true || value === "true" || value === "1" || value === 1;
 }
 
+function hasOwn(object, key) {
+  return Object.prototype.hasOwnProperty.call(object || {}, key);
+}
+
+function hasAnyOwn(object, keys) {
+  return keys.some((key) => hasOwn(object, key));
+}
+
+function isHomeroomSubjectLabel(value) {
+  const text = String(value || "").trim().toLowerCase();
+  return ["wali kelas", "guru wali kelas", "guru"].includes(text);
+}
+
+function normalizeSubjectInput(value) {
+  return normalizeSubjects(value)
+    .flatMap((item) => String(item).split(/[;+]/).map((part) => part.trim()).filter(Boolean))
+    .filter((item) => !isHomeroomSubjectLabel(item));
+}
+
 function isHomeroomProfile(profile) {
   return Boolean(profile?.is_homeroom) || profile?.teacher_type === "wali_kelas";
 }
 
 function isSubjectTeacherProfile(profile) {
-  return profile?.teacher_type === "mapel" || Boolean(profile?.subject);
+  return profile?.teacher_type === "mapel" && normalizeSubjectInput(profile?.subject).length > 0;
 }
 
 function summarizeAbsensi(rows) {
@@ -98,7 +117,7 @@ async function getTeacherSchedules(userId, classMap) {
 }
 
 async function getAccessibleContext(profile, userId, classMap) {
-  const jadwal = await getTeacherSchedules(userId, classMap);
+  const jadwal = isSubjectTeacherProfile(profile) ? await getTeacherSchedules(userId, classMap) : [];
   const classIds = uniqueNumbers([
     isHomeroomProfile(profile) ? profile.kelas_id : null,
     ...jadwal.map((item) => item.kelas_id)
@@ -122,9 +141,11 @@ async function ensureClassAccess(profile, userId, classId) {
     return { allowed: true, homeroom: true };
   }
 
-  const jadwal = await JadwalMengajar.findOne({
-    where: { guru_user_id: userId, kelas_id: normalizedClassId, status: "aktif" }
-  });
+  const jadwal = isSubjectTeacherProfile(profile)
+    ? await JadwalMengajar.findOne({
+      where: { guru_user_id: userId, kelas_id: normalizedClassId, status: "aktif" }
+    })
+    : null;
 
   return jadwal
     ? { allowed: true, jadwal }
@@ -142,7 +163,7 @@ exports.getGuruRegistrations = async (req, res) => {
       const profile = profileMap.get(user.id) || null;
       return {
         ...safeUser(user),
-        guruProfile: profile ? { ...profile, subjects: normalizeSubjects(profile.subject), kelas: classMap.get(profile.kelas_id) || null } : null
+        guruProfile: profile ? { ...profile, subjects: normalizeSubjectInput(profile.subject), kelas: classMap.get(profile.kelas_id) || null } : null
       };
     });
 
@@ -170,13 +191,19 @@ exports.verifyGuruRegistration = async (req, res) => {
 
     const [profile] = await GuruProfile.findOrCreate({
       where: { user_id: user.id },
-      defaults: { teacher_type: "mapel", subject: user.profession }
+      defaults: { teacher_type: "mapel", subject: null }
     });
 
-    const subjectList = normalizeSubjects(mata_pelajaran || subjects || subject || profile.subject);
+    const subjectList = normalizeSubjectInput(mata_pelajaran ?? subjects ?? subject ?? profile.subject);
     const tipeGuru = req.body.tipe_guru || req.body.teacher_type;
-    const isHomeroom = toBoolean(req.body.wali_kelas) || toBoolean(req.body.is_homeroom) || tipeGuru === "wali_kelas";
-    const isSubjectTeacher = toBoolean(req.body.guru_mata_pelajaran) || toBoolean(req.body.is_subject_teacher) || tipeGuru === "mapel" || subjectList.length > 0;
+    const explicitHomeroom = hasAnyOwn(req.body, ["wali_kelas", "is_homeroom"]);
+    const explicitSubjectTeacher = hasAnyOwn(req.body, ["guru_mata_pelajaran", "is_subject_teacher"]);
+    const isHomeroom = explicitHomeroom
+      ? (toBoolean(req.body.wali_kelas) || toBoolean(req.body.is_homeroom))
+      : (isHomeroomProfile(profile) || tipeGuru === "wali_kelas");
+    const isSubjectTeacher = explicitSubjectTeacher
+      ? (toBoolean(req.body.guru_mata_pelajaran) || toBoolean(req.body.is_subject_teacher))
+      : (isSubjectTeacherProfile(profile) || tipeGuru === "mapel" || subjectList.length > 0);
     const nextClassId = Number(kelas_wali_id || homeroom_classroom_id || kelas_id || profile.kelas_id || 0);
 
     if (nextVerificationStatus === "approved") {
@@ -359,6 +386,9 @@ exports.submitAbsensi = async (req, res) => {
     let teacherType = "wali_kelas";
 
     if (jadwal_id) {
+      if (!isSubjectTeacherProfile(profile)) {
+        return res.status(403).json({ success: false, message: "Jadwal mapel hanya dapat digunakan guru mata pelajaran" });
+      }
       const jadwal = await JadwalMengajar.findOne({ where: { id: jadwal_id, guru_user_id: req.user.id, status: "aktif" } });
       if (!jadwal) return res.status(404).json({ success: false, message: "Jadwal mengajar tidak ditemukan" });
       if (jadwal.hari !== hari) return res.status(400).json({ success: false, message: `Tanggal yang dipilih bukan hari ${jadwal.hari}` });
@@ -437,6 +467,9 @@ exports.getRekapAbsensi = async (req, res) => {
     let classId = Number(kelas_id || 0);
 
     if (jadwal_id) {
+      if (!isSubjectTeacherProfile(profile)) {
+        return res.status(403).json({ success: false, message: "Jadwal mapel hanya dapat digunakan guru mata pelajaran" });
+      }
       const jadwal = await JadwalMengajar.findOne({ where: { id: jadwal_id, guru_user_id: req.user.id, status: "aktif" } });
       if (!jadwal) return res.status(404).json({ success: false, message: "Jadwal mengajar tidak ditemukan" });
       classId = jadwal.kelas_id;

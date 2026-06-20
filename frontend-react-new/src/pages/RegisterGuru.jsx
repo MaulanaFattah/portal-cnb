@@ -14,7 +14,7 @@ function RegisterGuru() {
     password: "",
     confirmPassword: "",
     is_homeroom: false,
-    is_subject_teacher: true,
+    is_subject_teacher: false,
     homeroom_classroom_id: "",
     subject: ""
   });
@@ -29,6 +29,15 @@ function RegisterGuru() {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData({ ...formData, [name]: type === "checkbox" ? checked : value });
+  };
+
+  const handleRoleChange = (name, checked) => {
+    setFormData((current) => ({
+      ...current,
+      [name]: checked,
+      ...(name === "is_homeroom" && !checked ? { homeroom_classroom_id: "" } : {}),
+      ...(name === "is_subject_teacher" && !checked ? { subject: "" } : {})
+    }));
   };
 
   const handleRegister = async (e) => {
@@ -89,15 +98,31 @@ function RegisterGuru() {
           <h1>Registrasi Guru</h1>
           <p>Guru dapat mendaftar sebagai wali kelas, guru mata pelajaran, atau keduanya. Akun aktif setelah disetujui admin.</p>
 
-          <form onSubmit={handleRegister}>
+          <form className="teacher-register-form" onSubmit={handleRegister}>
             <div className="form-group"><label>Nama Lengkap</label><input type="text" name="name" placeholder="Masukkan nama lengkap" value={formData.name} onChange={handleChange} required /></div>
             <div className="form-group"><label>Email</label><input type="email" name="email" placeholder="guru@cnb.sch.id" value={formData.email} onChange={handleChange} required /></div>
 
-            <div className="form-group">
+            <div className="form-group role-field full">
               <label>Peran Guru</label>
-              <div className="checkbox-stack">
-                <label><input type="checkbox" name="is_homeroom" checked={formData.is_homeroom} onChange={handleChange} /> Guru Wali Kelas</label>
-                <label><input type="checkbox" name="is_subject_teacher" checked={formData.is_subject_teacher} onChange={handleChange} /> Guru Mata Pelajaran</label>
+              <div className="role-card-group register-role-card-group">
+                <label className={formData.is_homeroom ? "role-card-option selected" : "role-card-option"}>
+                  <input type="checkbox" name="is_homeroom" aria-label="Pilih peran guru wali kelas" checked={formData.is_homeroom} onChange={(event) => handleRoleChange("is_homeroom", event.target.checked)} />
+                  <span className="role-card-mark" aria-hidden="true">WK</span>
+                  <span className="role-card-copy">
+                    <strong>Guru Wali Kelas</strong>
+                    <small>Mengelola satu kelas wali dan absensi utama siswa.</small>
+                  </span>
+                  <span className="role-card-state">{formData.is_homeroom ? "Dipilih" : "Pilih"}</span>
+                </label>
+                <label className={formData.is_subject_teacher ? "role-card-option selected" : "role-card-option"}>
+                  <input type="checkbox" name="is_subject_teacher" aria-label="Pilih peran guru mata pelajaran" checked={formData.is_subject_teacher} onChange={(event) => handleRoleChange("is_subject_teacher", event.target.checked)} />
+                  <span className="role-card-mark" aria-hidden="true">MP</span>
+                  <span className="role-card-copy">
+                    <strong>Guru Mata Pelajaran</strong>
+                    <small>Mengajar mapel sesuai jadwal yang disetujui admin.</small>
+                  </span>
+                  <span className="role-card-state">{formData.is_subject_teacher ? "Dipilih" : "Pilih"}</span>
+                </label>
               </div>
             </div>
 

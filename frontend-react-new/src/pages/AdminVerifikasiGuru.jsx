@@ -16,6 +16,29 @@ import {
 const HARI = ["senin", "selasa", "rabu", "kamis", "jumat", "sabtu"];
 const emptyJadwalForm = { guru_user_id: "", kelas_id: "", mapel: "", hari: "senin", jam_mulai: "07:00", jam_selesai: "08:00", status: "aktif" };
 
+function normalizeSubjects(value) {
+  return String(value || "")
+    .split(/[,;+]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .filter((item) => !["wali kelas", "guru wali kelas", "guru"].includes(item.toLowerCase()));
+}
+
+function isHomeroomProfile(profile = {}) {
+  return Boolean(profile.is_homeroom) || profile.teacher_type === "wali_kelas";
+}
+
+function isSubjectTeacherProfile(profile = {}) {
+  return profile.teacher_type === "mapel" && normalizeSubjects(profile.subject).length > 0;
+}
+
+function roleSummary(draft = {}) {
+  const roles = [];
+  if (draft.is_homeroom) roles.push("Wali Kelas");
+  if (draft.is_subject_teacher) roles.push("Guru Mata Pelajaran");
+  return roles.join(" + ") || "Belum memilih peran";
+}
+
 function AdminVerifikasiGuru() {
   const navigate = useNavigate();
   const [accounts, setAccounts] = useState([]);
@@ -37,11 +60,12 @@ function AdminVerifikasiGuru() {
       const nextDraft = {};
       (guruResult.data || []).forEach((item) => {
         const profile = item.guruProfile || {};
+        const subjectList = normalizeSubjects(profile.subject || item.profession);
         nextDraft[item.id] = {
           teacher_type: profile.teacher_type || "mapel",
-          is_homeroom: Boolean(profile.is_homeroom) || profile.teacher_type === "wali_kelas",
-          is_subject_teacher: profile.teacher_type === "mapel" || Boolean(profile.subject),
-          subject: profile.subject || item.profession || "",
+          is_homeroom: isHomeroomProfile(profile),
+          is_subject_teacher: isSubjectTeacherProfile(profile),
+          subject: subjectList.join(", "),
           kelas_id: profile.kelas_id || "",
           note: profile.note || ""
         };
@@ -61,6 +85,16 @@ function AdminVerifikasiGuru() {
     setDraft({ ...draft, [id]: { ...draft[id], [field]: value } });
   };
 
+  const handleRoleDraft = (id, field, checked) => {
+    setDraft((current) => {
+      const currentDraft = current[id] || {};
+      const nextDraft = { ...currentDraft, [field]: checked };
+      if (field === "is_subject_teacher" && !checked) nextDraft.subject = "";
+      if (field === "is_homeroom" && !checked) nextDraft.kelas_id = "";
+      return { ...current, [id]: nextDraft };
+    });
+  };
+
   const handleVerify = async (id, verification_status) => {
     const itemDraft = draft[id] || {};
     const result = await verifyGuruRegistration(id, {
@@ -69,8 +103,8 @@ function AdminVerifikasiGuru() {
       status_verifikasi: verification_status,
       wali_kelas: itemDraft.is_homeroom,
       guru_mata_pelajaran: itemDraft.is_subject_teacher,
-      mata_pelajaran: itemDraft.subject,
-      kelas_wali_id: itemDraft.kelas_id,
+      mata_pelajaran: itemDraft.is_subject_teacher ? itemDraft.subject : "",
+      kelas_wali_id: itemDraft.is_homeroom ? itemDraft.kelas_id : null,
       catatan: itemDraft.note
     });
     alert(result.message);
@@ -131,7 +165,7 @@ function AdminVerifikasiGuru() {
     navigate("/admin-login");
   };
 
-  const approvedMapel = accounts.filter((item) => item.guruProfile?.verification_status === "approved" && (item.guruProfile?.teacher_type === "mapel" || item.guruProfile?.subject));
+  const approvedMapel = accounts.filter((item) => item.guruProfile?.verification_status === "approved" && isSubjectTeacherProfile(item.guruProfile));
 
   return (
     <div className="dashboard-layout">
@@ -159,18 +193,35 @@ function AdminVerifikasiGuru() {
                 <div className="verify-card-head">
                   <div>
                     <h4>{item.name}</h4>
-                    <p>{item.email} • {item.profession || "Guru"}</p>
+                    <p>{item.email} • {roleSummary(itemDraft)}</p>
                   </div>
                   <span className={`status-badge ${profile.verification_status}`}>{profile.verification_status}</span>
                 </div>
 
                 <div className="verify-grid">
-                  <label>Peran Guru
-                    <span className="checkbox-stack compact">
-                      <label><input type="checkbox" checked={Boolean(itemDraft.is_homeroom)} onChange={(e) => handleDraft(item.id, "is_homeroom", e.target.checked)} /> Wali Kelas</label>
-                      <label><input type="checkbox" checked={Boolean(itemDraft.is_subject_teacher)} onChange={(e) => handleDraft(item.id, "is_subject_teacher", e.target.checked)} /> Guru Mata Pelajaran</label>
-                    </span>
-                  </label>
+                  <div className="form-field role-field full">
+                    <span className="field-label">Peran Guru</span>
+                    <div className="role-card-group verify-role-card-group">
+                      <label className={itemDraft.is_homeroom ? "role-card-option selected" : "role-card-option"}>
+                        <input type="checkbox" aria-label="Pilih peran guru wali kelas" checked={Boolean(itemDraft.is_homeroom)} onChange={(e) => handleRoleDraft(item.id, "is_homeroom", e.target.checked)} />
+                        <span className="role-card-mark" aria-hidden="true">WK</span>
+                        <span className="role-card-copy">
+                          <strong>Guru Wali Kelas</strong>
+                          <small>Akses hanya kelas wali untuk absensi utama dan monitoring siswa.</small>
+                        </span>
+                        <span className="role-card-state">{itemDraft.is_homeroom ? "Dipilih" : "Pilih"}</span>
+                      </label>
+                      <label className={itemDraft.is_subject_teacher ? "role-card-option selected" : "role-card-option"}>
+                        <input type="checkbox" aria-label="Pilih peran guru mata pelajaran" checked={Boolean(itemDraft.is_subject_teacher)} onChange={(e) => handleRoleDraft(item.id, "is_subject_teacher", e.target.checked)} />
+                        <span className="role-card-mark" aria-hidden="true">MP</span>
+                        <span className="role-card-copy">
+                          <strong>Guru Mata Pelajaran</strong>
+                          <small>Akses kelas mengikuti jadwal mengajar yang dibuat admin.</small>
+                        </span>
+                        <span className="role-card-state">{itemDraft.is_subject_teacher ? "Dipilih" : "Pilih"}</span>
+                      </label>
+                    </div>
+                  </div>
                   {itemDraft.is_subject_teacher && (
                     <label>Mata Pelajaran
                       <input value={itemDraft.subject || ""} onChange={(e) => handleDraft(item.id, "subject", e.target.value)} placeholder="Contoh: Matematika, IPA" />

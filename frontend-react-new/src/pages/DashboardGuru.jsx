@@ -46,6 +46,10 @@ function getStatusLabel(value) {
   return ABSENSI_OPTIONS.find((item) => item.value === value)?.label || value;
 }
 
+function isHomeroomSubjectLabel(value) {
+  return ["wali kelas", "guru wali kelas"].includes(String(value || "").trim().toLowerCase());
+}
+
 function DashboardGuru() {
   const navigate = useNavigate();
   const [activeMenu, setActiveMenu] = useState("dashboard");
@@ -93,6 +97,7 @@ function DashboardGuru() {
   const profile = dashboard?.guruProfile;
   const isWali = Boolean(profile?.is_homeroom) || profile?.teacher_type === "wali_kelas";
   const hasSubjectRoster = Boolean(dashboard?.jadwal?.length);
+  const displaySubject = profile?.subject && !isHomeroomSubjectLabel(profile.subject) ? profile.subject : "";
   const attendanceIsHomeroom = isWali && attendanceMode === "homeroom";
   const roleLabel = isWali && hasSubjectRoster ? "Guru Wali Kelas + Mata Pelajaran" : isWali ? "Guru Wali Kelas" : "Guru Mata Pelajaran";
 
@@ -250,10 +255,10 @@ function DashboardGuru() {
               <strong>{roleLabel}</strong>
             </div>
             <h2>{dashboard.user?.name}</h2>
-            <p>{dashboard.user?.profession || profile?.subject || "Guru"}</p>
+            <p>{roleLabel}</p>
             <div className="teacher-profile-list">
               <div><span>Kelas Akses</span><strong>{classOptions.map((item) => item.nama_kelas).join(", ") || "Belum diset"}</strong></div>
-              <div><span>Mata Pelajaran</span><strong>{profile?.subject || "Umum"}</strong></div>
+              {displaySubject && <div><span>Mata Pelajaran</span><strong>{displaySubject}</strong></div>}
               <div><span>Status</span><strong>Aktif Terverifikasi</strong></div>
             </div>
           </article>

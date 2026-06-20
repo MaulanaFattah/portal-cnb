@@ -23,6 +23,11 @@ async function findLegacyTeacherProfile(legacyUserId) {
   return rows[0] || null;
 }
 
+function isHomeroomSubjectLabel(value) {
+  const text = String(value || "").trim().toLowerCase();
+  return ["wali kelas", "guru wali kelas", "guru"].includes(text);
+}
+
 async function syncLegacyGuruRegistrations() {
   if (!(await tableExists("user_account"))) {
     console.log("Tabel legacy user_account tidak ditemukan. Tidak ada data guru lama yang perlu disinkronkan.");
@@ -67,11 +72,13 @@ async function syncLegacyGuruRegistrations() {
     const legacyClassId = Number(legacyProfile?.classroom_id || 0);
     const kelas = legacyClassId ? await Kelas.findByPk(legacyClassId) : null;
     const teacherType = legacyProfile?.teacher_type || "mapel";
+    const legacySubject = legacyProfile?.subject || legacyUser.profession || null;
+    const subject = teacherType === "wali_kelas" || isHomeroomSubjectLabel(legacySubject) ? null : legacySubject;
 
     await GuruProfile.create({
       user_id: user.id,
       teacher_type: teacherType === "wali_kelas" ? "wali_kelas" : "mapel",
-      subject: legacyProfile?.subject || legacyUser.profession || null,
+      subject,
       is_homeroom: teacherType === "wali_kelas",
       kelas_id: kelas ? kelas.id : null,
       verification_status: legacyProfile?.verification_status || "pending",

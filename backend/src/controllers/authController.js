@@ -27,6 +27,25 @@ function toBoolean(value) {
   return value === true || value === "true" || value === "1" || value === 1;
 }
 
+function hasOwn(object, key) {
+  return Object.prototype.hasOwnProperty.call(object || {}, key);
+}
+
+function hasAnyOwn(object, keys) {
+  return keys.some((key) => hasOwn(object, key));
+}
+
+function isHomeroomSubjectLabel(value) {
+  const text = String(value || "").trim().toLowerCase();
+  return ["wali kelas", "guru wali kelas", "guru"].includes(text);
+}
+
+function normalizeSubjectInput(value) {
+  return normalizeSubjects(value)
+    .flatMap((item) => String(item).split(/[;+]/).map((part) => part.trim()).filter(Boolean))
+    .filter((item) => !isHomeroomSubjectLabel(item));
+}
+
 exports.registerGuru = async (req, res) => {
   const transaction = await db.sequelize.transaction();
 
@@ -51,9 +70,15 @@ exports.registerGuru = async (req, res) => {
     const namaGuru = nama || name;
     const kataSandi = kata_sandi || password;
     const tipeGuru = tipe_guru || teacher_type;
-    const isHomeroom = toBoolean(req.body.wali_kelas) || toBoolean(req.body.is_homeroom) || tipeGuru === "wali_kelas";
-    const subjectList = normalizeSubjects(mata_pelajaran || subjects || subject || profession);
-    const isSubjectTeacher = toBoolean(req.body.guru_mata_pelajaran) || toBoolean(req.body.is_subject_teacher) || tipeGuru === "mapel" || subjectList.length > 0;
+    const explicitHomeroom = hasAnyOwn(req.body, ["wali_kelas", "is_homeroom"]);
+    const explicitSubjectTeacher = hasAnyOwn(req.body, ["guru_mata_pelajaran", "is_subject_teacher"]);
+    const isHomeroom = explicitHomeroom
+      ? (toBoolean(req.body.wali_kelas) || toBoolean(req.body.is_homeroom))
+      : tipeGuru === "wali_kelas";
+    const subjectList = normalizeSubjectInput(mata_pelajaran ?? subjects ?? subject);
+    const isSubjectTeacher = explicitSubjectTeacher
+      ? (toBoolean(req.body.guru_mata_pelajaran) || toBoolean(req.body.is_subject_teacher))
+      : (tipeGuru === "mapel" || subjectList.length > 0);
     const homeroomClassroomId = Number(kelas_wali_id || homeroom_classroom_id || kelas_id || 0);
 
     if (!namaGuru || !email || !kataSandi) {
