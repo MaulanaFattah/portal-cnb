@@ -481,8 +481,8 @@ body {
 .profile-wrapper {
   display: grid;
   gap: 24px;
-  width: min(100%, 980px);
-  margin: 0 auto 76px;
+  width: 100%;
+  margin: 0 0 76px;
 }
 
 @media (max-width: 900px) {
@@ -1625,7 +1625,7 @@ main {
 }
 
 .profile-card p {
-  max-width: 78ch;
+  max-width: 104ch;
   margin: 0;
   color: #475569;
   font-size: clamp(16px, 1.7vw, 18px);
@@ -5081,15 +5081,26 @@ button:focus-visible {
   text-align: left;
 }
 
+.profile-wrapper .profile-card {
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+}
+
+.profile-wrapper .profile-card p {
+  max-width: 104ch;
+}
+
 .home-profile-card {
-  max-width: 920px;
-  margin-inline: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
   text-align: left;
 }
 
 .home-profile-card p,
 .home-announcement-card p {
-  max-width: 76ch;
+  max-width: 104ch;
   line-height: 1.82;
   text-align: justify;
   text-align-last: left;
