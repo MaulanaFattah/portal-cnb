@@ -81,7 +81,7 @@ function FormPPDB() {
       if (result.success) {
         setStatus({
           type: "success",
-          message: "Pendaftaran berhasil dikirim. Hasil verifikasi akan diberitahukan melalui email orang tua/wali atau WhatsApp."
+          message: "Pendaftaran berhasil dikirim. Jika dinyatakan lulus, nama calon siswa akan diumumkan di halaman Pengumuman sekolah."
         });
         setForm(initialForm);
       } else {
