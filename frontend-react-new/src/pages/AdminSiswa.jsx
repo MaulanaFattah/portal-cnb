@@ -259,7 +259,14 @@ function AdminSiswa() {
                 <h2>Daftar Siswa per Kelas</h2>
                 <p>Pilih kelas untuk melihat dan mengelola siswa secara terpisah.</p>
               </div>
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari nama, NISN, kelas..." />
+              <div className="student-list-controls">
+                <select className="student-class-select" value={activeClassId} onChange={(e) => setActiveClassId(e.target.value)} aria-label="Pilih kelas siswa">
+                  <option value="all">Semua Kelas</option>
+                  {classTabs.map((item) => <option key={item.id} value={String(item.id)}>{item.label}</option>)}
+                  {noClassCount > 0 && <option value="none">Tanpa Kelas</option>}
+                </select>
+                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari nama, NISN, kelas..." />
+              </div>
             </div>
 
             <div className="student-class-tabs" role="tablist" aria-label="Filter kelas siswa">
@@ -286,22 +293,26 @@ function AdminSiswa() {
                     <span className="student-class-count">{group.students.length} siswa</span>
                   </div>
 
-                  <div className="teacher-table-wrap student-table-wrap">
-                    <table className="teacher-table student-table">
-                      <thead><tr><th>No</th><th>Siswa</th><th>Kelas</th><th>Orang Tua / HP</th><th>Status</th><th>Aksi</th></tr></thead>
-                      <tbody>
-                        {group.students.length === 0 ? <tr><td colSpan="6" className="teacher-empty-cell">Tidak ada siswa pada kelas ini.</td></tr> : group.students.map((item, index) => (
-                          <tr key={item.id}>
-                            <td>{index + 1}</td>
-                            <td><div className="student-name-cell"><strong>{item.nama}</strong><span>NIS/NISN: {item.nisn || "-"}</span><span>{item.jenis_kelamin === "P" ? "Perempuan" : "Laki-laki"}</span></div></td>
-                            <td><span className="student-class-chip">{item.kelas?.nama_kelas || classMap.get(getStudentClassId(item))?.nama_kelas || "-"}</span></td>
-                            <td><div className="student-name-cell"><strong>{item.nama_ayah || item.nama_ibu || "-"}</strong><span>{item.no_telepon || "No. HP belum diisi"}</span></div></td>
-                            <td><span className={item.status === "aktif" ? "teacher-badge active" : "teacher-badge"}>{item.status}</span></td>
-                            <td><div className="admin-action compact"><button type="button" onClick={() => handleEdit(item)}>Ubah</button><button type="button" onClick={() => handleDelete(item.id)}>Hapus</button></div></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="student-card-list">
+                    {group.students.length === 0 ? <div className="student-empty-state">Tidak ada siswa pada kelas ini.</div> : group.students.map((item, index) => (
+                      <article className="student-row-card" key={item.id}>
+                        <span className="student-row-number">{index + 1}</span>
+                        <div className="student-row-main">
+                          <strong>{item.nama}</strong>
+                          <span>NIS/NISN: {item.nisn || "-"}</span>
+                          <span>{item.jenis_kelamin === "P" ? "Perempuan" : "Laki-laki"}</span>
+                        </div>
+                        <div className="student-row-meta">
+                          <span className="student-class-chip">{item.kelas?.nama_kelas || classMap.get(getStudentClassId(item))?.nama_kelas || "-"}</span>
+                          <span><strong>Orang tua</strong>{item.nama_ayah || item.nama_ibu || "-"}</span>
+                          <span><strong>No. HP</strong>{item.no_telepon || "Belum diisi"}</span>
+                        </div>
+                        <div className="admin-action compact student-row-actions">
+                          <button type="button" onClick={() => handleEdit(item)}>Ubah</button>
+                          <button type="button" onClick={() => handleDelete(item.id)}>Hapus</button>
+                        </div>
+                      </article>
+                    ))}
                   </div>
                 </section>
               ))}

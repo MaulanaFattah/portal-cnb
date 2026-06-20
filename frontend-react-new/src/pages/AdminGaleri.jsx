@@ -4,14 +4,22 @@ import AdminSidebar from "../components/AdminSidebar";
 import schoolLogo from "../assets/logo.jpeg";
 import { getGaleri, createGaleri, updateGaleri, deleteGaleri, logout, resolveMediaUrl } from "../services/api";
 
-const emptyForm = { title: "", image: "", description: "" };
+const emptyForm = { image: "" };
+const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+const maxImageSize = 4 * 1024 * 1024;
+
+function formatGalleryDate(value) {
+  if (!value) return "Tanggal belum tersedia";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Tanggal belum tersedia";
+  return date.toLocaleDateString("id-ID");
+}
 
 function AdminGaleri() {
   const navigate = useNavigate();
   const [galeri, setGaleri] = useState([]);
   const [editId, setEditId] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
-  const [isReadingImage, setIsReadingImage] = useState(false);
   const [imagePreview, setImagePreview] = useState("");
 
   const loadGaleri = async () => {
@@ -21,15 +29,35 @@ function AdminGaleri() {
 
   useEffect(() => { (async () => { await loadGaleri(); })(); }, []);
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  useEffect(() => () => {
+    if (imagePreview.startsWith("blob:")) URL.revokeObjectURL(imagePreview);
+  }, [imagePreview]);
+
   const handleImage = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setIsReadingImage(false);
-    setFormData((current) => ({ ...current, image: file }));
+
+    if (!allowedImageTypes.has(file.type)) {
+      alert("Foto harus berformat JPG, PNG, atau WebP.");
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > maxImageSize) {
+      alert("Ukuran foto maksimal 4 MB.");
+      e.target.value = "";
+      return;
+    }
+
+    setFormData({ image: file });
     setImagePreview(URL.createObjectURL(file));
   };
-  const resetForm = () => { setEditId(null); setFormData(emptyForm); setImagePreview(""); setIsReadingImage(false); };
+
+  const resetForm = () => {
+    setEditId(null);
+    setFormData(emptyForm);
+    setImagePreview("");
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -38,20 +66,22 @@ function AdminGaleri() {
       return;
     }
 
-    const payload = { ...formData, category: "" };
-    const result = editId ? await updateGaleri(editId, payload) : await createGaleri(payload);
+    const result = editId ? await updateGaleri(editId, formData) : await createGaleri(formData);
     alert(result.error ? `${result.message}: ${result.error}` : result.message);
-    if (result.success) { resetForm(); loadGaleri(); }
+    if (result.success) {
+      resetForm();
+      loadGaleri();
+    }
   };
 
   const handleEdit = (item) => {
     setEditId(item.id);
-    setFormData({ title: item.title || "", image: item.image || "", description: item.description || "" });
+    setFormData({ image: item.image || "" });
     setImagePreview(resolveMediaUrl(item.image, schoolLogo));
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Yakin ingin menghapus galeri ini?")) return;
+    if (!confirm("Yakin ingin menghapus foto galeri ini?")) return;
     const result = await deleteGaleri(id);
     alert(result.message);
     loadGaleri();
@@ -64,24 +94,64 @@ function AdminGaleri() {
       <AdminSidebar active="/admin/galeri" />
       <main className="dashboard-content">
         <div className="dashboard-header">
-          <div><h1>Galeri</h1><p>Kelola judul, deskripsi, dan foto galeri.</p></div>
-          <div className="dashboard-actions"><Link to="/galeri" className="btn secondary">Lihat Galeri</Link><button onClick={handleLogout} className="btn primary">Keluar</button></div>
+          <div>
+            <h1>Galeri Foto</h1>
+            <p>Upload foto sekolah untuk ditampilkan di slider Beranda dan halaman Galeri.</p>
+          </div>
+          <div className="dashboard-actions">
+            <Link to="/galeri" className="btn secondary">Lihat Galeri</Link>
+            <button onClick={handleLogout} className="btn primary">Keluar</button>
+          </div>
         </div>
-        <section className="admin-kegiatan-card">
-          <div className="kegiatan-form-area">
-            <h2>{editId ? "Ubah Galeri" : "Tambah Galeri"}</h2>
+
+        <section className="admin-kegiatan-card gallery-photo-admin-card">
+          <div className="kegiatan-form-area gallery-photo-form">
+            <span className="section-kicker">Foto Galeri</span>
+            <h2>{editId ? "Ubah Foto" : "Tambah Foto"}</h2>
+            <p className="form-helper-text">Pilih satu foto dengan kualitas jelas. Judul dan deskripsi tidak diperlukan karena galeri hanya dipakai untuk posting foto.</p>
+
             <form onSubmit={handleSubmit}>
-              <div className="form-group"><label>Judul</label><input name="title" value={formData.title} onChange={handleChange} required /></div>
-              <div className="form-group"><label>Deskripsi</label><textarea name="description" value={formData.description} onChange={handleChange} rows="3" /></div>
-              <div className="form-group"><label>Foto</label><label className="upload-box">{imagePreview || formData.image ? <img src={imagePreview || resolveMediaUrl(formData.image, schoolLogo)} alt="Pratinjau" /> : <div><strong>Unggah Foto</strong><span>JPG / PNG / WebP</span></div>}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImage} required={!editId} /></label></div>
-              <div className="button-row"><button type="submit" className="save-btn" disabled={isReadingImage || !formData.image}>{isReadingImage ? "Memuat Foto..." : editId ? "Simpan Perubahan" : "Simpan"}</button>{editId && <button type="button" onClick={resetForm} className="cancel-btn">Batal</button>}</div>
+              <div className="form-group">
+                <label>Foto</label>
+                <label className="upload-box gallery-upload-box">
+                  {imagePreview || formData.image ? (
+                    <img src={imagePreview || resolveMediaUrl(formData.image, schoolLogo)} alt="Pratinjau foto galeri" />
+                  ) : (
+                    <div>
+                      <strong>Unggah Foto Galeri</strong>
+                      <span>JPG / PNG / WebP, disarankan rasio 4:3 atau 16:9</span>
+                    </div>
+                  )}
+                  <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImage} required={!editId} />
+                </label>
+              </div>
+
+              <div className="button-row">
+                <button type="submit" className="save-btn" disabled={!formData.image}>{editId ? "Simpan Foto" : "Upload Foto"}</button>
+                {editId && <button type="button" onClick={resetForm} className="cancel-btn">Batal</button>}
+              </div>
             </form>
           </div>
+
           <div className="kegiatan-list-area">
-            <h2>Daftar Galeri</h2>
-            <div className="activity-admin-list">
-              {galeri.length === 0 ? <p className="empty-text">Belum ada galeri.</p> : galeri.map((item, index) => (
-                <div className="activity-admin-item" key={item.id}><span>{index + 1}</span><img src={resolveMediaUrl(item.image, schoolLogo)} alt={item.title} loading="lazy" onError={(event) => { event.currentTarget.src = schoolLogo; }} /><div><h4>{item.title}</h4><p>{item.description || "Tanpa deskripsi"}</p></div><div className="admin-action"><button onClick={() => handleEdit(item)}>Ubah</button><button onClick={() => handleDelete(item.id)}>Hapus</button></div></div>
+            <div className="student-list-title gallery-list-title">
+              <h2>Daftar Foto</h2>
+              <p>Urutan terbaru tampil lebih dulu dan otomatis masuk ke slider Beranda.</p>
+            </div>
+
+            <div className="gallery-admin-grid">
+              {galeri.length === 0 ? <p className="empty-text">Belum ada foto galeri.</p> : galeri.map((item, index) => (
+                <article className="gallery-admin-photo-card" key={item.id}>
+                  <img src={resolveMediaUrl(item.image, schoolLogo)} alt={item.title || `Foto galeri ${index + 1}`} loading="lazy" onError={(event) => { event.currentTarget.src = schoolLogo; }} />
+                  <div className="gallery-admin-photo-meta">
+                    <strong>Foto {index + 1}</strong>
+                    <span>{formatGalleryDate(item.createdAt || item.updatedAt)}</span>
+                  </div>
+                  <div className="admin-action gallery-photo-actions">
+                    <button type="button" onClick={() => handleEdit(item)}>Ubah</button>
+                    <button type="button" onClick={() => handleDelete(item.id)}>Hapus</button>
+                  </div>
+                </article>
               ))}
             </div>
           </div>

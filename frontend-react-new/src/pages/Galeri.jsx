@@ -48,15 +48,15 @@ function Galeri() {
             ) : galeri.length === 0 ? (
               <p className="empty-text">Belum ada galeri.</p>
             ) : (
-              currentItems.map((item) => (
-                <article className="gallery-card" key={item.id}>
+              currentItems.map((item, index) => (
+                <article className="gallery-card gallery-photo-only-card" key={item.id}>
                   <div className="gallery-photo">
-                    <img src={resolveMediaUrl(item.image, schoolLogo)} alt={item.title} loading="lazy" />
-                  </div>
-
-                  <div className="gallery-info">
-                    <h3>{item.title}</h3>
-                    <p>{item.description}</p>
+                    <img
+                      src={resolveMediaUrl(item.image, schoolLogo)}
+                      alt={item.title || `Foto galeri ${index + 1}`}
+                      loading="lazy"
+                      onError={(event) => { event.currentTarget.src = schoolLogo; }}
+                    />
                   </div>
                 </article>
               ))

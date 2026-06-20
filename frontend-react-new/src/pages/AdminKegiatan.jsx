@@ -166,14 +166,6 @@ function AdminKegiatan() {
                 </label>
               </div>
 
-              <div className="form-group">
-                <label>Status Tampil</label>
-                <select name="status" value={formData.status} onChange={handleChange}>
-                  <option value="tampil">Tampilkan di situs web</option>
-                  <option value="tidak_tampil">Sembunyikan</option>
-                </select>
-              </div>
-
               <div className="button-row">
                 <button type="submit" className="save-btn">
                   {editId ? "Simpan Perubahan" : "Simpan"}
@@ -200,7 +192,7 @@ function AdminKegiatan() {
                     <img src={resolveMediaUrl(item.image, schoolLogo)} alt={item.title} loading="lazy" onError={(event) => { event.currentTarget.src = schoolLogo; }} />
                     <div>
                       <h4>{item.title}</h4>
-                      <p>{item.date} • {item.status === "tidak_tampil" ? "Tidak tampil" : "Tampil"}</p>
+                      <p>{item.date}</p>
                     </div>
                     <div className="admin-action">
                       <button onClick={() => handleEdit(item)}>Ubah</button>

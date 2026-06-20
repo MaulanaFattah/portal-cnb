@@ -21,6 +21,10 @@ function getAccountClassName(item) {
   return item.siswa?.kelas?.nama_kelas || "Belum terhubung kelas";
 }
 
+function getAccountClassId(item) {
+  return String(item.siswa?.kelas?.id || item.siswa?.kelas_id || "");
+}
+
 function getLinkedStudentName(item) {
   return item.siswa?.nama || "Belum terhubung siswa";
 }
@@ -36,6 +40,7 @@ function AdminAkunSiswa() {
   const [siswaList, setSiswaList] = useState([]);
   const [editId, setEditId] = useState(null);
   const [resetCredential, setResetCredential] = useState(null);
+  const [activeClassId, setActiveClassId] = useState("all");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -63,11 +68,24 @@ function AdminAkunSiswa() {
     })();
   }, []);
 
-  const sortedUsers = useMemo(() => [...users].sort((a, b) => {
+  const accountClassOptions = useMemo(() => {
+    const classMap = new Map();
+    siswaList.forEach((siswa) => {
+      const id = String(siswa.kelas?.id || siswa.kelas_id || "");
+      if (id) classMap.set(id, siswa.kelas?.nama_kelas || `Kelas ${id}`);
+    });
+    return [...classMap.entries()].map(([id, name]) => ({ id, name }));
+  }, [siswaList]);
+
+  const filteredUsers = useMemo(() => users.filter((item) => (
+    activeClassId === "all" || getAccountClassId(item) === activeClassId
+  )), [activeClassId, users]);
+
+  const sortedUsers = useMemo(() => [...filteredUsers].sort((a, b) => {
     const classCompare = getAccountClassName(a).localeCompare(getAccountClassName(b), "id-ID");
     if (classCompare !== 0) return classCompare;
     return (a.name || "").localeCompare(b.name || "", "id-ID");
-  }), [users]);
+  }), [filteredUsers]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -240,10 +258,19 @@ function AdminAkunSiswa() {
           </div>
 
           <div className="kegiatan-list-area">
-            <h2>Daftar Akun Portal</h2>
+            <div className="student-list-head portal-account-list-head">
+              <div className="student-list-title">
+                <h2>Daftar Akun Portal</h2>
+                <p>Filter berdasarkan kelas agar relasi siswa, orang tua, dan kelas lebih mudah dicek.</p>
+              </div>
+              <select className="student-class-select" value={activeClassId} onChange={(e) => setActiveClassId(e.target.value)} aria-label="Filter akun berdasarkan kelas">
+                <option value="all">Semua Kelas</option>
+                {accountClassOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+              </select>
+            </div>
 
             <div className="activity-admin-list">
-              {users.length === 0 ? (
+              {sortedUsers.length === 0 ? (
                 <p className="empty-text">Belum ada akun siswa/orang tua.</p>
               ) : (
                 sortedUsers.map((item, index) => (

@@ -5264,8 +5264,15 @@ button:focus-visible {
 }
 
 .student-admin-card {
-  grid-template-columns: minmax(340px, 460px) minmax(0, 1fr);
-  gap: 24px;
+  grid-template-columns: 1fr;
+  gap: 28px;
+}
+
+.student-admin-card .kegiatan-form-area {
+  border-right: 0;
+  border-bottom: 1px solid #e2e8f0;
+  padding-right: 0;
+  padding-bottom: 28px;
 }
 
 .student-table th,
@@ -5342,5 +5349,302 @@ button:focus-visible {
 
   .portal-account-admin-item {
     align-items: stretch;
+  }
+}
+.gallery-photo-admin-card {
+  grid-template-columns: minmax(320px, 430px) minmax(0, 1fr);
+  align-items: start;
+  gap: 28px;
+}
+
+.gallery-photo-form {
+  position: sticky;
+  top: 22px;
+}
+
+.gallery-upload-box {
+  min-height: 320px;
+  border-radius: 28px;
+  background: linear-gradient(145deg, #f8fbff, #eef6ff);
+  border-color: #93c5fd;
+}
+
+.gallery-upload-box img {
+  height: 320px;
+  border-radius: 24px;
+}
+
+.gallery-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 18px;
+  margin-top: 16px;
+}
+
+.gallery-admin-photo-card {
+  overflow: hidden;
+  border: 1px solid #dbeafe;
+  border-radius: 26px;
+  background: #ffffff;
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.08);
+}
+
+.gallery-admin-photo-card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.gallery-photo-only-card .gallery-photo {
+  height: auto;
+  aspect-ratio: 4 / 3;
+}
+
+.gallery-photo-only-card img {
+  display: block;
+}
+
+.gallery-admin-photo-meta {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px 8px;
+}
+
+.gallery-admin-photo-meta strong {
+  color: #0f172a;
+  font-weight: 900;
+}
+
+.gallery-admin-photo-meta span {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.gallery-photo-actions {
+  padding: 0 16px 16px;
+}
+
+.gallery-photo-actions button,
+.portal-account-admin-item .admin-action button,
+.student-row-actions button {
+  width: auto;
+  min-width: 86px;
+  padding: 0 16px;
+  border-radius: 999px;
+}
+
+.student-list-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  width: min(100%, 620px);
+}
+
+.student-list-controls input,
+.student-class-select,
+.portal-account-list-head .student-class-select {
+  min-height: 48px;
+  border: 1px solid #dbe2ea;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #0f172a;
+  padding: 0 18px;
+  font: inherit;
+  font-weight: 700;
+}
+
+.student-list-controls input {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.student-class-select {
+  flex: 0 1 230px;
+}
+
+.student-class-tabs {
+  gap: 12px;
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 26px;
+  background: #f8fafc;
+}
+
+.student-class-tab {
+  border-color: #dbeafe;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+}
+
+.student-card-list {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.student-row-card {
+  display: grid;
+  grid-template-columns: 46px minmax(180px, 1fr) minmax(260px, 1.25fr) auto;
+  gap: 16px;
+  align-items: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 22px;
+  padding: 16px;
+  background: #ffffff;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
+}
+
+.student-row-number {
+  width: 42px;
+  height: 42px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 900;
+}
+
+.student-row-main,
+.student-row-meta span {
+  display: grid;
+  gap: 4px;
+}
+
+.student-row-main strong {
+  color: #0f172a;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.student-row-main span,
+.student-row-meta span {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.student-row-meta {
+  display: grid;
+  grid-template-columns: minmax(72px, auto) repeat(2, minmax(130px, 1fr));
+  gap: 10px;
+  align-items: stretch;
+}
+
+.student-row-meta .student-class-chip {
+  justify-content: center;
+  align-self: stretch;
+  min-width: 72px;
+}
+
+.student-row-meta > span:not(.student-class-chip) {
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 10px 12px;
+  background: #f8fafc;
+}
+
+.student-row-meta strong {
+  color: #0f172a;
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.student-row-actions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.portal-account-admin-card {
+  grid-template-columns: 1fr;
+  gap: 26px;
+}
+
+.portal-account-list-head {
+  align-items: flex-start;
+}
+
+.portal-account-admin-item {
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+  padding: 24px;
+  border-radius: 28px;
+  background: #ffffff;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+}
+
+.portal-account-admin-item > span:first-child {
+  width: 48px;
+  height: 48px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #0f172a;
+  font-weight: 900;
+}
+
+.portal-account-admin-item .admin-action {
+  grid-column: 2;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.portal-relation-grid {
+  grid-template-columns: repeat(3, minmax(150px, 1fr));
+}
+
+.portal-relation-grid span {
+  min-height: 72px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1180px) {
+  .gallery-photo-admin-card,
+  .student-row-card {
+    grid-template-columns: 1fr;
+  }
+
+  .gallery-photo-form {
+    position: static;
+  }
+
+  .student-row-actions,
+  .portal-account-admin-item .admin-action {
+    justify-content: flex-start;
+  }
+
+  .student-row-meta,
+  .portal-relation-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .student-list-controls,
+  .student-list-controls input,
+  .student-class-select,
+  .portal-account-list-head .student-class-select {
+    width: 100%;
+  }
+
+  .student-row-meta,
+  .portal-relation-grid,
+  .gallery-admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-account-admin-item,
+  .student-row-card {
+    padding: 18px;
+  }
+
+  .portal-account-admin-item .admin-action {
+    grid-column: 1 / -1;
   }
 }

@@ -12,7 +12,8 @@
     "migrate:schema-indonesia": "node src/migrateSchemaIndonesia.js",
     "migrate:admission-profile-fields": "node src/migrateAdmissionProfileFields.js",
     "migrate:portal-features": "node src/migratePortalFeatureEnhancements.js",
-    "migrate:revision-rbac": "node src/migrateRevisionRbacAbsensi.js"
+    "migrate:revision-rbac": "node src/migrateRevisionRbacAbsensi.js",
+    "sync:legacy-guru": "node src/syncLegacyGuruRegistrations.js"
   },
   "keywords": [],
   "author": "",

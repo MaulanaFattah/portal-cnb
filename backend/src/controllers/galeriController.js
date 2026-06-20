@@ -10,6 +10,11 @@ function getImageValue(req, currentImage = null) {
   return currentImage;
 }
 
+function buildPhotoTitle(value) {
+  const title = String(value || "").trim();
+  return title || `Foto Galeri ${new Date().toLocaleDateString("id-ID")}`;
+}
+
 exports.getAllGaleri = async (req, res) => {
   try {
     const galeri = await Galeri.findAll({
@@ -35,14 +40,14 @@ exports.createGaleri = async (req, res) => {
     const { title, description, category } = req.body;
     const image = getImageValue(req);
 
-    if (!title || !image) {
+    if (!req.file || !image) {
       return res.status(400).json({
         success: false,
-        message: "Judul dan gambar wajib diisi"
+        message: "Foto galeri wajib diupload"
       });
     }
 
-    const galeri = await Galeri.create({ title, image, description, category });
+    const galeri = await Galeri.create({ title: buildPhotoTitle(title), image, description: description || null, category: category || "foto" });
     await logAudit(req, {
       action: "gallery.create",
       entityType: "gallery",
