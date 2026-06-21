@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -38,14 +38,15 @@ function LoginGuru() {
           <h1>Masuk Guru</h1>
           <p>Masukkan email dan kata sandi akun guru untuk mengakses portal.</p>
 
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleLogin} autoComplete="off">
             <div className="form-group">
               <label>Email</label>
               <input
                 type="email"
-                placeholder="guru@cnb.sch.id"
+                placeholder="Masukkan email guru"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="off"
                 required
               />
             </div>
@@ -57,6 +58,7 @@ function LoginGuru() {
                 placeholder="Masukkan kata sandi"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
                 required
               />
             </div>

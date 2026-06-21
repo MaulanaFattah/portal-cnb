@@ -1,4 +1,4 @@
-import schoolLogo from "../assets/logo.jpeg";
+import schoolLogo from "../assets/logo-transparent.png";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { loginUser, saveAuth } from "../services/api";
@@ -6,8 +6,8 @@ import { loginUser, saveAuth } from "../services/api";
 function AdminLogin() {
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState("admin@cnb.sch.id");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -35,14 +35,16 @@ function AdminLogin() {
         <h1>Masuk Administrator</h1>
         <p>Masukkan email dan kata sandi administrator.</p>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} autoComplete="off">
           <div className="form-group">
             <label>Email</label>
             <input
               type="email"
-              placeholder="admin@cnb.sch.id"
+              placeholder="Masukkan email admin"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="off"
+              required
             />
           </div>
 
@@ -50,9 +52,11 @@ function AdminLogin() {
             <label>Kata Sandi</label>
             <input
               type="password"
-              placeholder="********"
+              placeholder="Masukkan kata sandi"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+              required
             />
           </div>
 

@@ -1,4 +1,5 @@
-import schoolLogo from "../assets/logo.jpeg";
+import schoolLogo from "../assets/logo-transparent.png";
+import schoolPhoto from "../assets/school-photo.jpeg";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
@@ -21,7 +22,6 @@ function Home() {
   const [pengumuman, setPengumuman] = useState([]);
   const [galeri, setGaleri] = useState([]);
 
-  const heroPhoto = galeri.find((item) => item.image)?.image || kegiatan.find((item) => item.image)?.image || "";
 
   useEffect(() => {
     (async () => {
@@ -64,9 +64,9 @@ function Home() {
 
           <div className="hero-image home-hero-photo">
             <img
-              src={resolveMediaUrl(heroPhoto, schoolLogo)}
+              src={schoolPhoto}
               alt="Foto Sekolah Cipta Nusa Bakti"
-              onError={(event) => { event.currentTarget.src = schoolLogo; }}
+              onError={(event) => { event.currentTarget.src = schoolPhoto; }}
             />
           </div>
         </section>

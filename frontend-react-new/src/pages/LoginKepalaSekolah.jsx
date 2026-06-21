@@ -30,15 +30,29 @@ function LoginKepalaSekolah() {
           <h1>Masuk Kepala Sekolah</h1>
           <p>Masuk untuk memantau data guru, siswa, kegiatan, pengumuman, dan rekap absensi sekolah.</p>
 
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleLogin} autoComplete="off">
             <div className="form-group">
               <label>Email</label>
-              <input type="email" placeholder="kepsek@cnb.sch.id" value={email} onChange={(event) => setEmail(event.target.value)} required />
+              <input
+                type="email"
+                placeholder="Masukkan email kepala sekolah"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                autoComplete="off"
+                required
+              />
             </div>
 
             <div className="form-group">
               <label>Kata Sandi</label>
-              <input type="password" placeholder="Masukkan kata sandi" value={password} onChange={(event) => setPassword(event.target.value)} required />
+              <input
+                type="password"
+                placeholder="Masukkan kata sandi"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                autoComplete="new-password"
+                required
+              />
             </div>
 
             <button type="submit" className="submit-btn">Masuk</button>

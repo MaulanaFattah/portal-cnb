@@ -1,5 +1,6 @@
-import schoolLogo from "../assets/logo.jpeg";
+import schoolLogo from "../assets/logo-transparent.png";
 import { Link } from "react-router-dom";
+import { schoolContact } from "../data/schoolContact";
 
 function Footer() {
   return (
@@ -23,9 +24,9 @@ function Footer() {
         <div className="footer-contact">
           <h3>Kontak</h3>
 
-          <p>Jl. Pendidikan No. 01</p>
-          <p>0812-0000-0000</p>
-          <p>sekolah@example.com</p>
+          <p>{schoolContact.address}</p>
+          <p>{schoolContact.phone}</p>
+          <p>{schoolContact.email}</p>
         </div>
       </div>
 

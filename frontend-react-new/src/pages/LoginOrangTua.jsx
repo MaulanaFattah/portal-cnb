@@ -41,15 +41,16 @@ function LoginOrangTua() {
             Masukkan email dan kata sandi akun orang tua untuk melihat informasi siswa.
           </p>
 
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleLogin} autoComplete="off">
             <div className="form-group">
               <label>Email</label>
 
               <input
                 type="email"
-                placeholder="orangtua@cnb.sch.id"
+                placeholder="Masukkan email orang tua"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="off"
                 required
               />
             </div>
@@ -62,6 +63,7 @@ function LoginOrangTua() {
                 placeholder="Masukkan kata sandi"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
                 required
               />
             </div>

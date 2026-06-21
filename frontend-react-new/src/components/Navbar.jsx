@@ -1,4 +1,4 @@
-import schoolLogo from "../assets/logo.jpeg";
+import schoolLogo from "../assets/logo-transparent.png";
 import { Link, NavLink } from "react-router-dom";
 
 function Navbar() {

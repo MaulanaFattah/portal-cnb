@@ -41,14 +41,15 @@ function LoginSiswa() {
             Masukkan email dan kata sandi akun siswa untuk masuk ke portal.
           </p>
 
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleLogin} autoComplete="off">
             <div className="form-group">
               <label>Email</label>
               <input
                 type="email"
-                placeholder="siswa@cnb.sch.id"
+                placeholder="Masukkan email siswa"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="off"
                 required
               />
             </div>
@@ -60,6 +61,7 @@ function LoginSiswa() {
                 placeholder="Masukkan kata sandi"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
                 required
               />
             </div>

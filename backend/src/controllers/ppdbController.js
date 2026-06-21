@@ -139,7 +139,7 @@ exports.createPPDB = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Pendaftaran berhasil dikirim. Informasi verifikasi akan diberitahukan melalui email orang tua/wali atau WhatsApp.",
+      message: "Pendaftaran berhasil dikirim. Pemberitahuan hasil PPDB akan diumumkan di halaman Pengumuman sekolah setelah diverifikasi admin.",
       data: ppdb,
       notification
     });

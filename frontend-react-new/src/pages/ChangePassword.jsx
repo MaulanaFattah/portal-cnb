@@ -33,10 +33,10 @@ function ChangePassword() {
         <div className="auth-card">
           <h1>Ganti Kata Sandi</h1>
           <p>Akun ini memakai kata sandi awal dari administrator. Buat kata sandi baru sebelum membuka dasbor.</p>
-          <form onSubmit={handleSubmit}>
-            <div className="form-group"><label>Kata Sandi Saat Ini</label><input type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} required /></div>
-            <div className="form-group"><label>Kata Sandi Baru</label><input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} minLength="6" required /></div>
-            <div className="form-group"><label>Konfirmasi Kata Sandi Baru</label><input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} minLength="6" required /></div>
+          <form onSubmit={handleSubmit} autoComplete="off">
+            <div className="form-group"><label>Kata Sandi Saat Ini</label><input type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="off" required /></div>
+            <div className="form-group"><label>Kata Sandi Baru</label><input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" minLength="6" required /></div>
+            <div className="form-group"><label>Konfirmasi Kata Sandi Baru</label><input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" minLength="6" required /></div>
             <button type="submit" className="submit-btn">Simpan Kata Sandi Baru</button>
           </form>
         </div>

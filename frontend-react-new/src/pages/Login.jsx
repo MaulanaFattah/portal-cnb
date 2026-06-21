@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import schoolLogo from "../assets/logo.jpeg";
+import schoolLogo from "../assets/logo-transparent.png";
 
 const loginRoles = [
   {

@@ -1,7 +1,7 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AdminSidebar from "../components/AdminSidebar";
-import schoolLogo from "../assets/logo.jpeg";
+import schoolLogo from "../assets/logo-transparent.png";
 import { getGaleri, createGaleri, updateGaleri, deleteGaleri, logout, resolveMediaUrl } from "../services/api";
 
 const emptyForm = { image: "" };

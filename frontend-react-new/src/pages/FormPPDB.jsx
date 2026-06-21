@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { createPPDB } from "../services/api";
@@ -81,7 +81,7 @@ function FormPPDB() {
       if (result.success) {
         setStatus({
           type: "success",
-          message: "Pendaftaran berhasil dikirim. Jika dinyatakan lulus, nama calon siswa akan diumumkan di halaman Pengumuman sekolah."
+          message: "Pendaftaran berhasil dikirim. Pemberitahuan hasil PPDB akan diumumkan di halaman Pengumuman sekolah setelah diverifikasi admin."
         });
         setForm(initialForm);
       } else {
@@ -170,7 +170,7 @@ function FormPPDB() {
 
           <div className="form-group full ppdb-note-box">
             <strong>Pemberitahuan hasil</strong>
-            <span>Jika data sudah diverifikasi admin, informasi diterima/ditolak akan disampaikan melalui email orang tua/wali atau WhatsApp.</span>
+            <span>Hasil PPDB akan diumumkan di halaman Pengumuman sekolah setelah admin melakukan verifikasi. Jika diterima, nama calon siswa akan tercantum di pengumuman dan diminta datang ke sekolah untuk pendaftaran ulang.</span>
           </div>
 
           <button className="submit-btn full" type="submit" disabled={loading}>{loading ? "Mengirim..." : "Kirim Pendaftaran"}</button>

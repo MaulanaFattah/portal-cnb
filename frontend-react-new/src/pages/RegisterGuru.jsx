@@ -109,9 +109,9 @@ function RegisterGuru() {
           <h1>Registrasi Guru</h1>
           <p>Guru dapat mendaftar sebagai wali kelas, guru mata pelajaran, atau keduanya. Akun aktif setelah disetujui admin.</p>
 
-          <form className="teacher-register-form" onSubmit={handleRegister}>
-            <div className="form-group"><label>Nama Lengkap</label><input type="text" name="name" placeholder="Masukkan nama lengkap" value={formData.name} onChange={handleChange} required /></div>
-            <div className="form-group"><label>Email</label><input type="email" name="email" placeholder="guru@cnb.sch.id" value={formData.email} onChange={handleChange} required /></div>
+          <form className="teacher-register-form" onSubmit={handleRegister} autoComplete="off">
+            <div className="form-group"><label>Nama Lengkap</label><input type="text" name="name" placeholder="Masukkan nama lengkap" value={formData.name} onChange={handleChange} autoComplete="off" required /></div>
+            <div className="form-group"><label>Email</label><input type="email" name="email" placeholder="Masukkan email guru" value={formData.email} onChange={handleChange} autoComplete="off" required /></div>
 
             <div className="form-group role-field full">
               <label>Peran Guru</label>
@@ -125,10 +125,10 @@ function RegisterGuru() {
             </div>
 
             {formData.is_homeroom && <div className="form-group"><label>Kelas Wali</label><select name="homeroom_classroom_id" value={formData.homeroom_classroom_id} onChange={handleChange} required><option value="">Pilih kelas</option>{kelas.map((item) => <option key={item.id} value={item.id}>{[item.nama_kelas, item.tingkat, item.tahun_ajaran].filter(Boolean).join(" - ")}</option>)}</select></div>}
-            {formData.is_subject_teacher && <div className="form-group"><label>Mata Pelajaran</label><input type="text" name="subject" placeholder="Contoh: Matematika, IPA" value={formData.subject} onChange={handleChange} required /></div>}
+            {formData.is_subject_teacher && <div className="form-group"><label>Mata Pelajaran</label><input type="text" name="subject" placeholder="Contoh: Matematika, IPA" value={formData.subject} onChange={handleChange} autoComplete="off" required /></div>}
 
-            <div className="form-group"><label>Kata Sandi</label><input type="password" name="password" placeholder="Masukkan kata sandi" value={formData.password} onChange={handleChange} required /></div>
-            <div className="form-group"><label>Konfirmasi Kata Sandi</label><input type="password" name="confirmPassword" placeholder="Ulangi kata sandi" value={formData.confirmPassword} onChange={handleChange} required /></div>
+            <div className="form-group"><label>Kata Sandi</label><input type="password" name="password" placeholder="Masukkan kata sandi" value={formData.password} onChange={handleChange} autoComplete="new-password" required /></div>
+            <div className="form-group"><label>Konfirmasi Kata Sandi</label><input type="password" name="confirmPassword" placeholder="Ulangi kata sandi" value={formData.confirmPassword} onChange={handleChange} autoComplete="new-password" required /></div>
 
             <button type="submit" className="submit-btn">Registrasi</button>
           </form>

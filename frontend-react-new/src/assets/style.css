@@ -106,7 +106,7 @@ body {
 
 .footer-simple {
   display: grid;
-  grid-template-columns: 120px 1fr 1fr;
+  grid-template-columns: 120px 0.85fr 1.25fr;
   gap: 60px;
   align-items: start;
 }
@@ -170,6 +170,7 @@ body {
   color: #cbd5e1;
   margin-bottom: 12px;
   line-height: 1.7;
+  max-width: 420px;
 }
 
 .footer-bottom {
@@ -777,6 +778,11 @@ body {
 
 .contact-card p {
   color: #64748b;
+  line-height: 1.7;
+}
+
+.contact-card-wide {
+  grid-column: span 2;
 }
 
 @media (max-width: 900px) {
@@ -786,6 +792,7 @@ body {
     grid-template-columns: 1fr;
   }
 
+  .contact-card-wide,
   .form-group.full,
   .submit-btn {
     grid-column: span 1;

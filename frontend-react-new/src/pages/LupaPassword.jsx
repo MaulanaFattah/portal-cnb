@@ -26,7 +26,7 @@ function LupaPassword() {
             Masukkan email akun kamu. Sistem akan memproses permintaan atur ulang kata sandi.
           </p>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} autoComplete="off">
             <div className="form-group">
               <label>Email</label>
 
@@ -35,6 +35,7 @@ function LupaPassword() {
                 placeholder="Masukkan email akun"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="off"
                 required
               />
             </div>
