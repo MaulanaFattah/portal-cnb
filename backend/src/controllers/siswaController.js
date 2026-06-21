@@ -25,12 +25,42 @@ function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
 }
 
+function normalizePhoneNumber(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (digits.startsWith("62")) return `0${digits.slice(2)}`;
+  return digits;
+}
+
 function generatePassword(prefix) {
   return `${prefix}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }
 
 function buildPortalEmail(nisn, type) {
-  return `${String(nisn).toLowerCase().replace(/[^a-z0-9]+/g, "")}.${type}@portal.local`;
+  return `${String(nisn).toLowerCase().replace(/[^a-z0-9]+/g, "")}.${type}@ciptanusabakti.sch.id`;
+}
+
+async function findReusableParentUserByPhone(phone, transaction) {
+  const parentPhone = normalizePhoneNumber(phone);
+  if (!parentPhone) return null;
+
+  const siblingStudents = await Siswa.findAll({
+    where: { no_telepon: { [Op.ne]: null } },
+    attributes: ["id", "no_telepon"],
+    transaction
+  });
+  const siblingIds = siblingStudents
+    .filter((student) => normalizePhoneNumber(student.no_telepon) === parentPhone)
+    .map((student) => student.id);
+  if (!siblingIds.length) return null;
+
+  const parentLink = await PortalAccountLink.findOne({
+    where: { siswa_id: { [Op.in]: siblingIds }, link_type: "orangtua" },
+    order: [["id", "ASC"]],
+    transaction
+  });
+  if (!parentLink) return null;
+
+  return User.findOne({ where: { id: parentLink.user_id, role: "orangtua" }, transaction });
 }
 
 function buildSiswaPayload(body, file) {
@@ -100,15 +130,18 @@ exports.createSiswa = async (req, res) => {
       return res.status(400).json({ success: false, message: "Kelas tidak valid atau tidak ditemukan" });
     }
 
+    const reusableParentUser = await findReusableParentUserByPhone(payload.no_telepon, transaction);
     const studentEmail = normalizeEmail(req.body.student_email || payload.email || buildPortalEmail(payload.nisn, "siswa"));
-    const parentEmail = normalizeEmail(req.body.parent_email || req.body.orangtua_email || buildPortalEmail(payload.nisn, "orangtua"));
-    if (!EMAIL_PATTERN.test(studentEmail) || !EMAIL_PATTERN.test(parentEmail)) {
+    const parentEmail = reusableParentUser
+      ? reusableParentUser.email
+      : normalizeEmail(req.body.parent_email || req.body.orangtua_email || buildPortalEmail(payload.nisn, "orangtua"));
+    if (!EMAIL_PATTERN.test(studentEmail) || (!reusableParentUser && !EMAIL_PATTERN.test(parentEmail))) {
       await transaction.rollback();
       if (req.file) deleteLocalUpload(toRelativeUploadPath(req.file));
       return res.status(400).json({ success: false, message: "Format email akun siswa/orang tua tidak valid" });
     }
 
-    const emails = [studentEmail, parentEmail];
+    const emails = reusableParentUser ? [studentEmail] : [studentEmail, parentEmail];
     if (new Set(emails).size !== emails.length) {
       await transaction.rollback();
       if (req.file) deleteLocalUpload(toRelativeUploadPath(req.file));
@@ -122,8 +155,10 @@ exports.createSiswa = async (req, res) => {
       return res.status(409).json({ success: false, message: `Email akun sudah terdaftar: ${existingUsers.map((user) => user.email).join(", ")}` });
     }
 
+    if (reusableParentUser) payload.nama_ayah = reusableParentUser.name;
+
     const studentPassword = req.body.student_password || generatePassword("SISWA");
-    const parentPassword = req.body.parent_password || req.body.orangtua_password || generatePassword("ORTU");
+    const parentPassword = reusableParentUser ? null : req.body.parent_password || req.body.orangtua_password || generatePassword("ORTU");
     const siswa = await Siswa.create({ ...payload, email: studentEmail }, { transaction });
 
     const studentUser = await User.create({
@@ -135,15 +170,18 @@ exports.createSiswa = async (req, res) => {
       must_change_password: true
     }, { transaction });
 
-    const parentName = req.body.nama_orangtua || req.body.orangtua_name || payload.nama_ayah || `Orang Tua ${payload.nama}`;
-    const parentUser = await User.create({
-      name: parentName,
-      email: parentEmail,
-      password: await bcrypt.hash(parentPassword, 10),
-      role: "orangtua",
-      profession: [`Orang tua dari ${payload.nama}`, payload.no_telepon ? `No HP: ${payload.no_telepon}` : null].filter(Boolean).join(" | "),
-      must_change_password: true
-    }, { transaction });
+    let parentUser = reusableParentUser;
+    if (!parentUser) {
+      const parentName = req.body.nama_orangtua || req.body.orangtua_name || payload.nama_ayah || `Orang Tua ${payload.nama}`;
+      parentUser = await User.create({
+        name: parentName,
+        email: parentEmail,
+        password: await bcrypt.hash(parentPassword, 10),
+        role: "orangtua",
+        profession: [`Orang tua dari ${payload.nama}`, payload.no_telepon ? `No HP: ${payload.no_telepon}` : null].filter(Boolean).join(" | "),
+        must_change_password: true
+      }, { transaction });
+    }
 
     await PortalAccountLink.bulkCreate([
       { user_id: studentUser.id, siswa_id: siswa.id, link_type: "siswa" },
@@ -154,18 +192,25 @@ exports.createSiswa = async (req, res) => {
       action: "student.create",
       entityType: "student",
       entityId: siswa.id,
-      metadata: { nisn: siswa.nisn, createdAccounts: [studentUser.id, parentUser.id], uploaded: Boolean(req.file) }
+      metadata: {
+        nisn: siswa.nisn,
+        createdAccounts: reusableParentUser ? [studentUser.id] : [studentUser.id, parentUser.id],
+        reusedParentAccount: Boolean(reusableParentUser),
+        uploaded: Boolean(req.file)
+      }
     }, { transaction });
 
     await transaction.commit();
 
     res.status(201).json({
       success: true,
-      message: "Data siswa serta akun siswa dan orang tua berhasil ditambahkan",
+      message: reusableParentUser
+        ? "Data siswa dan akun siswa berhasil ditambahkan. Akun orang tua lama dipakai ulang."
+        : "Data siswa serta akun siswa dan orang tua berhasil ditambahkan",
       data: attachClass(siswa, new Map([[Number(kelas.id), kelas.toJSON()]])),
       credentials: {
         siswa: { email: studentEmail, password: studentPassword },
-        orangtua: { email: parentEmail, password: parentPassword }
+        orangtua: { email: parentEmail, password: parentPassword, reused: Boolean(reusableParentUser) }
       }
     });
   } catch (error) {
@@ -246,25 +291,28 @@ exports.deleteSiswa = async (req, res) => {
     }
 
     const links = await PortalAccountLink.findAll({ where: { siswa_id: siswa.id }, transaction });
-    const userIds = links.map((link) => link.user_id);
+    const studentUserIds = links
+      .filter((link) => link.link_type === "siswa")
+      .map((link) => link.user_id);
+    const preservedParentLinks = links.filter((link) => link.link_type === "orangtua").length;
     const oldFoto = siswa.foto;
 
     await PortalAccountLink.destroy({ where: { siswa_id: siswa.id }, transaction });
     await siswa.destroy({ transaction });
-    if (userIds.length) await User.destroy({ where: { id: { [Op.in]: userIds } }, transaction });
+    if (studentUserIds.length) await User.destroy({ where: { id: { [Op.in]: studentUserIds } }, transaction });
 
     await logAudit(req, {
       action: "student.delete",
       entityType: "student",
       entityId: id,
-      metadata: { deletedLinkedAccounts: userIds.length }
+      metadata: { deletedStudentAccounts: studentUserIds.length, preservedParentLinks }
     }, { transaction });
     await transaction.commit();
     deleteLocalUpload(oldFoto);
 
     res.json({
       success: true,
-      message: "Data siswa dan akun terhubung berhasil dihapus"
+      message: "Data siswa dan akun siswa berhasil dihapus. Akun orang tua tetap disimpan."
     });
   } catch (error) {
     await transaction.rollback();

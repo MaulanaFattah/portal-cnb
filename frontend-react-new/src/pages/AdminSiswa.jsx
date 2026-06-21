@@ -1,4 +1,3 @@
-import schoolLogo from "../assets/logo-transparent.png";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AdminSidebar from "../components/AdminSidebar";
@@ -8,8 +7,7 @@ import {
   createSiswa,
   updateSiswa,
   deleteSiswa,
-  logout,
-  resolveMediaUrl
+  logout
 } from "../services/api";
 
 const emptyForm = {
@@ -20,12 +18,7 @@ const emptyForm = {
   jenis_kelamin: "L",
   alamat: "",
   nama_ayah: "",
-  no_telepon: "",
-  tempat_lahir: "",
-  agama: "",
-  nama_ibu: "",
-  foto: "",
-  status: "aktif"
+  no_telepon: ""
 };
 
 function classLabel(item) {
@@ -36,13 +29,26 @@ function getStudentClassId(item) {
   return String(item.kelas_id || item.kelas?.id || "");
 }
 
+function toStudentFormData(item = {}) {
+  return {
+    nisn: item.nisn || "",
+    nama: item.nama || "",
+    kelas_id: item.kelas_id || item.kelas?.id || "",
+    tanggal_lahir: item.tanggal_lahir || "",
+    jenis_kelamin: item.jenis_kelamin || "L",
+    alamat: item.alamat || "",
+    nama_ayah: item.nama_ayah || item.nama_orangtua || "",
+    no_telepon: item.no_telepon || ""
+  };
+}
+
 function AdminSiswa() {
   const navigate = useNavigate();
   const [siswa, setSiswa] = useState([]);
   const [kelas, setKelas] = useState([]);
   const [editId, setEditId] = useState(null);
+  const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [formData, setFormData] = useState(emptyForm);
-  const [fotoPreview, setFotoPreview] = useState("");
   const [search, setSearch] = useState("");
   const [activeClassId, setActiveClassId] = useState("all");
   const [credentials, setCredentials] = useState(null);
@@ -130,26 +136,23 @@ function AdminSiswa() {
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  const handleImage = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setFormData({ ...formData, foto: file });
-    setFotoPreview(URL.createObjectURL(file));
-  };
-
   const resetForm = () => {
     setEditId(null);
     setFormData(emptyForm);
-    setFotoPreview("");
+    setIsFormDialogOpen(false);
+  };
+  const openCreateDialog = () => {
+    setEditId(null);
+    setFormData(emptyForm);
+    setCredentials(null);
+    setIsFormDialogOpen(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setCredentials(null);
 
-    const submitData = { ...formData };
-    delete submitData.email;
-    delete submitData.parent_email;
+    const submitData = toStudentFormData(formData);
     const result = editId ? await updateSiswa(editId, submitData) : await createSiswa(submitData);
     if (!result.success) {
       alert(result.message);
@@ -164,9 +167,9 @@ function AdminSiswa() {
 
   const handleEdit = (item) => {
     setEditId(item.id);
-    setFormData({ ...emptyForm, ...item, foto: item.foto || "" });
-    setFotoPreview(resolveMediaUrl(item.foto, schoolLogo));
+    setFormData(toStudentFormData(item));
     setCredentials(null);
+    setIsFormDialogOpen(true);
   };
 
   const handleDelete = async (id) => {
@@ -186,21 +189,26 @@ function AdminSiswa() {
         <div className="dashboard-header">
           <div>
             <h1>Siswa</h1>
-            <p>Kelola data siswa, akun siswa, dan akun orang tua secara terpadu.</p>
+            <p>Kelola data siswa. Akun siswa dan orang tua otomatis dibuat saat siswa baru disimpan.</p>
           </div>
           <div className="dashboard-actions">
+            <button type="button" onClick={openCreateDialog} className="btn primary">Tambah Data Siswa</button>
             <Link to="/" className="btn secondary">Situs web</Link>
-            <button onClick={handleLogout} className="btn primary">Keluar</button>
+            <button type="button" onClick={handleLogout} className="btn secondary">Keluar</button>
           </div>
         </div>
 
         {credentials && (
           <section className="dashboard-card credential-card">
-            <h3>Akun awal berhasil dibuat</h3>
-            <p>Simpan kata sandi ini sekarang. Kata sandi tidak ditampilkan lagi setelah halaman berubah.</p>
+            <h3>{credentials.orangtua?.reused ? "Akun siswa dibuat, orang tua dipakai ulang" : "Akun siswa dan orang tua otomatis dibuat"}</h3>
+            <p>{credentials.orangtua?.reused ? "Akun siswa baru dibuat. Akun orang tua lama dipakai ulang karena nomor HP orang tua sama." : "Simpan kata sandi ini sekarang. Kedua akun langsung terhubung ke data siswa."}</p>
             <div className="credential-grid">
               <div><strong>Siswa</strong><span>{credentials.siswa.email}</span><code>{credentials.siswa.password}</code></div>
-              <div><strong>Orang Tua</strong><span>{credentials.orangtua.email}</span><code>{credentials.orangtua.password}</code></div>
+              <div>
+                <strong>Orang Tua</strong>
+                <span>{credentials.orangtua.email}</span>
+                {credentials.orangtua.reused ? <span>Akun lama dipakai ulang</span> : <code>{credentials.orangtua.password}</code>}
+              </div>
             </div>
           </section>
         )}
@@ -214,45 +222,7 @@ function AdminSiswa() {
           ))}
         </section>
 
-        <section className="admin-kegiatan-card student-admin-card">
-          <div className="kegiatan-form-area">
-            <h2>{editId ? "Ubah Data Siswa" : "Tambah Data Siswa"}</h2>
-            <p className="form-helper-text">Isi data utama siswa dan orang tua. Field tambahan tetap opsional agar proses input lebih cepat.</p>
-            <form onSubmit={handleSubmit}>
-              <div className="form-section-title">Data Siswa</div>
-              <div className="student-form-grid">
-                <div className="form-group"><label>Nama Siswa</label><input name="nama" value={formData.nama} onChange={handleChange} required /></div>
-                <div className="form-group"><label>NIS/NISN</label><input name="nisn" value={formData.nisn} onChange={handleChange} required /></div>
-                <div className="form-group"><label>Kelas</label><select name="kelas_id" value={formData.kelas_id || ""} onChange={handleChange} required><option value="">Pilih kelas</option>{kelas.map((item) => <option key={item.id} value={item.id}>{classLabel(item)}</option>)}</select></div>
-                <div className="form-group"><label>Jenis Kelamin</label><select name="jenis_kelamin" value={formData.jenis_kelamin} onChange={handleChange} required><option value="L">Laki-laki</option><option value="P">Perempuan</option></select></div>
-                <div className="form-group"><label>Tanggal Lahir</label><input type="date" name="tanggal_lahir" value={formData.tanggal_lahir || ""} onChange={handleChange} required /></div>
-                <div className="form-group full"><label>Alamat Siswa</label><textarea name="alamat" value={formData.alamat || ""} onChange={handleChange} rows="2" required /></div>
-              </div>
-
-              <div className="form-section-title">Data Orang Tua</div>
-              <div className="student-form-grid">
-                <div className="form-group"><label>Nama Orang Tua</label><input name="nama_ayah" value={formData.nama_ayah || ""} onChange={handleChange} required /></div>
-                <div className="form-group"><label>Nomor HP</label><input name="no_telepon" value={formData.no_telepon || ""} onChange={handleChange} required /></div>
-              </div>
-
-              <details className="advanced-fields">
-                <summary>Field tambahan</summary>
-                <div className="student-form-grid">
-                  <div className="form-group"><label>Tempat Lahir <span className="field-optional">opsional</span></label><input name="tempat_lahir" value={formData.tempat_lahir || ""} onChange={handleChange} /></div>
-                  <div className="form-group"><label>Agama <span className="field-optional">opsional</span></label><input name="agama" value={formData.agama || ""} onChange={handleChange} /></div>
-                  <div className="form-group"><label>Nama Ibu <span className="field-optional">opsional</span></label><input name="nama_ibu" value={formData.nama_ibu || ""} onChange={handleChange} /></div>
-                  <div className="form-group"><label>Status <span className="field-optional">opsional</span></label><select name="status" value={formData.status || "aktif"} onChange={handleChange}><option value="aktif">Aktif</option><option value="lulus">Lulus</option><option value="pindah">Pindah</option><option value="keluar">Keluar</option></select></div>
-                  <div className="form-group full"><label>Foto <span className="field-optional">opsional</span></label><label className="upload-box">{fotoPreview || formData.foto ? <img src={fotoPreview || resolveMediaUrl(formData.foto, schoolLogo)} alt="Pratinjau" /> : <div><strong>Unggah Foto</strong><span>JPG / PNG / WebP</span></div>}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImage} /></label></div>
-                </div>
-              </details>
-
-              <div className="button-row">
-                <button type="submit" className="save-btn">{editId ? "Simpan Perubahan" : "Simpan & Buat Akun"}</button>
-                {editId && <button type="button" onClick={resetForm} className="cancel-btn">Batal</button>}
-              </div>
-            </form>
-          </div>
-
+        <section className="admin-kegiatan-card student-admin-card student-admin-list-card">
           <div className="kegiatan-list-area">
             <div className="student-list-head">
               <div className="student-list-title">
@@ -267,14 +237,6 @@ function AdminSiswa() {
                 </select>
                 <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari nama, NISN, kelas..." />
               </div>
-            </div>
-
-            <div className="student-class-tabs" role="tablist" aria-label="Filter kelas siswa">
-              <button type="button" role="tab" aria-selected={activeClassId === "all"} className={activeClassId === "all" ? "student-class-tab active" : "student-class-tab"} onClick={() => setActiveClassId("all")}><span>Semua Kelas</span><strong>{siswa.length}</strong></button>
-              {classTabs.map((item) => (
-                <button type="button" role="tab" aria-selected={activeClassId === String(item.id)} key={item.id} className={activeClassId === String(item.id) ? "student-class-tab active" : "student-class-tab"} onClick={() => setActiveClassId(String(item.id))}><span>{item.label}</span><strong>{item.count}</strong></button>
-              ))}
-              {noClassCount > 0 && <button type="button" role="tab" aria-selected={activeClassId === "none"} className={activeClassId === "none" ? "student-class-tab active" : "student-class-tab"} onClick={() => setActiveClassId("none")}><span>Tanpa Kelas</span><strong>{noClassCount}</strong></button>}
             </div>
 
             <div className="student-class-groups">
@@ -293,32 +255,85 @@ function AdminSiswa() {
                     <span className="student-class-count">{group.students.length} siswa</span>
                   </div>
 
-                  <div className="student-card-list">
-                    {group.students.length === 0 ? <div className="student-empty-state">Tidak ada siswa pada kelas ini.</div> : group.students.map((item, index) => (
-                      <article className="student-row-card" key={item.id}>
-                        <span className="student-row-number">{index + 1}</span>
-                        <div className="student-row-main">
-                          <strong>{item.nama}</strong>
-                          <span>NIS/NISN: {item.nisn || "-"}</span>
-                          <span>{item.jenis_kelamin === "P" ? "Perempuan" : "Laki-laki"}</span>
-                        </div>
-                        <div className="student-row-meta">
-                          <span className="student-class-chip">{item.kelas?.nama_kelas || classMap.get(getStudentClassId(item))?.nama_kelas || "-"}</span>
-                          <span><strong>Orang tua</strong>{item.nama_ayah || item.nama_ibu || "-"}</span>
-                          <span><strong>No. HP</strong>{item.no_telepon || "Belum diisi"}</span>
-                        </div>
-                        <div className="admin-action compact student-row-actions">
-                          <button type="button" onClick={() => handleEdit(item)}>Ubah</button>
-                          <button type="button" onClick={() => handleDelete(item.id)}>Hapus</button>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
+                  {group.students.length === 0 ? (
+                    <div className="student-empty-state">Tidak ada siswa pada kelas ini.</div>
+                  ) : (
+                    <div className="table-responsive student-table-wrap">
+                      <table className="admin-table student-table student-directory-table">
+                        <thead>
+                          <tr>
+                            <th>No</th>
+                            <th>Nama Siswa</th>
+                            <th>NIS/NISN</th>
+                            <th>JK</th>
+                            <th>Kelas</th>
+                            <th>Orang Tua</th>
+                            <th>No. HP</th>
+                            <th>Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {group.students.map((item, index) => (
+                            <tr key={item.id}>
+                              <td>{index + 1}</td>
+                              <td className="student-name-cell"><strong>{item.nama}</strong></td>
+                              <td>{item.nisn || "-"}</td>
+                              <td>{item.jenis_kelamin === "P" ? "P" : "L"}</td>
+                              <td>{item.kelas?.nama_kelas || classMap.get(getStudentClassId(item))?.nama_kelas || "-"}</td>
+                              <td>{item.nama_ayah || item.nama_ibu || "-"}</td>
+                              <td>{item.no_telepon || "-"}</td>
+                              <td>
+                                <div className="admin-action compact student-table-actions">
+                                  <button type="button" onClick={() => handleEdit(item)}>Ubah</button>
+                                  <button type="button" onClick={() => handleDelete(item.id)}>Hapus</button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </section>
               ))}
             </div>
           </div>
         </section>
+        {isFormDialogOpen && (
+          <div className="management-modal-backdrop student-form-modal-backdrop" role="presentation" onClick={resetForm}>
+            <section className="management-modal-card student-form-modal-card" role="dialog" aria-modal="true" aria-labelledby="student-dialog-title" onClick={(event) => event.stopPropagation()}>
+              <button type="button" className="management-modal-close" onClick={resetForm} aria-label="Tutup dialog data siswa">&times;</button>
+              <div className="management-modal-header">
+                <span>{editId ? "Ubah Data Siswa" : "Tambah Data Siswa"}</span>
+                <h2 id="student-dialog-title">{editId ? "Ubah Data Siswa" : "Tambah Data Siswa"}</h2>
+                <p>Isi data siswa dan orang tua. Akun siswa serta orang tua akan dibuat dan terhubung otomatis.</p>
+              </div>
+
+              <form className="student-dialog-form" onSubmit={handleSubmit}>
+                <div className="form-section-title">Data Siswa</div>
+                <div className="student-form-grid">
+                  <div className="form-group"><label>Nama Siswa</label><input name="nama" value={formData.nama} onChange={handleChange} required /></div>
+                  <div className="form-group"><label>NIS/NISN</label><input name="nisn" value={formData.nisn} onChange={handleChange} required /></div>
+                  <div className="form-group"><label>Kelas</label><select name="kelas_id" value={formData.kelas_id || ""} onChange={handleChange} required><option value="">Pilih kelas</option>{kelas.map((item) => <option key={item.id} value={item.id}>{classLabel(item)}</option>)}</select></div>
+                  <div className="form-group"><label>Jenis Kelamin</label><select name="jenis_kelamin" value={formData.jenis_kelamin} onChange={handleChange} required><option value="L">Laki-laki</option><option value="P">Perempuan</option></select></div>
+                  <div className="form-group"><label>Tanggal Lahir</label><input type="date" name="tanggal_lahir" value={formData.tanggal_lahir || ""} onChange={handleChange} required /></div>
+                  <div className="form-group full"><label>Alamat Siswa</label><textarea name="alamat" value={formData.alamat || ""} onChange={handleChange} rows="2" required /></div>
+                </div>
+
+                <div className="form-section-title">Data Orang Tua</div>
+                <div className="student-form-grid">
+                  <div className="form-group"><label>Nama Orang Tua</label><input name="nama_ayah" value={formData.nama_ayah || ""} onChange={handleChange} required /></div>
+                  <div className="form-group"><label>Nomor HP</label><input name="no_telepon" value={formData.no_telepon || ""} onChange={handleChange} required /></div>
+                </div>
+
+                <div className="management-modal-actions student-dialog-actions">
+                  <button type="button" className="cancel-btn" onClick={resetForm}>Batal</button>
+                  <button type="submit" className="save-btn">{editId ? "Simpan Perubahan" : "Simpan & Buat Akun Otomatis"}</button>
+                </div>
+              </form>
+            </section>
+          </div>
+        )}
       </main>
     </div>
   );

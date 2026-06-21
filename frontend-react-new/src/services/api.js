@@ -66,6 +66,17 @@ export async function changePassword(data) {
   return response.json();
 }
 
+export async function requestPasswordReset(data) {
+  const response = await fetch(`${API_URL}/auth/forgot-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
 export async function getAdminDashboard() {
   const token = localStorage.getItem("token");
 
@@ -508,6 +519,42 @@ export async function deleteUser(id) {
 export async function resetUserPassword(id, data = {}) {
   const token = localStorage.getItem("token");
   const response = await fetch(`${API_URL}/admin/users/${id}/reset-password`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
+export async function getPasswordResetRequests(status = "pending") {
+  const token = localStorage.getItem("token");
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  const response = await fetch(`${API_URL}/admin/password-reset-requests?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.json();
+}
+
+export async function processPasswordResetRequest(id, data = {}) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/admin/password-reset-requests/${id}/reset`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
+export async function rejectPasswordResetRequest(id, data = {}) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/admin/password-reset-requests/${id}/reject`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",

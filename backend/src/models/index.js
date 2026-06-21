@@ -15,6 +15,7 @@ const JadwalMengajar = require("./JadwalMengajar");
 const AbsensiSiswa = require("./AbsensiSiswa");
 const PortalAccountLink = require("./PortalAccountLink");
 const AuditLog = require("./AuditLog");
+const PasswordResetRequest = require("./PasswordResetRequest");
 
 const db = {};
 
@@ -35,6 +36,7 @@ db.JadwalMengajar = JadwalMengajar(sequelize);
 db.AbsensiSiswa = AbsensiSiswa(sequelize);
 db.PortalAccountLink = PortalAccountLink(sequelize);
 db.AuditLog = AuditLog(sequelize);
+db.PasswordResetRequest = PasswordResetRequest(sequelize);
 
 const cascade = { onDelete: "CASCADE", onUpdate: "CASCADE" };
 const setNull = { onDelete: "SET NULL", onUpdate: "CASCADE" };
@@ -69,5 +71,10 @@ db.Siswa.hasMany(db.PortalAccountLink, { foreignKey: "siswa_id", as: "portalLink
 db.PortalAccountLink.belongsTo(db.Siswa, { foreignKey: "siswa_id", as: "siswa", ...cascade });
 db.User.hasMany(db.AuditLog, { foreignKey: "actor_user_account_id", as: "auditLogs", ...setNull });
 db.AuditLog.belongsTo(db.User, { foreignKey: "actor_user_account_id", as: "actor", ...setNull });
+
+db.User.hasMany(db.PasswordResetRequest, { foreignKey: "matched_user_id", as: "passwordResetRequests", ...setNull });
+db.PasswordResetRequest.belongsTo(db.User, { foreignKey: "matched_user_id", as: "matchedUser", ...setNull });
+db.User.hasMany(db.PasswordResetRequest, { foreignKey: "processed_by", as: "processedPasswordResetRequests", ...setNull });
+db.PasswordResetRequest.belongsTo(db.User, { foreignKey: "processed_by", as: "processedBy", ...setNull });
 
 module.exports = db;

@@ -4,302 +4,872 @@ import AdminSidebar from "../components/AdminSidebar";
 import {
   getUsersByRole,
   getSiswa,
+  getKelas,
   createUser,
   updateUser,
   deleteUser,
   resetUserPassword,
+  createSiswa,
+  updateSiswa,
+  deleteSiswa,
   logout
 } from "../services/api";
 
+const linkedRoles = ["siswa", "orangtua"];
+
 const roleLabels = {
-  siswa: "Siswa",
-  orangtua: "Orang Tua",
-  kepala_sekolah: "Kepala Sekolah"
+  siswa: "Akun Siswa",
+  orangtua: "Akun Orang Tua"
 };
 
-function getAccountClassName(item) {
-  return item.siswa?.kelas?.nama_kelas || "Belum terhubung kelas";
+const tabs = [
+  { id: "relasi", label: "Relasi" },
+  { id: "siswa", label: "Siswa" },
+  { id: "orangtua", label: "Orang Tua" }
+];
+
+const emptyStudentForm = {
+  nisn: "",
+  nama: "",
+  kelas_id: "",
+  tanggal_lahir: "",
+  jenis_kelamin: "L",
+  alamat: "",
+  nama_ayah: "",
+  no_telepon: ""
+};
+
+const emptyAccountForm = {
+  name: "",
+  email: "",
+  password: "",
+  role: "orangtua",
+  siswa_id: "",
+  profession: ""
+};
+
+function classLabel(item = {}) {
+  return [item.nama_kelas, item.tingkat ? `Tingkat ${item.tingkat}` : null, item.tahun_ajaran].filter(Boolean).join(" - ");
 }
 
-function getAccountClassId(item) {
-  return String(item.siswa?.kelas?.id || item.siswa?.kelas_id || "");
+function getStudentClassName(student) {
+  return student?.kelas?.nama_kelas || (student?.kelas_id ? `Kelas ${student.kelas_id}` : "Belum ada kelas");
 }
 
-function getLinkedStudentName(item) {
-  return item.siswa?.nama || "Belum terhubung siswa";
+function getStudentParentName(student) {
+  return student?.nama_ayah || student?.nama_ibu || "Belum ada data orang tua";
 }
 
-function getParentName(item) {
-  if (item.role === "orangtua") return item.name;
-  return item.siswa?.nama_ayah || item.siswa?.nama_ibu || "Belum ada data orang tua";
+function normalizePhoneNumber(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (digits.startsWith("62")) return `0${digits.slice(2)}`;
+  return digits;
+}
+
+function buildPortalEmail(nisn, type) {
+  const cleanNisn = String(nisn || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+  if (!cleanNisn) return "";
+  return `${cleanNisn}.${type}@ciptanusabakti.sch.id`;
+}
+
+function generateTemporaryPassword(prefix) {
+  const random = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `${prefix}-${random}`;
+}
+
+function getAccountPortalLinks(account) {
+  const links = Array.isArray(account?.portalLinks) ? account.portalLinks : [];
+  if (links.length > 0) return links;
+  return account?.portalLink ? [account.portalLink] : [];
+}
+
+function getDefaultAccountName(role, student) {
+  if (!student) return "";
+  if (role === "orangtua") return student.nama_ayah || student.nama_ibu || `Orang Tua ${student.nama}`;
+  return student.nama || "";
+}
+
+function getDefaultProfession(role, student) {
+  if (!student) return "";
+  if (role === "orangtua") {
+    return [`Orang tua dari ${student.nama}`, student.no_telepon ? `No HP: ${student.no_telepon}` : null].filter(Boolean).join(" | ");
+  }
+  return `Siswa ${getStudentClassName(student)}`;
+}
+
+function toStudentFormData(item = {}) {
+  return {
+    nisn: item.nisn || "",
+    nama: item.nama || "",
+    kelas_id: item.kelas_id || item.kelas?.id || "",
+    tanggal_lahir: item.tanggal_lahir || "",
+    jenis_kelamin: item.jenis_kelamin || "L",
+    alamat: item.alamat || "",
+    nama_ayah: item.nama_ayah || item.nama_orangtua || "",
+    no_telepon: item.no_telepon || ""
+  };
 }
 
 function AdminAkunSiswa() {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [siswaList, setSiswaList] = useState([]);
-  const [editId, setEditId] = useState(null);
+  const [kelas, setKelas] = useState([]);
+  const [activeTab, setActiveTab] = useState("relasi");
+  const [search, setSearch] = useState("");
+
+  const [studentForm, setStudentForm] = useState(emptyStudentForm);
+  const [studentEditId, setStudentEditId] = useState(null);
+  const [isStudentDialogOpen, setIsStudentDialogOpen] = useState(false);
+  const [credentials, setCredentials] = useState(null);
+
+  const [accountDialog, setAccountDialog] = useState(null);
+  const [accountForm, setAccountForm] = useState(emptyAccountForm);
+  const [studentQuery, setStudentQuery] = useState("");
+  const [isStudentListOpen, setIsStudentListOpen] = useState(false);
+
+  const [resetDialog, setResetDialog] = useState(null);
+  const [resetPasswordValue, setResetPasswordValue] = useState("");
   const [resetCredential, setResetCredential] = useState(null);
-  const [activeClassId, setActiveClassId] = useState("all");
 
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    role: "siswa",
-    siswa_id: "",
-    profession: ""
-  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const loadUsers = async () => {
-    const [siswaResult, orangTuaResult, kepalaResult, studentResult] = await Promise.all([
+  const loadData = async () => {
+    const [siswaAccounts, parentAccounts, studentResult, kelasResult] = await Promise.all([
       getUsersByRole("siswa"),
       getUsersByRole("orangtua"),
-      getUsersByRole("kepala_sekolah"),
-      getSiswa()
+      getSiswa(),
+      getKelas()
     ]);
-    setUsers([...(siswaResult.data || []), ...(orangTuaResult.data || []), ...(kepalaResult.data || [])]);
+    setUsers([...(siswaAccounts.data || []), ...(parentAccounts.data || [])]);
     if (studentResult.success) setSiswaList(studentResult.data || []);
+    if (kelasResult.success) setKelas(kelasResult.data || []);
   };
 
   useEffect(() => {
     (async () => {
-      await loadUsers();
+      await loadData();
     })();
   }, []);
 
-  const accountClassOptions = useMemo(() => {
-    const classMap = new Map();
-    siswaList.forEach((siswa) => {
-      const id = String(siswa.kelas?.id || siswa.kelas_id || "");
-      if (id) classMap.set(id, siswa.kelas?.nama_kelas || `Kelas ${id}`);
+  const studentMap = useMemo(() => new Map(siswaList.map((student) => [String(student.id), student])), [siswaList]);
+
+  const accountsByStudent = useMemo(() => {
+    const accountMap = new Map();
+    users.forEach((account) => {
+      getAccountPortalLinks(account).forEach((link) => {
+        const role = link.link_type || account.role;
+        const studentId = String(link.siswa_id || "");
+        if (!studentId || !linkedRoles.includes(role)) return;
+        const current = accountMap.get(studentId) || {};
+        accountMap.set(studentId, { ...current, [role]: account });
+      });
     });
-    return [...classMap.entries()].map(([id, name]) => ({ id, name }));
-  }, [siswaList]);
+    return accountMap;
+  }, [users]);
 
-  const filteredUsers = useMemo(() => users.filter((item) => (
-    activeClassId === "all" || getAccountClassId(item) === activeClassId
-  )), [activeClassId, users]);
+  const parentRows = useMemo(() => {
+    return users
+      .filter((account) => account.role === "orangtua")
+      .map((account) => {
+        const linkedStudents = getAccountPortalLinks(account)
+          .map((link) => studentMap.get(String(link.siswa_id || "")))
+          .filter(Boolean);
+        const uniqueStudents = [...new Map(linkedStudents.map((student) => [String(student.id), student])).values()];
+        return { account, students: uniqueStudents };
+      })
+      .sort((first, second) => (first.account.name || "").localeCompare(second.account.name || "", "id-ID"));
+  }, [studentMap, users]);
 
-  const sortedUsers = useMemo(() => [...filteredUsers].sort((a, b) => {
-    const classCompare = getAccountClassName(a).localeCompare(getAccountClassName(b), "id-ID");
-    if (classCompare !== 0) return classCompare;
-    return (a.name || "").localeCompare(b.name || "", "id-ID");
-  }), [filteredUsers]);
+  const accountStudentOptions = useMemo(() => {
+    const keyword = studentQuery.trim().toLowerCase();
+    const list = keyword
+      ? siswaList.filter((student) => [student.nama, student.nisn, getStudentClassName(student)]
+          .some((value) => String(value || "").toLowerCase().includes(keyword)))
+      : siswaList;
+    return [...list]
+      .sort((first, second) => (first.nama || "").localeCompare(second.nama || "", "id-ID"))
+      .slice(0, 50);
+  }, [siswaList, studentQuery]);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const reusableParentPreview = useMemo(() => {
+    if (studentEditId) return null;
+    const phone = normalizePhoneNumber(studentForm.no_telepon);
+    if (!phone) return null;
 
-  const resetForm = () => {
-    setEditId(null);
-    setFormData({ name: "", email: "", password: "", role: "siswa", siswa_id: "", profession: "" });
-  };
+    const sibling = siswaList.find((student) => normalizePhoneNumber(student.no_telepon) === phone);
+    if (!sibling) return null;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+    const parentAccount = accountsByStudent.get(String(sibling.id))?.orangtua || null;
+    return {
+      sibling,
+      account: parentAccount,
+      linkedCount: parentAccount ? getAccountPortalLinks(parentAccount).filter((link) => link.siswa_id).length : 0
+    };
+  }, [accountsByStudent, siswaList, studentEditId, studentForm.no_telepon]);
 
-    if (["siswa", "orangtua"].includes(formData.role) && !formData.siswa_id) {
-      alert("Pilih siswa yang akan dihubungkan dengan akun ini.");
-      return;
-    }
 
-    const result = editId
-      ? await updateUser(editId, formData)
-      : await createUser(formData);
+  const filteredStudents = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+    return siswaList
+      .filter((student) => {
+        const accounts = accountsByStudent.get(String(student.id)) || {};
+        const values = [
+          student.nama,
+          student.nisn,
+          getStudentClassName(student),
+          getStudentParentName(student),
+          student.no_telepon,
+          accounts.siswa?.email,
+          accounts.orangtua?.email
+        ];
+        return !keyword || values.some((value) => String(value || "").toLowerCase().includes(keyword));
+      })
+      .sort((first, second) => {
+        const classCompare = getStudentClassName(first).localeCompare(getStudentClassName(second), "id-ID");
+        if (classCompare !== 0) return classCompare;
+        return (first.nama || "").localeCompare(second.nama || "", "id-ID");
+      });
+  }, [accountsByStudent, search, siswaList]);
 
-    alert(result.message);
-
-    if (result.success) {
-      resetForm();
-      loadUsers();
-    }
-  };
-
-  const handleEdit = (item) => {
-    setEditId(item.id);
-    setFormData({
-      name: item.name,
-      email: item.email,
-      password: "",
-      role: item.role,
-      siswa_id: item.portalLink?.siswa_id || "",
-      profession: item.profession || ""
+  const filteredParents = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+    if (!keyword) return parentRows;
+    return parentRows.filter(({ account, students }) => {
+      const values = [account.name, account.email, ...students.map((student) => student.nama)];
+      return values.some((value) => String(value || "").toLowerCase().includes(keyword));
     });
-  };
+  }, [parentRows, search]);
 
-  const handleDelete = async (id) => {
-    if (!confirm("Yakin ingin menghapus akun ini?")) return;
-    const result = await deleteUser(id);
-    alert(result.message);
-    loadUsers();
-  };
-
-  const handleResetPassword = async (item) => {
-    const customPassword = prompt("Masukkan kata sandi baru, atau kosongkan untuk dibuat otomatis:");
-    if (customPassword === null) return;
-    const result = await resetUserPassword(item.id, customPassword ? { password: customPassword } : {});
-    alert(result.message);
-    if (result.success && result.data?.generated_password) {
-      setResetCredential({ email: item.email, password: result.data.generated_password });
-    }
-    loadUsers();
-  };
+  const summaryItems = useMemo(() => {
+    const studentAccounts = users.filter((account) => account.role === "siswa" && getAccountPortalLinks(account).some((link) => link.siswa_id)).length;
+    const parentLinkedStudentIds = new Set();
+    parentRows.forEach(({ students }) => students.forEach((student) => parentLinkedStudentIds.add(String(student.id))));
+    return [
+      { label: "Total Siswa", value: siswaList.length },
+      { label: "Akun Siswa", value: studentAccounts },
+      { label: "Akun Orang Tua", value: parentRows.length },
+      { label: "Orang Tua Terhubung", value: parentLinkedStudentIds.size }
+    ];
+  }, [parentRows, siswaList.length, users]);
 
   const handleLogout = () => {
     logout();
     navigate("/admin-login");
   };
 
+  const openCreateStudentDialog = () => {
+    setStudentEditId(null);
+    setStudentForm(emptyStudentForm);
+    setCredentials(null);
+    setIsStudentDialogOpen(true);
+  };
+
+  const openEditStudentDialog = (student) => {
+    setStudentEditId(student.id);
+    setStudentForm(toStudentFormData(student));
+    setCredentials(null);
+    setIsStudentDialogOpen(true);
+  };
+
+  const closeStudentDialog = () => {
+    setStudentEditId(null);
+    setStudentForm(emptyStudentForm);
+    setIsStudentDialogOpen(false);
+    setIsSubmitting(false);
+  };
+
+  const handleStudentChange = (event) => {
+    const { name, value } = event.target;
+    setStudentForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const handleStudentSubmit = async (event) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setCredentials(null);
+
+    const payload = toStudentFormData(studentForm);
+    if (!studentEditId && reusableParentPreview?.account?.name) {
+      payload.nama_ayah = reusableParentPreview.account.name;
+    }
+    const result = studentEditId ? await updateSiswa(studentEditId, payload) : await createSiswa(payload);
+    setIsSubmitting(false);
+    alert(result.message);
+
+    if (result.success) {
+      if (result.credentials) setCredentials(result.credentials);
+      closeStudentDialog();
+      await loadData();
+    }
+  };
+
+  const handleStudentDelete = async (student) => {
+    if (!confirm(`Yakin ingin menghapus data siswa ${student.nama}? Akun siswa ikut terhapus, akun orang tua tetap disimpan.`)) return;
+    const result = await deleteSiswa(student.id);
+    alert(result.message);
+    if (result.success) await loadData();
+  };
+
+  const openAccountDialog = ({ role = "orangtua", student = null, account = null } = {}) => {
+    const selectedStudent = student || studentMap.get(String(account?.portalLink?.siswa_id || "")) || null;
+    const selectedRole = account?.role || role;
+    const defaultEmail = account?.email || (selectedRole === "orangtua" && selectedStudent ? buildPortalEmail(selectedStudent.nisn, "orangtua") : "");
+    setResetCredential(null);
+    setAccountDialog({ role: selectedRole, student: selectedStudent, account });
+    setStudentQuery(selectedStudent ? `${selectedStudent.nama} - ${getStudentClassName(selectedStudent)}` : "");
+    setIsStudentListOpen(false);
+    setAccountForm({
+      name: account?.name || getDefaultAccountName(selectedRole, selectedStudent),
+      email: defaultEmail,
+      password: "",
+      role: selectedRole,
+      siswa_id: selectedStudent?.id || account?.portalLink?.siswa_id || "",
+      profession: account?.profession || getDefaultProfession(selectedRole, selectedStudent)
+    });
+  };
+
+  const closeAccountDialog = () => {
+    setAccountDialog(null);
+    setAccountForm(emptyAccountForm);
+    setStudentQuery("");
+    setIsStudentListOpen(false);
+    setIsSubmitting(false);
+  };
+
+  const selectStudentForAccount = (student) => {
+    setAccountDialog((current) => (current ? { ...current, student } : current));
+    setStudentQuery(`${student.nama} - ${getStudentClassName(student)}`);
+    setIsStudentListOpen(false);
+    setAccountForm((current) => {
+      const next = { ...current, siswa_id: String(student.id) };
+      if (!accountDialog?.account) {
+        next.name = getDefaultAccountName(accountDialog?.role, student);
+        next.email = accountDialog?.role === "orangtua" ? buildPortalEmail(student.nisn, "orangtua") : current.email;
+        next.profession = getDefaultProfession(accountDialog?.role, student);
+      }
+      return next;
+    });
+  };
+
+  const handleAccountChange = (event) => {
+    const { name, value } = event.target;
+
+    if (name === "siswa_id" && accountDialog) {
+      const selectedStudent = studentMap.get(String(value)) || null;
+      setAccountDialog({ ...accountDialog, student: selectedStudent });
+      setAccountForm((current) => {
+        const next = { ...current, siswa_id: value };
+        if (!accountDialog.account) {
+          next.name = current.name || getDefaultAccountName(accountDialog.role, selectedStudent);
+          next.profession = current.profession || getDefaultProfession(accountDialog.role, selectedStudent);
+        }
+        return next;
+      });
+      return;
+    }
+
+    setAccountForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const handleAccountSubmit = async (event) => {
+    event.preventDefault();
+    if (!accountForm.siswa_id) {
+      alert("Pilih siswa yang akan dihubungkan dengan akun ini.");
+      return;
+    }
+
+    const selectedStudent = studentMap.get(String(accountForm.siswa_id));
+    const existingParentAccount = accountsByStudent.get(String(accountForm.siswa_id))?.orangtua;
+    if (accountDialog.role === "orangtua" && existingParentAccount && existingParentAccount.id !== accountDialog.account?.id) {
+      alert(`Siswa ini sudah terhubung ke akun orang tua ${existingParentAccount.name}. Hapus/ganti relasi lama dulu jika ingin memakai akun lain.`);
+      return;
+    }
+
+    const payload = { ...accountForm, role: accountDialog.role };
+    if (!payload.email && accountDialog.role === "orangtua") payload.email = buildPortalEmail(selectedStudent?.nisn, "orangtua");
+    if (!payload.password && !accountDialog.account) payload.password = generateTemporaryPassword("ORTU");
+    if (!payload.password) delete payload.password;
+
+    setIsSubmitting(true);
+    const result = accountDialog.account
+      ? await updateUser(accountDialog.account.id, payload)
+      : await createUser(payload);
+
+    setIsSubmitting(false);
+    alert(result.message);
+
+    if (result.success) {
+      if (!accountDialog.account) setResetCredential({ email: payload.email, password: payload.password });
+      closeAccountDialog();
+      await loadData();
+    }
+  };
+
+  const handleAccountDelete = async (account) => {
+    const linkedCount = getAccountPortalLinks(account).filter((link) => link.siswa_id).length;
+    const message = account.role === "orangtua"
+      ? `Yakin ingin menghapus akun orang tua ${account.email}? Akun ini terhubung ke ${linkedCount || 0} siswa. Data siswa dan akun siswa tidak ikut terhapus.`
+      : `Yakin ingin menghapus ${roleLabels[account.role] || "akun"} ${account.email}?`;
+    if (!confirm(message)) return;
+    const result = await deleteUser(account.id);
+    alert(result.message);
+    if (result.success) await loadData();
+  };
+
+  const openResetDialog = (account) => {
+    setResetCredential(null);
+    setResetDialog(account);
+    setResetPasswordValue("");
+  };
+
+  const closeResetDialog = () => {
+    setResetDialog(null);
+    setResetPasswordValue("");
+    setIsSubmitting(false);
+  };
+
+  const handleResetSubmit = async (event) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    const result = await resetUserPassword(resetDialog.id, resetPasswordValue ? { password: resetPasswordValue } : {});
+    setIsSubmitting(false);
+    alert(result.message);
+
+    if (result.success) {
+      setResetCredential({
+        email: resetDialog.email,
+        password: result.data?.generated_password || resetPasswordValue
+      });
+      closeResetDialog();
+      await loadData();
+    }
+  };
+
+  const renderAccountStatus = (account) => (
+    <span className={account ? "management-status linked" : "management-status missing"}>
+      {account ? "Akun aktif" : "Belum ada akun"}
+    </span>
+  );
+
   return (
     <div className="dashboard-layout">
       <AdminSidebar active="/admin/akun-siswa" />
 
-<main className="dashboard-content">
+      <main className="dashboard-content student-admin-page portal-management-page">
         <div className="dashboard-header">
           <div>
-            <h1>Akun Siswa & Orang Tua</h1>
-            <p>Kelola akun masuk siswa dan orang tua dari dasbor administrator.</p>
+            <h1>Manajemen Siswa & Orang Tua</h1>
+            <p>Kelola data siswa, orang tua, dan akun portal dalam satu halaman.</p>
           </div>
-
           <div className="dashboard-actions">
             <Link to="/" className="btn secondary">Situs web</Link>
-            <button onClick={handleLogout} className="btn primary">Keluar</button>
+            <button type="button" onClick={handleLogout} className="btn primary">Keluar</button>
           </div>
         </div>
 
-        {resetCredential && (
+        {(credentials || resetCredential) && (
           <section className="dashboard-card credential-card">
-            <h3>Kata sandi baru berhasil dibuat</h3>
-            <p>Simpan kata sandi ini sekarang dan berikan ke pemilik akun.</p>
-            <div className="credential-grid"><div><strong>{resetCredential.email}</strong><code>{resetCredential.password}</code></div></div>
+            {credentials && (
+              <>
+                <h3>{credentials.orangtua?.reused ? "Akun siswa dibuat, orang tua dipakai ulang" : "Akun siswa dan orang tua otomatis dibuat"}</h3>
+                <p>{credentials.orangtua?.reused ? "Akun orang tua lama dipakai ulang karena nomor HP sama." : "Simpan kata sandi ini sekarang dan berikan ke pemilik akun."}</p>
+                <div className="credential-grid">
+                  <div><strong>Siswa</strong><span>{credentials.siswa.email}</span><code>{credentials.siswa.password}</code></div>
+                  <div>
+                    <strong>Orang Tua</strong>
+                    <span>{credentials.orangtua.email}</span>
+                    {credentials.orangtua.reused ? <span>Akun lama dipakai ulang</span> : <code>{credentials.orangtua.password}</code>}
+                  </div>
+                </div>
+              </>
+            )}
+            {resetCredential && (
+              <div className="credential-grid">
+                <div><strong>{resetCredential.email}</strong><code>{resetCredential.password}</code></div>
+              </div>
+            )}
           </section>
         )}
 
-        <section className="admin-kegiatan-card portal-account-admin-card">
-          <div className="kegiatan-form-area">
-            <h2>{editId ? "Ubah Akun Portal" : "Tambah Akun Portal"}</h2>
+        <section className="student-summary-grid" aria-label="Ringkasan manajemen siswa dan orang tua">
+          {summaryItems.map((item) => (
+            <div className="student-summary-card" key={item.label}>
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </div>
+          ))}
+        </section>
 
-            <form onSubmit={handleSubmit}>
+        <div className="portal-tab-bar" role="tablist" aria-label="Navigasi manajemen siswa dan orang tua">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              className={`portal-tab-chip ${activeTab === tab.id ? "active" : ""}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <section className="admin-kegiatan-card portal-management-card">
+          <div className="portal-management-toolbar">
+            <div className="student-list-title">
+              <h2>
+                {activeTab === "relasi" && "Daftar Siswa & Relasi Orang Tua"}
+                {activeTab === "siswa" && "Kelola Data Siswa"}
+                {activeTab === "orangtua" && "Kelola Akun Orang Tua"}
+              </h2>
+              <p>
+                {activeTab === "relasi" && "Tampilan baca relasi siswa dan orang tua. Aksi ada di tab Siswa dan Orang Tua."}
+                {activeTab === "siswa" && "Tambah, ubah, hapus data siswa beserta akun siswanya."}
+                {activeTab === "orangtua" && "Kelola akun orang tua. Satu akun bisa terhubung ke beberapa siswa."}
+              </p>
+            </div>
+
+            <div className="student-list-controls portal-management-controls">
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Cari siswa, orang tua, email..."
+                aria-label="Cari data"
+              />
+              {activeTab === "siswa" && (
+                <button type="button" className="save-btn" onClick={openCreateStudentDialog}>Tambah Siswa</button>
+              )}
+              {activeTab === "orangtua" && (
+                <button type="button" className="save-btn" onClick={() => openAccountDialog({ role: "orangtua" })}>Tambah Orang Tua</button>
+              )}
+            </div>
+          </div>
+
+          {activeTab === "relasi" && (
+            filteredStudents.length === 0 ? (
+              <div className="student-empty-state">
+                <strong>Belum ada data siswa.</strong>
+                <span>Tambahkan siswa lewat tab Siswa.</span>
+              </div>
+            ) : (
+              <div className="table-responsive portal-management-table-wrap">
+                <table className="admin-table portal-management-table">
+                  <thead>
+                    <tr>
+                      <th>No</th>
+                      <th>Siswa</th>
+                      <th>Kelas</th>
+                      <th>Orang Tua</th>
+                      <th>No. HP</th>
+                      <th>Keterangan</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredStudents.map((student, index) => {
+                      const accounts = accountsByStudent.get(String(student.id)) || {};
+                      const parentAccount = accounts.orangtua;
+                      const parentSiblings = parentAccount
+                        ? getAccountPortalLinks(parentAccount).filter((link) => link.siswa_id).length
+                        : 0;
+                      return (
+                        <tr key={student.id}>
+                         <td data-label="No">{index + 1}</td>
+                          <td data-label="Siswa"><div className="management-table-cell"><strong>{student.nama}</strong><span>NIS/NISN: {student.nisn || "-"}</span></div></td>
+                          <td data-label="Kelas">{getStudentClassName(student)}</td>
+                          <td data-label="Orang Tua">{getStudentParentName(student)}</td>
+                          <td data-label="No. HP">{student.no_telepon || "-"}</td>
+                          <td data-label="Keterangan">
+                           {!parentAccount && <span className="management-status missing">Belum ada akun orang tua</span>}
+                            {parentAccount && (
+                              <div className="management-table-cell">
+                                <span className="management-status linked">Terhubung: {parentAccount.name}</span>
+                                <span>{parentAccount.email}</span>
+                                {parentSiblings > 1 && <span>Dipakai {parentSiblings} siswa</span>}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )
+          )}
+
+          {activeTab === "siswa" && (
+            filteredStudents.length === 0 ? (
+              <div className="student-empty-state">
+                <strong>Belum ada data siswa.</strong>
+                <span>Klik Tambah Siswa untuk membuat data dan akun siswa otomatis.</span>
+              </div>
+            ) : (
+              <div className="table-responsive portal-management-table-wrap">
+                <table className="admin-table portal-management-table">
+                  <thead>
+                    <tr>
+                      <th>No</th>
+                      <th>Siswa</th>
+                      <th>Kelas</th>
+                      <th>Akun Siswa</th>
+                      <th>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredStudents.map((student, index) => {
+                      const accounts = accountsByStudent.get(String(student.id)) || {};
+                      const studentAccount = accounts.siswa;
+                      return (
+                        <tr key={student.id}>
+                          <td data-label="No">{index + 1}</td>
+                          <td data-label="Siswa"><div className="management-table-cell"><strong>{student.nama}</strong><span>NIS/NISN: {student.nisn || "-"}</span></div></td>
+                          <td data-label="Kelas">{getStudentClassName(student)}</td>
+                          <td data-label="Akun Siswa">
+                            <div className="management-table-cell">
+                              {renderAccountStatus(studentAccount)}
+                              <span>{studentAccount?.email || "Email belum tersedia"}</span>
+                            </div>
+                          </td>
+                          <td data-label="Aksi">
+                            <div className="admin-action compact management-table-actions">
+                              <button type="button" onClick={() => openEditStudentDialog(student)}>Ubah</button>
+                              {studentAccount && <button type="button" onClick={() => openResetDialog(studentAccount)}>Reset</button>}
+                              <button type="button" onClick={() => handleStudentDelete(student)}>Hapus</button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )
+          )}
+
+          {activeTab === "orangtua" && (
+            filteredParents.length === 0 ? (
+              <div className="student-empty-state">
+                <strong>Belum ada akun orang tua.</strong>
+                <span>Tambahkan orang tua manual, lalu pilih siswa yang akan dihubungkan.</span>
+              </div>
+            ) : (
+              <div className="table-responsive portal-management-table-wrap">
+                <table className="admin-table portal-management-table">
+                  <thead>
+                    <tr>
+                      <th>No</th>
+                      <th>Orang Tua</th>
+                      <th>Email Akun</th>
+                      <th>Terhubung ke</th>
+                      <th>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredParents.map(({ account, students }, index) => (
+                      <tr key={account.id}>
+                        <td data-label="No">{index + 1}</td>
+                        <td data-label="Orang Tua"><div className="management-table-cell"><strong>{account.name}</strong>{students[0]?.no_telepon && <span>No. HP: {students[0].no_telepon}</span>}</div></td>
+                        <td data-label="Email Akun">{account.email}</td>
+                        <td data-label="Terhubung ke">
+                          {students.length === 0 && <span className="management-status missing">Belum terhubung</span>}
+                          {students.length > 0 && (
+                            <div className="management-table-cell">
+                              <span>{students.map((student) => student.nama).join(", ")}</span>
+                              {students.length > 1 && <span className="management-status linked">{students.length} siswa</span>}
+                            </div>
+                          )}
+                        </td>
+                        <td data-label="Aksi">
+                          <div className="admin-action compact management-table-actions">
+                            <button type="button" onClick={() => openAccountDialog({ role: "orangtua", account })}>Ubah</button>
+                            <button type="button" onClick={() => openResetDialog(account)}>Reset</button>
+                            <button type="button" onClick={() => handleAccountDelete(account)}>Hapus</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
+          )}
+        </section>
+      </main>
+
+      {isStudentDialogOpen && (
+        <div className="management-modal-backdrop student-form-modal-backdrop" role="presentation" onClick={closeStudentDialog}>
+          <section className="management-modal-card student-form-modal-card" role="dialog" aria-modal="true" aria-labelledby="student-dialog-title" onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="management-modal-close" onClick={closeStudentDialog} aria-label="Tutup dialog data siswa">&times;</button>
+            <div className="management-modal-header">
+              <span>{studentEditId ? "Ubah Data Siswa" : "Tambah Data Siswa"}</span>
+              <h2 id="student-dialog-title">{studentEditId ? "Ubah Data Siswa" : "Tambah Data Siswa"}</h2>
+              <p>{studentEditId ? "Ubah data siswa. Data dan akun orang tua dikelola di tab Orang Tua." : "Isi data siswa dan orang tua. Akun siswa serta orang tua akan dibuat dan terhubung otomatis."}</p>
+            </div>
+
+            <form className="student-dialog-form" onSubmit={handleStudentSubmit}>
+              <div className="form-section-title">Data Siswa</div>
+              <div className="student-form-grid">
+                <div className="form-group"><label>Nama Siswa</label><input name="nama" value={studentForm.nama} onChange={handleStudentChange} required /></div>
+                <div className="form-group"><label>NIS/NISN</label><input name="nisn" value={studentForm.nisn} onChange={handleStudentChange} required /></div>
+                <div className="form-group"><label>Kelas</label><select name="kelas_id" value={studentForm.kelas_id || ""} onChange={handleStudentChange} required><option value="">Pilih kelas</option>{kelas.map((item) => <option key={item.id} value={item.id}>{classLabel(item)}</option>)}</select></div>
+                <div className="form-group"><label>Jenis Kelamin</label><select name="jenis_kelamin" value={studentForm.jenis_kelamin} onChange={handleStudentChange} required><option value="L">Laki-laki</option><option value="P">Perempuan</option></select></div>
+                <div className="form-group"><label>Tanggal Lahir</label><input type="date" name="tanggal_lahir" value={studentForm.tanggal_lahir || ""} onChange={handleStudentChange} required /></div>
+                <div className="form-group full"><label>Alamat Siswa</label><textarea name="alamat" value={studentForm.alamat || ""} onChange={handleStudentChange} rows="2" required /></div>
+              </div>
+
+              {!studentEditId && (
+                <>
+                  <div className="form-section-title">Data Orang Tua</div>
+                  <div className="student-form-grid">
+                    <div className="form-group"><label>Nama Orang Tua</label><input name="nama_ayah" value={reusableParentPreview?.account?.name || studentForm.nama_ayah || ""} onChange={handleStudentChange} readOnly={Boolean(reusableParentPreview?.account)} required /></div>
+                    <div className="form-group"><label>Nomor HP</label><input name="no_telepon" value={studentForm.no_telepon || ""} onChange={handleStudentChange} required /></div>
+                  </div>
+                  {reusableParentPreview && (
+                    <div className={`parent-reuse-notice ${reusableParentPreview.account ? "linked" : "warning"}`}>
+                      {reusableParentPreview.account ? (
+                        <>
+                          <strong>Akun orang tua sudah ada dan akan dipakai ulang.</strong>
+                          <span>
+                            Nomor ini terhubung ke {reusableParentPreview.sibling.nama}. Siswa baru akan memakai akun {reusableParentPreview.account.name} ({reusableParentPreview.account.email}) dan tidak dibuat akun orang tua baru.
+                          </span>
+                          {reusableParentPreview.linkedCount > 1 && <span>Akun ini sudah terhubung ke {reusableParentPreview.linkedCount} siswa.</span>}
+                        </>
+                      ) : (
+                        <>
+                          <strong>Nomor ini sudah ada di data siswa lain.</strong>
+                          <span>Siswa {reusableParentPreview.sibling.nama} memakai nomor ini, tetapi akun orang tua belum terhubung. Sistem akan membuat akun orang tua baru.</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+
+              <div className="management-modal-actions student-dialog-actions">
+                <button type="button" className="cancel-btn" onClick={closeStudentDialog}>Batal</button>
+                <button type="submit" className="save-btn" disabled={isSubmitting}>{isSubmitting ? "Menyimpan..." : studentEditId ? "Simpan Perubahan" : reusableParentPreview?.account ? "Simpan & Pakai Akun Orang Tua" : "Simpan & Buat Akun Otomatis"}</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+
+      {accountDialog && (
+        <div className="management-modal-backdrop" role="presentation" onClick={closeAccountDialog}>
+          <section className="management-modal-card" role="dialog" aria-modal="true" aria-labelledby="account-dialog-title" onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="management-modal-close" onClick={closeAccountDialog} aria-label="Tutup dialog akun">&times;</button>
+            <div className="management-modal-header">
+              <span>{accountDialog.account ? "Ubah Akun Portal" : "Akun Portal"}</span>
+              <h2 id="account-dialog-title">{roleLabels[accountDialog.role]}</h2>
+              <p>{accountDialog.account ? "Ubah data akun atau tambahkan relasi ke siswa lain." : "Isi nama orang tua, pilih siswa, lalu sistem menyiapkan akun portal otomatis."}</p>
+            </div>
+
+            <form className="management-dialog-form" onSubmit={handleAccountSubmit}>
               <div className="form-group">
-                <label>Nama</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                />
+                <label>Jenis Akun</label>
+                <input value={roleLabels[accountDialog.role]} disabled />
               </div>
 
               <div className="form-group">
-                <label>Email</label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                />
+                <label>Hubungkan ke Siswa</label>
+                <div className="student-combobox">
+                  <input
+                    type="text"
+                    value={studentQuery}
+                    onChange={(event) => { setStudentQuery(event.target.value); setIsStudentListOpen(true); }}
+                    onFocus={() => setIsStudentListOpen(true)}
+                    onBlur={() => setTimeout(() => setIsStudentListOpen(false), 150)}
+                    placeholder="Ketik nama, NISN, atau kelas siswa..."
+                    aria-label="Cari dan pilih siswa"
+                    autoComplete="off"
+                  />
+                  {isStudentListOpen && (
+                    <ul className="student-combobox-list">
+                      {accountStudentOptions.length === 0 ? (
+                        <li className="student-combobox-empty">Tidak ada siswa cocok</li>
+                      ) : accountStudentOptions.map((student) => (
+                        <li key={student.id}>
+                          <button
+                            type="button"
+                            className={String(student.id) === String(accountForm.siswa_id) ? "active" : ""}
+                            onMouseDown={(event) => { event.preventDefault(); selectStudentForAccount(student); }}
+                          >
+                            <strong>{student.nama}</strong>
+                            <span>NIS/NISN: {student.nisn || "-"} - {getStudentClassName(student)}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
 
               <div className="form-group">
-                <label>Kata Sandi {editId && "(kosongkan jika tidak diubah)"}</label>
+                <label>Nama Akun</label>
+                <input name="name" value={accountForm.name} onChange={handleAccountChange} required />
+              </div>
+
+              <div className="form-group">
+                <label>Email <span className="field-optional">otomatis</span></label>
+                <input type="email" name="email" value={accountForm.email} readOnly placeholder="Pilih siswa dulu" />
+              </div>
+
+              <div className="form-group">
+                <label>Kata Sandi {accountDialog.account ? <span className="field-optional">kosongkan jika tidak diubah</span> : <span className="field-optional">otomatis jika kosong</span>}</label>
                 <input
                   type="password"
                   name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required={!editId}
+                  value={accountForm.password}
+                  onChange={handleAccountChange}
+                  minLength="6"
                 />
               </div>
 
               <div className="form-group">
-                <label>Jenis Akun</label>
-                <select name="role" value={formData.role} onChange={handleChange}>
-                  <option value="siswa">Siswa</option>
-                  <option value="orangtua">Orang Tua</option>
-                  <option value="kepala_sekolah">Kepala Sekolah</option>
-                </select>
+                <label>Keterangan</label>
+                <input name="profession" value={accountForm.profession} readOnly placeholder="Otomatis dari relasi siswa" />
               </div>
 
-              {["siswa", "orangtua"].includes(formData.role) && (
-                <div className="form-group">
-                  <label>Hubungkan ke Siswa</label>
-                  <select name="siswa_id" value={formData.siswa_id} onChange={handleChange} required>
-                    <option value="">Pilih siswa berdasarkan kelas dan orang tua</option>
-                    {siswaList.map((siswa) => (
-                      <option key={siswa.id} value={siswa.id}>
-                        {siswa.nama} • {siswa.kelas?.nama_kelas || "Kelas -"} • Orang tua: {siswa.nama_ayah || siswa.nama_ibu || "-"}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {formData.role === "kepala_sekolah" && (
-                <div className="form-group">
-                  <label>Keterangan Jabatan</label>
-                  <input name="profession" value={formData.profession} onChange={handleChange} placeholder="Contoh: Kepala Sekolah" />
-                </div>
-              )}
-
-              <div className="button-row">
-                <button type="submit" className="save-btn">
-                  {editId ? "Simpan Perubahan" : "Simpan"}
-                </button>
-                {editId && (
-                  <button type="button" onClick={resetForm} className="cancel-btn">
-                    Batal
-                  </button>
-                )}
+              <div className="management-modal-actions">
+                <button type="button" className="cancel-btn" onClick={closeAccountDialog}>Batal</button>
+                <button type="submit" className="save-btn" disabled={isSubmitting}>{isSubmitting ? "Menyimpan..." : accountDialog.account ? "Simpan" : "Tambah & Hubungkan"}</button>
               </div>
             </form>
-          </div>
+          </section>
+        </div>
+      )}
 
-          <div className="kegiatan-list-area">
-            <div className="student-list-head portal-account-list-head">
-              <div className="student-list-title">
-                <h2>Daftar Akun Portal</h2>
-                <p>Filter berdasarkan kelas agar relasi siswa, orang tua, dan kelas lebih mudah dicek.</p>
+      {resetDialog && (
+        <div className="management-modal-backdrop" role="presentation" onClick={closeResetDialog}>
+          <section className="management-modal-card small" role="dialog" aria-modal="true" aria-labelledby="reset-dialog-title" onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="management-modal-close" onClick={closeResetDialog} aria-label="Tutup dialog reset password">&times;</button>
+            <div className="management-modal-header">
+              <span>Atur Ulang Kata Sandi</span>
+              <h2 id="reset-dialog-title">{resetDialog.name}</h2>
+              <p>Isi kata sandi baru atau kosongkan agar sistem membuat kata sandi otomatis.</p>
+            </div>
+
+            <form className="management-dialog-form single" onSubmit={handleResetSubmit}>
+              <div className="form-group">
+                <label>Kata Sandi Baru</label>
+                <input
+                  type="password"
+                  value={resetPasswordValue}
+                  onChange={(event) => setResetPasswordValue(event.target.value)}
+                  minLength="6"
+                  placeholder="Kosongkan untuk otomatis"
+                />
               </div>
-              <select className="student-class-select" value={activeClassId} onChange={(e) => setActiveClassId(e.target.value)} aria-label="Filter akun berdasarkan kelas">
-                <option value="all">Semua Kelas</option>
-                {accountClassOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-              </select>
-            </div>
-
-            <div className="activity-admin-list">
-              {sortedUsers.length === 0 ? (
-                <p className="empty-text">Belum ada akun siswa/orang tua.</p>
-              ) : (
-                sortedUsers.map((item, index) => (
-                  <div className="activity-admin-item portal-account-admin-item" key={item.id}>
-                    <span>{index + 1}</span>
-                    <div className="portal-account-info">
-                      <div className="portal-account-title-row">
-                        <h4>{item.name}</h4>
-                        <span className={`portal-role-pill ${item.role}`}>{roleLabels[item.role] || item.role}</span>
-                      </div>
-                      <p>{item.email}</p>
-                      <div className="portal-relation-grid">
-                        <span><strong>Siswa</strong>{getLinkedStudentName(item)}</span>
-                        <span><strong>Orang Tua</strong>{getParentName(item)}</span>
-                        <span><strong>Kelas</strong>{getAccountClassName(item)}</span>
-                      </div>
-                    </div>
-                    <div className="admin-action">
-                      <button onClick={() => handleEdit(item)}>Ubah</button>
-                      <button onClick={() => handleResetPassword(item)}>Atur Ulang</button>
-                      <button onClick={() => handleDelete(item.id)}>Hapus</button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </section>
-      </main>
+              <div className="management-modal-actions">
+                <button type="button" className="cancel-btn" onClick={closeResetDialog}>Batal</button>
+                <button type="submit" className="save-btn" disabled={isSubmitting}>{isSubmitting ? "Memproses..." : "Atur Ulang"}</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

@@ -71,6 +71,10 @@ function LoginSiswa() {
             </button>
           </form>
 
+          <Link to="/lupa-password?role=siswa" className="auth-link">
+            Lupa kata sandi?
+          </Link>
+
           <Link to="/login" className="auth-link auth-back-link">Kembali ke pilihan masuk</Link>
         </div>
       </main>

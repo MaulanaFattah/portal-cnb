@@ -13,7 +13,9 @@
     "migrate:admission-profile-fields": "node src/migrateAdmissionProfileFields.js",
     "migrate:portal-features": "node src/migratePortalFeatureEnhancements.js",
     "migrate:revision-rbac": "node src/migrateRevisionRbacAbsensi.js",
-    "sync:legacy-guru": "node src/syncLegacyGuruRegistrations.js"
+    "migrate:password-reset": "node src/migratePasswordResetRequests.js",
+    "sync:legacy-guru": "node src/syncLegacyGuruRegistrations.js",
+    "cleanup:duplicate-parents": "node src/mergeDuplicateParentAccountsByPhone.js"
   },
   "keywords": [],
   "author": "",

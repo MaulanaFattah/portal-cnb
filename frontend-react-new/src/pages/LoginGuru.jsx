@@ -72,6 +72,10 @@ function LoginGuru() {
             Belum punya akun? Registrasi Guru
           </Link>
 
+          <Link to="/lupa-password?role=guru" className="auth-link">
+            Lupa kata sandi?
+          </Link>
+
           <Link to="/login" className="auth-link auth-back-link">Kembali ke pilihan masuk</Link>
         </div>
       </main>

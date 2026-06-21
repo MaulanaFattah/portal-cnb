@@ -8,9 +8,9 @@ const menu = [
   ["/admin/galeri", "Galeri"],
   ["/admin/ppdb", "PPDB"],
   ["/admin/verifikasi-guru", "Verifikasi Guru"],
+  ["/admin/reset-password", "Reset Password"],
   ["/admin/kelas", "Kelas"],
-  ["/admin/siswa", "Siswa"],
-  ["/admin/akun-siswa", "Akun Siswa & Orang Tua"]
+  ["/admin/akun-siswa", "Manajemen Siswa & Orang Tua"]
 ];
 
 function AdminSidebar({ active }) {

@@ -73,7 +73,7 @@ function LoginOrangTua() {
             </button>
           </form>
 
-          <Link to="/lupa-password" className="auth-link">
+          <Link to="/lupa-password?role=orangtua" className="auth-link">
             Lupa kata sandi?
           </Link>
 

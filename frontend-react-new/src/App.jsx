@@ -23,10 +23,10 @@ import AdminPengumuman from "./pages/AdminPengumuman";
 import AdminGaleri from "./pages/AdminGaleri";
 import AdminPPDB from "./pages/AdminPPDB";
 import AdminKelas from "./pages/AdminKelas";
-import AdminSiswa from "./pages/AdminSiswa";
 import AdminAkunSiswa from "./pages/AdminAkunSiswa";
 import AdminProfilSekolah from "./pages/AdminProfilSekolah";
 import AdminVerifikasiGuru from "./pages/AdminVerifikasiGuru";
+import AdminResetPasswordRequests from "./pages/AdminResetPasswordRequests";
 import DashboardGuru from "./pages/DashboardGuru";
 import DashboardSiswa from "./pages/DashboardSiswa";
 import DashboardOrangTua from "./pages/DashboardOrangTua";
@@ -63,10 +63,11 @@ function App() {
         <Route path="/admin/galeri" element={<AdminGaleri />} />
         <Route path="/admin/ppdb" element={<AdminPPDB />} />
         <Route path="/admin/kelas" element={<AdminKelas />} />
-        <Route path="/admin/siswa" element={<AdminSiswa />} />
+        <Route path="/admin/siswa" element={<AdminAkunSiswa />} />
         <Route path="/admin/akun-siswa" element={<AdminAkunSiswa />} />
         <Route path="/admin/profil-sekolah" element={<AdminProfilSekolah />} />
         <Route path="/admin/verifikasi-guru" element={<AdminVerifikasiGuru />} />
+        <Route path="/admin/reset-password" element={<AdminResetPasswordRequests />} />
       </Routes>
     </BrowserRouter>
   );

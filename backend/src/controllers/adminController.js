@@ -1,19 +1,52 @@
 ﻿const bcrypt = require("bcryptjs");
 const db = require("../models");
+const crypto = require("crypto");
+const { Op } = require("sequelize");
 const { logAudit } = require("../services/auditLogService");
 
 const User = db.User;
 const Siswa = db.Siswa;
 const Kelas = db.Kelas;
 const PortalAccountLink = db.PortalAccountLink;
+const PasswordResetRequest = db.PasswordResetRequest;
 
 const SAFE_ATTRS = ["id", "name", "email", "role", "profession", "must_change_password", "createdAt", "updatedAt"];
 const VALID_ROLES = ["admin", "guru", "siswa", "orangtua", "kepala_sekolah"];
 const LINKED_ROLES = ["siswa", "orangtua"];
+const RESET_REQUEST_STATUSES = ["pending", "completed", "rejected"];
 
 function safeUser(user) {
   if (!user) return null;
   return SAFE_ATTRS.reduce((payload, key) => ({ ...payload, [key]: user[key] }), {});
+}
+
+function normalizeText(value, maxLength = 500) {
+  const text = String(value || "").trim().replace(/\s+/g, " ");
+  return text.slice(0, maxLength);
+}
+
+function safePasswordResetRequest(request) {
+  const data = request?.toJSON ? request.toJSON() : request;
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    role: data.role,
+    email: data.email,
+    name: data.name,
+    nisn: data.nisn,
+    class_name: data.class_name,
+    notes: data.notes,
+    status: data.status,
+    matched_user_id: data.matched_user_id,
+    processed_by: data.processed_by,
+    rejection_reason: data.rejection_reason,
+    processed_at: data.processed_at,
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt,
+    matchedUser: safeUser(data.matchedUser),
+    processedBy: safeUser(data.processedBy)
+  };
 }
 
 async function getClassMap() {
@@ -36,13 +69,22 @@ async function buildUsersPayload(users) {
   const students = studentIds.length ? await Siswa.findAll({ where: { id: studentIds } }) : [];
   const classMap = await getClassMap();
   const studentMap = new Map(students.map((siswa) => [Number(siswa.id), attachClass(siswa, classMap)]));
-  const linkMap = new Map(links.map((link) => [Number(link.user_id), link.toJSON()]));
+  const linkMap = new Map();
+
+  links.forEach((link) => {
+    const data = link.toJSON();
+    const currentLinks = linkMap.get(Number(data.user_id)) || [];
+    currentLinks.push({ ...data, siswa: studentMap.get(Number(data.siswa_id)) || null });
+    linkMap.set(Number(data.user_id), currentLinks);
+  });
 
   return users.map((user) => {
-    const link = linkMap.get(Number(user.id)) || null;
+    const userLinks = linkMap.get(Number(user.id)) || [];
+    const link = userLinks[0] || null;
     return {
       ...safeUser(user),
       portalLink: link,
+      portalLinks: userLinks,
       siswa: link ? studentMap.get(Number(link.siswa_id)) || null : null
     };
   });
@@ -54,6 +96,22 @@ async function upsertPortalLink(userId, siswaId, role, transaction) {
 
   const siswa = await Siswa.findByPk(siswaId, { transaction });
   if (!siswa) throw new Error("Data siswa tidak ditemukan");
+
+  if (role === "orangtua") {
+    const existingParentLink = await PortalAccountLink.findOne({
+      where: { siswa_id: siswa.id, link_type: role, user_id: { [Op.ne]: userId } },
+      transaction
+    });
+    if (existingParentLink) throw new Error("Siswa ini sudah terhubung ke akun orang tua lain");
+
+    await PortalAccountLink.destroy({ where: { user_id: userId, link_type: "siswa" }, transaction });
+    const existingLink = await PortalAccountLink.findOne({
+      where: { user_id: userId, siswa_id: siswa.id, link_type: role },
+      transaction
+    });
+    if (existingLink) return existingLink;
+    return PortalAccountLink.create({ user_id: userId, siswa_id: siswa.id, link_type: role }, { transaction });
+  }
 
   await PortalAccountLink.destroy({ where: { user_id: userId }, transaction });
   return PortalAccountLink.create({ user_id: userId, siswa_id: siswa.id, link_type: role }, { transaction });
@@ -267,7 +325,7 @@ exports.deleteUser = async (req, res) => {
 
 
 function generatePassword() {
-  return `CNB-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  return `CNB-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 }
 
 exports.resetUserPassword = async (req, res) => {
@@ -306,5 +364,135 @@ exports.resetUserPassword = async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Gagal mengatur ulang kata sandi pengguna", error: error.message });
+  }
+};
+
+exports.getPasswordResetRequests = async (req, res) => {
+  try {
+    const status = String(req.query.status || "pending").trim().toLowerCase();
+    const where = RESET_REQUEST_STATUSES.includes(status) ? { status } : {};
+    const requests = await PasswordResetRequest.findAll({
+      where,
+      include: [
+        { model: User, as: "matchedUser", attributes: SAFE_ATTRS },
+        { model: User, as: "processedBy", attributes: SAFE_ATTRS }
+      ],
+      order: [["createdAt", "DESC"]]
+    });
+
+    return res.json({ success: true, data: requests.map(safePasswordResetRequest) });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Gagal memuat permintaan reset password" });
+  }
+};
+
+exports.processPasswordResetRequest = async (req, res) => {
+  const transaction = await db.sequelize.transaction();
+
+  try {
+    const request = await PasswordResetRequest.findByPk(req.params.id, { transaction });
+    if (!request) {
+      await transaction.rollback();
+      return res.status(404).json({ success: false, message: "Permintaan reset password tidak ditemukan" });
+    }
+
+    if (request.status !== "pending") {
+      await transaction.rollback();
+      return res.status(400).json({ success: false, message: "Permintaan ini sudah diproses" });
+    }
+
+    const requestedPassword = req.body.password || generatePassword();
+    if (String(requestedPassword).length < 6) {
+      await transaction.rollback();
+      return res.status(400).json({ success: false, message: "Kata sandi minimal 6 karakter" });
+    }
+
+    if (!request.matched_user_id) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Akun belum cocok otomatis. Tolak permintaan atau reset manual dari menu akun setelah verifikasi."
+      });
+    }
+
+    const user = await User.findByPk(request.matched_user_id, { transaction });
+    if (!user || user.role !== request.role) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Akun yang cocok tidak valid. Tolak permintaan atau reset manual dari menu akun."
+      });
+    }
+
+    await user.update({
+      password: await bcrypt.hash(requestedPassword, 10),
+      must_change_password: true
+    }, { transaction });
+
+    await request.update({
+      status: "completed",
+      matched_user_id: user.id,
+      processed_by: req.user.id,
+      processed_at: new Date(),
+      rejection_reason: null
+    }, { transaction });
+
+    await logAudit(req, {
+      action: "password.reset.request.complete",
+      entityType: "password_reset_request",
+      entityId: request.id,
+      metadata: { role: user.role, user_id: user.id, generated: !req.body.password }
+    }, { transaction });
+
+    await transaction.commit();
+
+    return res.json({
+      success: true,
+      message: "Permintaan reset selesai. Pengguna wajib mengganti kata sandi saat login berikutnya.",
+      data: {
+        request: safePasswordResetRequest(request),
+        user: safeUser(user),
+        generated_password: req.body.password ? null : requestedPassword
+      }
+    });
+  } catch (error) {
+    await transaction.rollback();
+    return res.status(500).json({ success: false, message: "Gagal memproses permintaan reset password" });
+  }
+};
+
+exports.rejectPasswordResetRequest = async (req, res) => {
+  try {
+    const request = await PasswordResetRequest.findByPk(req.params.id);
+    if (!request) {
+      return res.status(404).json({ success: false, message: "Permintaan reset password tidak ditemukan" });
+    }
+
+    if (request.status !== "pending") {
+      return res.status(400).json({ success: false, message: "Permintaan ini sudah diproses" });
+    }
+
+    const rejectionReason = normalizeText(req.body.reason || req.body.alasan_penolakan || "Ditolak administrator");
+    await request.update({
+      status: "rejected",
+      processed_by: req.user.id,
+      processed_at: new Date(),
+      rejection_reason: rejectionReason
+    });
+
+    await logAudit(req, {
+      action: "password.reset.request.reject",
+      entityType: "password_reset_request",
+      entityId: request.id,
+      metadata: { role: request.role }
+    });
+
+    return res.json({
+      success: true,
+      message: "Permintaan reset password ditolak.",
+      data: { request: safePasswordResetRequest(request) }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Gagal menolak permintaan reset password" });
   }
 };

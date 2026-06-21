@@ -1,11 +1,19 @@
-const bcrypt = require("bcryptjs");
+﻿const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { Op } = require("sequelize");
 const db = require("../models");
 const { logAudit } = require("../services/auditLogService");
+const { getClientIp } = require("../middlewares/rateLimitMiddleware");
 
 const User = db.User;
 const GuruProfile = db.GuruProfile;
+const Siswa = db.Siswa;
 const Kelas = db.Kelas;
+const PortalAccountLink = db.PortalAccountLink;
+const PasswordResetRequest = db.PasswordResetRequest;
+const RESET_REQUEST_ROLES = ["guru", "siswa", "orangtua"];
+const RESET_REQUEST_MESSAGE = "Permintaan reset kata sandi berhasil dikirim. Silakan hubungi admin untuk meminta persetujuan dan kata sandi sementara.";
+const PORTAL_EMAIL_DOMAIN = "ciptanusabakti.sch.id";
 
 function generateToken(user) {
   return jwt.sign(
@@ -44,6 +52,138 @@ function normalizeSubjectInput(value) {
   return normalizeSubjects(value)
     .flatMap((item) => String(item).split(/[;+]/).map((part) => part.trim()).filter(Boolean))
     .filter((item) => !isHomeroomSubjectLabel(item));
+}
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function normalizeText(value, maxLength = 120) {
+  const text = String(value || "").trim().replace(/\s+/g, " ");
+  return text.slice(0, maxLength);
+}
+
+function normalizePhoneNumber(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (digits.startsWith("62")) return `0${digits.slice(2)}`;
+  return digits;
+}
+
+function buildPortalEmail(nisn, type) {
+  const cleanNisn = String(nisn || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+  return `${cleanNisn || "akun"}.${type}@${PORTAL_EMAIL_DOMAIN}`;
+}
+
+function normalizeResetRole(value) {
+  const role = String(value || "").trim().toLowerCase();
+  return RESET_REQUEST_ROLES.includes(role) ? role : "";
+}
+
+async function getStudentClassName(siswa) {
+  if (!siswa?.kelas_id) return null;
+  const kelas = await Kelas.findByPk(siswa.kelas_id);
+  return kelas?.nama_kelas || null;
+}
+
+async function findLinkedPortalUser(siswaId, role) {
+  if (!PortalAccountLink || !siswaId) return null;
+
+  const link = await PortalAccountLink.findOne({
+    where: { siswa_id: siswaId, link_type: role },
+    order: [["id", "ASC"]]
+  });
+  if (!link) return null;
+
+  return User.findOne({ where: { id: link.user_id, role } });
+}
+
+async function findStudentResetIdentity(nisn) {
+  const siswa = await Siswa.findOne({ where: { nisn } });
+  const matchedUser = siswa ? await findLinkedPortalUser(siswa.id, "siswa") : null;
+  const className = siswa ? await getStudentClassName(siswa) : null;
+
+  return {
+    role: "siswa",
+    email: matchedUser?.email || siswa?.email || buildPortalEmail(nisn, "siswa"),
+    name: siswa?.nama || `Siswa ${nisn}`,
+    nisn,
+    class_name: className,
+    notes: siswa
+      ? (matchedUser ? "Akun siswa cocok otomatis dari NISN." : "Data siswa ditemukan, tetapi akun portal siswa belum cocok otomatis.")
+      : "NISN belum cocok dengan data siswa.",
+    matched_user_id: matchedUser?.id || null,
+    matched: Boolean(matchedUser)
+  };
+}
+
+async function findParentResetIdentity(email, phone) {
+  const normalizedPhone = normalizePhoneNumber(phone);
+  const matchedUserCandidate = await User.findOne({ where: { email, role: "orangtua" } });
+  const fallback = {
+    role: "orangtua",
+    email,
+    name: "Orang Tua",
+    nisn: null,
+    class_name: null,
+    notes: "Akun orang tua belum cocok otomatis dari email dan nomor HP.",
+    matched_user_id: null,
+    matched: false
+  };
+
+  if (!matchedUserCandidate || !PortalAccountLink) return fallback;
+
+  const links = await PortalAccountLink.findAll({
+    where: { user_id: matchedUserCandidate.id, link_type: "orangtua" },
+    order: [["id", "ASC"]]
+  });
+  const studentIds = links.map((link) => Number(link.siswa_id)).filter(Boolean);
+  if (!studentIds.length) {
+    return {
+      ...fallback,
+      name: matchedUserCandidate.name,
+      notes: "Email orang tua ditemukan, tetapi belum ada siswa yang terhubung."
+    };
+  }
+
+  const students = await Siswa.findAll({ where: { id: { [Op.in]: studentIds } }, order: [["nama", "ASC"]] });
+  const matchedStudent = students.find((student) => normalizePhoneNumber(student.no_telepon) === normalizedPhone);
+  if (!matchedStudent) {
+    return {
+      ...fallback,
+      name: matchedUserCandidate.name,
+      notes: "Email orang tua ditemukan, tetapi nomor HP tidak cocok dengan siswa yang terhubung."
+    };
+  }
+
+  const relatedStudents = students.filter((student) => normalizePhoneNumber(student.no_telepon) === normalizedPhone);
+  const className = await getStudentClassName(matchedStudent);
+
+  return {
+    role: "orangtua",
+    email: matchedUserCandidate.email,
+    name: matchedUserCandidate.name,
+    nisn: matchedStudent.nisn || null,
+    class_name: className,
+    notes: relatedStudents.length > 1
+      ? `Akun orang tua cocok otomatis dan terhubung ke ${relatedStudents.length} siswa dengan nomor HP yang sama.`
+      : "Akun orang tua cocok otomatis dari email dan nomor HP.",
+    matched_user_id: matchedUserCandidate.id,
+    matched: true
+  };
+}
+
+async function findGuruResetIdentity(email) {
+  const matchedUser = await User.findOne({ where: { email, role: "guru" } });
+  return {
+    role: "guru",
+    email,
+    name: matchedUser?.name || "Guru",
+    nisn: null,
+    class_name: null,
+    notes: matchedUser ? "Akun guru cocok otomatis dari email." : "Email guru belum cocok dengan akun guru.",
+    matched_user_id: matchedUser?.id || null,
+    matched: Boolean(matchedUser)
+  };
 }
 
 exports.registerGuru = async (req, res) => {
@@ -226,6 +366,69 @@ exports.login = async (req, res) => {
   }
 };
 
+exports.requestPasswordReset = async (req, res) => {
+  try {
+    const role = normalizeResetRole(req.body.peran || req.body.role);
+    const email = normalizeEmail(req.body.email);
+    const nisn = normalizeText(req.body.nisn, 40);
+    const phone = normalizeText(req.body.no_telepon || req.body.nomor_hp || req.body.phone, 40);
+
+    if (!role) {
+      return res.status(400).json({ success: false, message: "Pilih jenis akun reset password" });
+    }
+
+    let identity = null;
+    if (role === "siswa") {
+      if (!nisn) return res.status(400).json({ success: false, message: "NISN siswa wajib diisi" });
+      identity = await findStudentResetIdentity(nisn);
+    }
+
+    if (role === "orangtua") {
+      if (!email || !phone) {
+        return res.status(400).json({ success: false, message: "Email dan nomor HP orang tua wajib diisi" });
+      }
+      identity = await findParentResetIdentity(email, phone);
+    }
+
+    if (role === "guru") {
+      if (!email) return res.status(400).json({ success: false, message: "Email guru wajib diisi" });
+      identity = await findGuruResetIdentity(email);
+    }
+
+    const payload = {
+      role: identity.role,
+      email: identity.email,
+      name: identity.name,
+      nisn: identity.nisn || null,
+      class_name: identity.class_name || null,
+      notes: identity.notes || null,
+      matched_user_id: identity.matched_user_id || null,
+      ip_address: getClientIp(req),
+      user_agent: req.headers?.["user-agent"] || null
+    };
+
+    const existingRequest = await PasswordResetRequest.findOne({
+      where: { role: payload.role, email: payload.email, status: "pending" },
+      order: [["createdAt", "DESC"]]
+    });
+
+    const request = existingRequest
+      ? await existingRequest.update(payload)
+      : await PasswordResetRequest.create(payload);
+
+    await logAudit(req, {
+      action: "password.reset.request",
+      entityType: "password_reset_request",
+      entityId: request.id,
+      metadata: { role: payload.role, matched: identity.matched }
+    });
+
+    return res.status(202).json({ success: true, message: RESET_REQUEST_MESSAGE });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Gagal mengirim permintaan reset kata sandi" });
+  }
+};
+
 exports.changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword, kata_sandi_lama, kata_sandi_baru } = req.body;
@@ -258,3 +461,4 @@ exports.changePassword = async (req, res) => {
     return res.status(500).json({ success: false, message: "Gagal mengganti kata sandi", error: error.message });
   }
 };
+
