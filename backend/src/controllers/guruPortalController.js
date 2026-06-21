@@ -455,7 +455,7 @@ exports.submitAbsensi = async (req, res) => {
 
 exports.getRekapAbsensi = async (req, res) => {
   try {
-    const { kelas_id, jadwal_id, dari, sampai } = req.query;
+    const { kelas_id, jadwal_id, mapel, dari, sampai } = req.query;
     const profile = await getApprovedProfile(req.user.id);
 
     if (!profile) {
@@ -491,6 +491,8 @@ exports.getRekapAbsensi = async (req, res) => {
       where.guru_user_id = req.user.id;
       where.kelas_id = { [Op.in]: context.classIds };
     }
+
+    if (mapel) where.mapel = String(mapel).trim();
 
     if (dari && sampai) where.tanggal = { [Op.between]: [dari, sampai] };
     else if (dari) where.tanggal = { [Op.gte]: dari };

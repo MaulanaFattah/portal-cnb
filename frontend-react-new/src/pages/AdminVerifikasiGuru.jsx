@@ -120,8 +120,22 @@ function AdminVerifikasiGuru() {
     loadData();
   };
 
-  const handleJadwalChange = (e) => {
-    setJadwalForm({ ...jadwalForm, [e.target.name]: e.target.value });
+  const getSubjectOptionsForTeacher = (guruUserId, fallbackMapel = "") => {
+    const selectedTeacher = accounts.find((item) => Number(item.id) === Number(guruUserId));
+    const subjects = normalizeSubjects(selectedTeacher?.guruProfile?.subject || selectedTeacher?.profession || fallbackMapel);
+    return subjects.length ? subjects : normalizeSubjects(fallbackMapel);
+  };
+
+  const handleJadwalChange = (event) => {
+    const { name, value } = event.target;
+
+    if (name === "guru_user_id") {
+      const subjects = getSubjectOptionsForTeacher(value, jadwalForm.mapel);
+      setJadwalForm((current) => ({ ...current, guru_user_id: value, mapel: subjects[0] || "" }));
+      return;
+    }
+
+    setJadwalForm((current) => ({ ...current, [name]: value }));
   };
 
   const handleCreateJadwal = async (e) => {
@@ -168,6 +182,7 @@ function AdminVerifikasiGuru() {
   };
 
   const approvedMapel = accounts.filter((item) => item.guruProfile?.verification_status === "approved" && isSubjectTeacherProfile(item.guruProfile));
+  const selectedJadwalSubjects = getSubjectOptionsForTeacher(jadwalForm.guru_user_id, jadwalForm.mapel);
 
   return (
     <div className="dashboard-layout">
@@ -256,7 +271,12 @@ function AdminVerifikasiGuru() {
                 {kelas.map((kelasItem) => <option key={kelasItem.id} value={kelasItem.id}>{kelasItem.nama_kelas}</option>)}
               </select>
             </label>
-            <label>Mapel<input name="mapel" value={jadwalForm.mapel} onChange={handleJadwalChange} required /></label>
+            <label>Mata Pelajaran
+              <select name="mapel" value={jadwalForm.mapel} onChange={handleJadwalChange} required disabled={!jadwalForm.guru_user_id}>
+                <option value="">Pilih mata pelajaran</option>
+                {selectedJadwalSubjects.map((subject) => <option key={subject} value={subject}>{subject}</option>)}
+              </select>
+            </label>
             <label>Hari
               <select name="hari" value={jadwalForm.hari} onChange={handleJadwalChange}>{HARI.map((hari) => <option key={hari} value={hari}>{hari}</option>)}</select>
             </label>
