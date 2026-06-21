@@ -11,7 +11,7 @@ const Siswa = db.Siswa;
 const Kelas = db.Kelas;
 const PortalAccountLink = db.PortalAccountLink;
 const PasswordResetRequest = db.PasswordResetRequest;
-const RESET_REQUEST_ROLES = ["guru", "siswa", "orangtua"];
+const RESET_REQUEST_ROLES = ["guru", "siswa", "orangtua", "kepala_sekolah"];
 const RESET_REQUEST_MESSAGE = "Permintaan reset kata sandi berhasil dikirim. Silakan hubungi admin untuk meminta persetujuan dan kata sandi sementara.";
 const PORTAL_EMAIL_DOMAIN = "ciptanusabakti.sch.id";
 
@@ -181,6 +181,20 @@ async function findGuruResetIdentity(email) {
     nisn: null,
     class_name: null,
     notes: matchedUser ? "Akun guru cocok otomatis dari email." : "Email guru belum cocok dengan akun guru.",
+    matched_user_id: matchedUser?.id || null,
+    matched: Boolean(matchedUser)
+  };
+}
+
+async function findKepalaSekolahResetIdentity(email) {
+  const matchedUser = await User.findOne({ where: { email, role: "kepala_sekolah" } });
+  return {
+    role: "kepala_sekolah",
+    email,
+    name: matchedUser?.name || "Kepala Sekolah",
+    nisn: null,
+    class_name: null,
+    notes: matchedUser ? "Akun kepala sekolah cocok otomatis dari email." : "Email kepala sekolah belum cocok dengan akun kepala sekolah.",
     matched_user_id: matchedUser?.id || null,
     matched: Boolean(matchedUser)
   };
@@ -393,6 +407,11 @@ exports.requestPasswordReset = async (req, res) => {
     if (role === "guru") {
       if (!email) return res.status(400).json({ success: false, message: "Email guru wajib diisi" });
       identity = await findGuruResetIdentity(email);
+    }
+
+    if (role === "kepala_sekolah") {
+      if (!email) return res.status(400).json({ success: false, message: "Email kepala sekolah wajib diisi" });
+      identity = await findKepalaSekolahResetIdentity(email);
     }
 
     const payload = {

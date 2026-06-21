@@ -13,18 +13,26 @@ async function tableExists(tableName) {
   return Number(rows[0].count) > 0;
 }
 
+async function ensurePasswordResetRoleEnum() {
+  await sequelize.query(
+    "ALTER TABLE `permintaan_reset_password` MODIFY `peran` ENUM('guru','siswa','orangtua','kepala_sekolah') NOT NULL"
+  );
+}
+
 async function migrate() {
   await sequelize.authenticate();
 
   if (await tableExists("permintaan_reset_password")) {
     console.log("Tabel permintaan_reset_password sudah ada");
+    await ensurePasswordResetRoleEnum();
+    console.log("Enum peran reset password sudah mendukung kepala sekolah");
     return;
   }
 
   console.log("Membuat tabel permintaan_reset_password");
   await queryInterface.createTable("permintaan_reset_password", {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-    peran: { type: DataTypes.ENUM("guru", "siswa", "orangtua"), allowNull: false },
+    peran: { type: DataTypes.ENUM("guru", "siswa", "orangtua", "kepala_sekolah"), allowNull: false },
     email: { type: DataTypes.STRING, allowNull: false },
     nama: { type: DataTypes.STRING, allowNull: false },
     nisn: { type: DataTypes.STRING, allowNull: true },
@@ -71,6 +79,8 @@ async function migrate() {
   await queryInterface.addIndex("permintaan_reset_password", ["peran", "email", "status"], {
     name: "idx_permintaan_reset_password_peran_email_status"
   });
+
+  await ensurePasswordResetRoleEnum();
 
   console.log("Migrasi permintaan reset password selesai");
 }

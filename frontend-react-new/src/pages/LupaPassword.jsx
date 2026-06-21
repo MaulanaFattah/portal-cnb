@@ -19,6 +19,11 @@ const roleOptions = [
     value: "guru",
     label: "Guru",
     description: "Masukkan email akun guru."
+  },
+  {
+    value: "kepala_sekolah",
+    label: "Kepala Sekolah",
+    description: "Masukkan email resmi kepala sekolah."
   }
 ];
 
@@ -30,7 +35,8 @@ const emptyFields = {
   nisn: "",
   parent_email: "",
   parent_phone: "",
-  guru_email: ""
+  guru_email: "",
+  kepala_email: ""
 };
 
 function LupaPassword() {
@@ -63,6 +69,10 @@ function LupaPassword() {
         email: formData.parent_email,
         no_telepon: formData.parent_phone
       };
+    }
+
+    if (formData.role === "kepala_sekolah") {
+      return { role: "kepala_sekolah", email: formData.kepala_email };
     }
 
     return { role: "guru", email: formData.guru_email };
@@ -173,6 +183,21 @@ function LupaPassword() {
                     name="guru_email"
                     placeholder="Masukkan email guru"
                     value={formData.guru_email}
+                    onChange={handleChange}
+                    autoComplete="email"
+                    required
+                  />
+                </div>
+              )}
+
+              {formData.role === "kepala_sekolah" && (
+                <div className="form-group">
+                  <label>Email Kepala Sekolah</label>
+                  <input
+                    type="email"
+                    name="kepala_email"
+                    placeholder="contoh: kepalasekolah@ciptanusabakti.sch.id"
+                    value={formData.kepala_email}
                     onChange={handleChange}
                     autoComplete="email"
                     required

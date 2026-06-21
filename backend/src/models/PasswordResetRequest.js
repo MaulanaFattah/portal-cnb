@@ -6,7 +6,7 @@ module.exports = (sequelize) => {
     {
       id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
       role: {
-        type: DataTypes.ENUM("guru", "siswa", "orangtua"),
+        type: DataTypes.ENUM("guru", "siswa", "orangtua", "kepala_sekolah"),
         allowNull: false,
         field: "peran"
       },

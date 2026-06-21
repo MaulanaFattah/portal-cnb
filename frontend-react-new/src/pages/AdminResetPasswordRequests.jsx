@@ -11,7 +11,8 @@ import {
 const roleLabels = {
   guru: "Guru",
   siswa: "Siswa",
-  orangtua: "Orang Tua"
+  orangtua: "Orang Tua",
+  kepala_sekolah: "Kepala Sekolah"
 };
 
 const statusLabels = {
