@@ -4012,6 +4012,10 @@ button:focus-visible {
 
 .announcement-date {
   flex: 0 0 auto;
+  align-self: flex-start;
+  height: fit-content;
+  padding: 6px 14px;
+  border-radius: 999px;
   white-space: nowrap;
 }
 
