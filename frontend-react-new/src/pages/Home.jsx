@@ -1,6 +1,6 @@
 import schoolLogo from "../assets/logo-transparent.png";
 import schoolPhoto from "../assets/school-photo.jpeg";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -21,6 +21,14 @@ function Home() {
   const [kegiatan, setKegiatan] = useState([]);
   const [pengumuman, setPengumuman] = useState([]);
   const [galeri, setGaleri] = useState([]);
+  const galleryRef = useRef(null);
+
+  const scrollGallery = (direction) => {
+    const node = galleryRef.current;
+    if (!node) return;
+    const amount = Math.max(node.clientWidth * 0.8, 280);
+    node.scrollBy({ left: direction * amount, behavior: "smooth" });
+  };
 
 
   useEffect(() => {
@@ -137,22 +145,34 @@ function Home() {
             <Link to="/galeri">Lihat Semua</Link>
           </div>
 
-          <div className="home-gallery-carousel" aria-label="Slider foto galeri sekolah">
-            {galeri.length === 0 ? (
-              <p className="empty-text">Belum ada galeri.</p>
-            ) : (
-              <div className="home-gallery-track">
-                {galeri.map((item, index) => (
-                  <figure className="home-gallery-slide" key={item.id}>
-                    <img
-                      src={resolveMediaUrl(item.image, schoolLogo)}
-                      alt={item.title || `Foto galeri ${index + 1}`}
-                      loading="lazy"
-                      onError={(event) => { event.currentTarget.src = schoolLogo; }}
-                    />
-                  </figure>
-                ))}
-              </div>
+          <div className="home-gallery-shell">
+            {galeri.length > 1 && (
+              <button type="button" className="home-gallery-nav prev" aria-label="Foto sebelumnya" onClick={() => scrollGallery(-1)}>
+                &#8249;
+              </button>
+            )}
+            <div className="home-gallery-carousel" aria-label="Slider foto galeri sekolah" ref={galleryRef}>
+              {galeri.length === 0 ? (
+                <p className="empty-text">Belum ada galeri.</p>
+              ) : (
+                <div className="home-gallery-track">
+                  {galeri.map((item, index) => (
+                    <figure className="home-gallery-slide" key={item.id}>
+                      <img
+                        src={resolveMediaUrl(item.image, schoolLogo)}
+                        alt={item.title || `Foto galeri ${index + 1}`}
+                        loading="lazy"
+                        onError={(event) => { event.currentTarget.src = schoolLogo; }}
+                      />
+                    </figure>
+                  ))}
+                </div>
+              )}
+            </div>
+            {galeri.length > 1 && (
+              <button type="button" className="home-gallery-nav next" aria-label="Foto berikutnya" onClick={() => scrollGallery(1)}>
+                &#8250;
+              </button>
             )}
           </div>
         </section>

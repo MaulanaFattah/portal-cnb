@@ -34,20 +34,29 @@ function readFileAsDataUrl(file) {
   });
 }
 
-function FileInput({ label, name, value, onFile, required }) {
+function FileInput({ label, name, value, fileName, onFile, onClear, required }) {
   return (
     <div className="form-group">
       <label>{label}</label>
-      <label className={`file-chip ${value ? "filled" : ""}`}>
-        <span>{value ? "Berkas sudah dipilih" : "Pilih berkas"}</span>
-        <input type="file" accept="image/*,.pdf" onChange={(e) => onFile(name, e.target.files?.[0])} required={required && !value} />
-      </label>
+      {value ? (
+        <div className="file-chip filled file-chip-selected">
+          <span className="file-chip-name" title={fileName || "Berkas dipilih"}>{fileName || "Berkas dipilih"}</span>
+          <button type="button" className="file-chip-remove" aria-label="Hapus berkas" onClick={() => onClear(name)}>&times;</button>
+        </div>
+      ) : (
+        <label className="file-chip">
+          <span>Pilih berkas</span>
+          <input type="file" accept="image/*,.pdf" onChange={(e) => onFile(name, e.target.files?.[0])} required={required} />
+        </label>
+      )}
+      <small className="file-chip-hint">Format yang diterima: gambar atau PDF.</small>
     </div>
   );
 }
 
 function FormPPDB() {
   const [form, setForm] = useState(initialForm);
+  const [fileNames, setFileNames] = useState({});
   const [status, setStatus] = useState({ type: "", message: "" });
   const [loading, setLoading] = useState(false);
 
@@ -62,6 +71,16 @@ function FormPPDB() {
     if (!file) return;
     const value = await readFileAsDataUrl(file);
     setForm((current) => ({ ...current, [name]: value }));
+    setFileNames((current) => ({ ...current, [name]: file.name }));
+  };
+
+  const handleClearFile = (name) => {
+    setForm((current) => ({ ...current, [name]: "" }));
+    setFileNames((current) => {
+      const next = { ...current };
+      delete next[name];
+      return next;
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -163,10 +182,10 @@ function FormPPDB() {
             <input type="tel" name="no_telepon" value={form.no_telepon} onChange={handleChange} required />
           </div>
 
-          <FileInput label="Berkas Fotokopi KK" name="berkas_kk" value={form.berkas_kk} onFile={handleFile} required />
-          {needsReport && <FileInput label="Berkas Raport Terakhir" name="berkas_raport" value={form.berkas_raport} onFile={handleFile} required />}
-          <FileInput label="Foto Calon Siswa" name="foto_siswa" value={form.foto_siswa} onFile={handleFile} required />
-          {needsTransferLetter && <FileInput label="Berkas Surat Pindahan" name="berkas_surat_pindah" value={form.berkas_surat_pindah} onFile={handleFile} required />}
+          <FileInput label="Berkas Fotokopi KK" name="berkas_kk" value={form.berkas_kk} fileName={fileNames.berkas_kk} onFile={handleFile} onClear={handleClearFile} required />
+          {needsReport && <FileInput label="Berkas Raport Terakhir" name="berkas_raport" value={form.berkas_raport} fileName={fileNames.berkas_raport} onFile={handleFile} onClear={handleClearFile} required />}
+          <FileInput label="Foto Calon Siswa" name="foto_siswa" value={form.foto_siswa} fileName={fileNames.foto_siswa} onFile={handleFile} onClear={handleClearFile} required />
+          {needsTransferLetter && <FileInput label="Berkas Surat Pindahan" name="berkas_surat_pindah" value={form.berkas_surat_pindah} fileName={fileNames.berkas_surat_pindah} onFile={handleFile} onClear={handleClearFile} required />}
 
           <div className="form-group full ppdb-note-box">
             <strong>Pemberitahuan hasil</strong>

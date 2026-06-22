@@ -13,7 +13,7 @@ const PortalAccountLink = db.PortalAccountLink;
 const PasswordResetRequest = db.PasswordResetRequest;
 const RESET_REQUEST_ROLES = ["guru", "siswa", "orangtua", "kepala_sekolah"];
 const RESET_REQUEST_MESSAGE = "Permintaan reset kata sandi berhasil dikirim. Silakan hubungi admin untuk meminta persetujuan dan kata sandi sementara.";
-const PORTAL_EMAIL_DOMAIN = "ciptanusabakti.sch.id";
+const PORTAL_EMAIL_DOMAIN = "cnb.sch.id";
 
 function generateToken(user) {
   return jwt.sign(
@@ -70,8 +70,8 @@ function normalizePhoneNumber(value) {
 }
 
 function buildPortalEmail(nisn, type) {
-  const cleanNisn = String(nisn || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
-  return `${cleanNisn || "akun"}.${type}@${PORTAL_EMAIL_DOMAIN}`;
+  const cleanNisn = String(nisn || "").toLowerCase().replace(/[^a-z0-9]+/g, "") || "akun";
+  return type === "siswa" ? `${cleanNisn}@${PORTAL_EMAIL_DOMAIN}` : `${cleanNisn}.ortu@${PORTAL_EMAIL_DOMAIN}`;
 }
 
 function normalizeResetRole(value) {
@@ -218,7 +218,8 @@ exports.registerGuru = async (req, res) => {
       mata_pelajaran,
       kelas_id,
       kelas_wali_id,
-      homeroom_classroom_id
+      homeroom_classroom_id,
+      jenjang
     } = req.body;
 
     const namaGuru = nama || name;
@@ -230,6 +231,9 @@ exports.registerGuru = async (req, res) => {
       ? (toBoolean(req.body.wali_kelas) || toBoolean(req.body.is_homeroom))
       : tipeGuru === "wali_kelas";
     const subjectList = normalizeSubjectInput(mata_pelajaran ?? subjects ?? subject);
+    const normalizedJenjang = ["sd", "smp"].includes(String(jenjang || "").trim().toLowerCase())
+      ? String(jenjang).trim().toLowerCase()
+      : null;
     const isSubjectTeacher = explicitSubjectTeacher
       ? (toBoolean(req.body.guru_mata_pelajaran) || toBoolean(req.body.is_subject_teacher))
       : (tipeGuru === "mapel" || subjectList.length > 0);
@@ -248,17 +252,12 @@ exports.registerGuru = async (req, res) => {
       return res.status(400).json({ success: false, message: "Pilih minimal satu peran guru" });
     }
 
-    if (isHomeroom && !homeroomClassroomId) {
-      await transaction.rollback();
-      return res.status(400).json({ success: false, message: "Kelas wajib dipilih untuk guru wali kelas" });
-    }
-
     if (isSubjectTeacher && !subjectList.length) {
       await transaction.rollback();
       return res.status(400).json({ success: false, message: "Minimal satu mata pelajaran wajib diisi untuk guru mata pelajaran" });
     }
 
-    if (isHomeroom) {
+    if (isHomeroom && homeroomClassroomId) {
       const kelas = await Kelas.findByPk(homeroomClassroomId, { transaction });
       if (!kelas) {
         await transaction.rollback();
@@ -291,8 +290,9 @@ exports.registerGuru = async (req, res) => {
       user_id: user.id,
       teacher_type: legacyTeacherType,
       subject: isSubjectTeacher ? subjectList.join(", ") : null,
+      jenjang: normalizedJenjang,
       is_homeroom: isHomeroom,
-      kelas_id: isHomeroom ? homeroomClassroomId : null,
+      kelas_id: isHomeroom && homeroomClassroomId ? homeroomClassroomId : null,
       verification_status: "pending"
     }, { transaction });
 

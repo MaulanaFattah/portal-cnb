@@ -36,7 +36,8 @@ function generatePassword(prefix) {
 }
 
 function buildPortalEmail(nisn, type) {
-  return `${String(nisn).toLowerCase().replace(/[^a-z0-9]+/g, "")}.${type}@ciptanusabakti.sch.id`;
+  const cleanNisn = String(nisn).toLowerCase().replace(/[^a-z0-9]+/g, "");
+  return type === "siswa" ? `${cleanNisn}@cnb.sch.id` : `${cleanNisn}.ortu@cnb.sch.id`;
 }
 
 async function findReusableParentUserByPhone(phone, transaction) {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { loginUser, saveAuth } from "../services/api";
@@ -58,7 +58,6 @@ function LoginKepalaSekolah() {
             <button type="submit" className="submit-btn">Masuk</button>
           </form>
 
-          <Link to="/login" className="auth-link auth-back-link">Kembali ke pilihan masuk</Link>
         </div>
       </main>
       <Footer />

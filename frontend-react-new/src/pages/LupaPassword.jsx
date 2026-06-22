@@ -41,7 +41,9 @@ const emptyFields = {
 
 function LupaPassword() {
   const [searchParams] = useSearchParams();
-  const initialRole = useMemo(() => getInitialRole(searchParams.get("role")), [searchParams]);
+  const roleParam = searchParams.get("role");
+  const isRoleLocked = roleOptions.some((role) => role.value === roleParam);
+  const initialRole = useMemo(() => getInitialRole(roleParam), [roleParam]);
   const [formData, setFormData] = useState({ role: initialRole, ...emptyFields });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
@@ -102,27 +104,31 @@ function LupaPassword() {
           <h1>Lupa Kata Sandi</h1>
 
           <p>
-            Pilih jenis akun, isi identitas yang diminta, lalu admin akan memverifikasi sebelum kata sandi sementara diberikan.
+            {isRoleLocked
+              ? `Khusus akun ${selectedRole.label}. Isi identitas yang diminta, lalu admin akan memverifikasi sebelum kata sandi sementara diberikan.`
+              : "Pilih jenis akun, isi identitas yang diminta, lalu admin akan memverifikasi sebelum kata sandi sementara diberikan."}
           </p>
 
           <form onSubmit={handleSubmit} autoComplete="off" className="forgot-password-form">
-            <fieldset className="forgot-role-group">
-              <legend>Jenis Akun</legend>
-              <div className="forgot-role-grid">
-                {roleOptions.map((role) => (
-                  <button
-                    key={role.value}
-                    type="button"
-                    className={`forgot-role-card ${formData.role === role.value ? "active" : ""}`}
-                    onClick={() => handleRoleChange(role.value)}
-                    aria-pressed={formData.role === role.value}
-                  >
-                    <strong>{role.label}</strong>
-                    <span>{role.description}</span>
-                  </button>
-                ))}
-              </div>
-            </fieldset>
+            {!isRoleLocked && (
+              <fieldset className="forgot-role-group">
+                <legend>Jenis Akun</legend>
+                <div className="forgot-role-grid">
+                  {roleOptions.map((role) => (
+                    <button
+                      key={role.value}
+                      type="button"
+                      className={`forgot-role-card ${formData.role === role.value ? "active" : ""}`}
+                      onClick={() => handleRoleChange(role.value)}
+                      aria-pressed={formData.role === role.value}
+                    >
+                      <strong>{role.label}</strong>
+                      <span>{role.description}</span>
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+            )}
 
             <div className="forgot-dynamic-panel">
               <div>
@@ -153,7 +159,7 @@ function LupaPassword() {
                     <input
                       type="email"
                       name="parent_email"
-                      placeholder="contoh: orangtua@ciptanusabakti.sch.id"
+                      placeholder="contoh: 123456.ortu@cnb.sch.id"
                       value={formData.parent_email}
                       onChange={handleChange}
                       autoComplete="email"
@@ -196,7 +202,7 @@ function LupaPassword() {
                   <input
                     type="email"
                     name="kepala_email"
-                    placeholder="contoh: kepalasekolah@ciptanusabakti.sch.id"
+                    placeholder="contoh: kepala@cnb.sch.id"
                     value={formData.kepala_email}
                     onChange={handleChange}
                     autoComplete="email"

@@ -85,18 +85,6 @@ function AdminVerifikasiGuru() {
     setDraft({ ...draft, [id]: { ...draft[id], [field]: value } });
   };
 
-  const handleRoleSelect = (id, value) => {
-    setDraft((current) => {
-      const currentDraft = current[id] || {};
-      const isHomeroom = value === "wali" || value === "keduanya";
-      const isSubjectTeacher = value === "mapel" || value === "keduanya";
-      const nextDraft = { ...currentDraft, is_homeroom: isHomeroom, is_subject_teacher: isSubjectTeacher };
-      if (!isSubjectTeacher) nextDraft.subject = "";
-      if (!isHomeroom) nextDraft.kelas_id = "";
-      return { ...current, [id]: nextDraft };
-    });
-  };
-
   const handleVerify = async (id, verification_status) => {
     const itemDraft = draft[id] || {};
     const result = await verifyGuruRegistration(id, {
@@ -183,6 +171,13 @@ function AdminVerifikasiGuru() {
 
   const approvedMapel = accounts.filter((item) => item.guruProfile?.verification_status === "approved" && isSubjectTeacherProfile(item.guruProfile));
   const selectedJadwalSubjects = getSubjectOptionsForTeacher(jadwalForm.guru_user_id, jadwalForm.mapel);
+  const jadwalByKelas = jadwal.reduce((groups, item) => {
+    const key = item.kelas?.nama_kelas || "Tanpa Kelas";
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(item);
+    return groups;
+  }, {});
+  const jadwalKelasNames = Object.keys(jadwalByKelas).sort((a, b) => a.localeCompare(b, "id", { numeric: true }));
 
   return (
     <div className="dashboard-layout">
@@ -216,22 +211,10 @@ function AdminVerifikasiGuru() {
                 </div>
 
                 <div className="verify-grid">
-                  <label className="full">Peran Guru
-                    <select
-                      value={itemDraft.is_homeroom && itemDraft.is_subject_teacher ? "keduanya" : itemDraft.is_homeroom ? "wali" : itemDraft.is_subject_teacher ? "mapel" : ""}
-                      onChange={(e) => handleRoleSelect(item.id, e.target.value)}
-                    >
-                      <option value="">Pilih peran guru</option>
-                      <option value="wali">Guru Wali Kelas</option>
-                      <option value="mapel">Guru Mata Pelajaran</option>
-                      <option value="keduanya">Wali Kelas + Guru Mata Pelajaran</option>
-                    </select>
-                  </label>
-                  {itemDraft.is_subject_teacher && (
-                    <label>Mata Pelajaran
-                      <input value={itemDraft.subject || ""} onChange={(e) => handleDraft(item.id, "subject", e.target.value)} placeholder="Contoh: Matematika, IPA" />
-                    </label>
-                  )}
+                  <div className="verify-info full">
+                    <span>Peran dari registrasi</span>
+                    <strong>{roleSummary(itemDraft)}{itemDraft.subject ? ` - ${itemDraft.subject}` : ""}</strong>
+                  </div>
                   {itemDraft.is_homeroom && (
                     <label>Kelas Wali
                       <select value={itemDraft.kelas_id || ""} onChange={(e) => handleDraft(item.id, "kelas_id", e.target.value)}>
@@ -294,21 +277,33 @@ function AdminVerifikasiGuru() {
             </div>
           </form>
 
-          <div className="activity-admin-list">
-            {jadwal.length === 0 ? <p className="empty-text">Belum ada jadwal mengajar.</p> : jadwal.map((item) => (
-              <div className="activity-admin-item" key={item.id}>
-                <span>{item.hari}</span>
-                <div>
-                  <h4>{item.mapel} - {item.kelas?.nama_kelas || "Kelas"}</h4>
-                  <p>{item.guru?.name || "Guru"} • {item.jam_mulai} - {item.jam_selesai}</p>
+          {jadwal.length === 0 ? (
+            <p className="empty-text">Belum ada jadwal mengajar.</p>
+          ) : (
+            jadwalKelasNames.map((kelasName) => (
+              <div className="jadwal-kelas-group" key={kelasName}>
+                <div className="jadwal-kelas-group-head">
+                  <h4>Kelas {kelasName}</h4>
+                  <span>{jadwalByKelas[kelasName].length} jadwal</span>
                 </div>
-                <div className="admin-action">
-                  <button type="button" onClick={() => handleEditJadwal(item)}>Ubah</button>
-                  <button type="button" onClick={() => handleDeleteJadwal(item.id)}>Hapus</button>
+                <div className="activity-admin-list">
+                  {jadwalByKelas[kelasName].map((item) => (
+                    <div className="activity-admin-item" key={item.id}>
+                      <span>{item.hari}</span>
+                      <div>
+                        <h4>{item.mapel} - {item.kelas?.nama_kelas || "Kelas"}</h4>
+                        <p>{item.guru?.name || "Guru"} • {item.jam_mulai} - {item.jam_selesai}</p>
+                      </div>
+                      <div className="admin-action">
+                        <button type="button" onClick={() => handleEditJadwal(item)}>Ubah</button>
+                        <button type="button" onClick={() => handleDeleteJadwal(item.id)}>Hapus</button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
+            ))
+          )}
         </section>
       </main>
     </div>

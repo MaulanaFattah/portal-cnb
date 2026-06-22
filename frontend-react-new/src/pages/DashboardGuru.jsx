@@ -4,7 +4,8 @@ import {
   getGuruDashboard,
   getRekapAbsensiGuru,
   logout,
-  submitAbsensiGuru
+  submitAbsensiGuru,
+  updateGuruProfile
 } from "../services/api";
 import { exportExcel } from "../utils/exportExcel";
 
@@ -18,8 +19,9 @@ const ABSENSI_OPTIONS = [
 const MENU_ITEMS = [
   { id: "dashboard", label: "Dasbor" },
   { id: "jadwal", label: "Jadwal Mengajar" },
-  { id: "absensi", label: "Absensi Kelas" },
-  { id: "rekap", label: "Rekapitulasi Absensi" }
+  { id: "absensi", label: "Absensi" },
+  { id: "rekap", label: "Rekapitulasi Absensi" },
+  { id: "profil", label: "Edit Profil" }
 ];
 
 const emptySummary = { hadir: 0, izin: 0, sakit: 0, alpha: 0, total: 0 };
@@ -56,12 +58,15 @@ function DashboardGuru() {
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState(null);
+  const [expandedAnnouncements, setExpandedAnnouncements] = useState([]);
   const [tanggal, setTanggal] = useState(todayISO());
   const [jadwalId, setJadwalId] = useState("");
   const [attendanceMode, setAttendanceMode] = useState("homeroom");
   const [entries, setEntries] = useState({});
   const [savedAttendanceSummary, setSavedAttendanceSummary] = useState(emptySummary);
   const [savingAbsensi, setSavingAbsensi] = useState(false);
+  const [profileForm, setProfileForm] = useState({ name: "", email: "" });
+  const [savingProfile, setSavingProfile] = useState(false);
   const [rekapLoading, setRekapLoading] = useState(false);
   const [rekap, setRekap] = useState({ summary: emptySummary, rows: [] });
   const [rekapFilter, setRekapFilter] = useState({
@@ -88,6 +93,7 @@ function DashboardGuru() {
       setJadwalId(firstJadwalId);
       setAttendanceMode(isHomeroom ? "homeroom" : "subject");
       setRekapFilter((previous) => ({ ...previous, kelas_id: firstClassId ? String(firstClassId) : "" }));
+      setProfileForm({ name: data.user?.name || "", email: data.user?.email || "" });
       setDashboard(data);
       setLoading(false);
     };
@@ -144,22 +150,32 @@ function DashboardGuru() {
     }, { ...emptySummary });
   }, [entries, siswaList]);
 
+  const handleProfileChange = (event) => {
+    const { name, value } = event.target;
+    setProfileForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const handleSaveProfile = async (event) => {
+    event.preventDefault();
+    setSavingProfile(true);
+    setNotice(null);
+    const result = await updateGuruProfile({ name: profileForm.name });
+    setSavingProfile(false);
+    setNotice({ type: result.success ? "success" : "error", text: result.message });
+    if (result.success) {
+      setDashboard((current) => current ? { ...current, user: { ...current.user, name: profileForm.name } } : current);
+    }
+  };
+
+  const toggleAnnouncement = (id) => {
+    setExpandedAnnouncements((current) =>
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+    );
+  };
+
   const handleLogout = () => {
     logout();
     navigate("/login-guru");
-  };
-
-  const openHomeroomAttendance = () => {
-    setAttendanceMode("homeroom");
-    setActiveMenu("absensi");
-    setNotice(null);
-  };
-
-  const openScheduleAttendance = (scheduleId) => {
-    setJadwalId(String(scheduleId));
-    setAttendanceMode("subject");
-    setActiveMenu("absensi");
-    setNotice(null);
   };
 
   const handleEntry = (id, field, value) => {
@@ -206,6 +222,18 @@ function DashboardGuru() {
   };
 
   const loadRekap = async () => {
+    if (!rekapFilter.mapel.trim()) {
+      setRekap({ summary: emptySummary, rows: [] });
+      setNotice({ type: "error", text: "Pilih mata pelajaran terlebih dahulu untuk menampilkan rekap." });
+      return;
+    }
+
+    if (hasSubjectRoster && !rekapFilter.jadwal_id) {
+      setRekap({ summary: emptySummary, rows: [] });
+      setNotice({ type: "error", text: "Pilih jadwal mengajar terlebih dahulu untuk menampilkan rekap." });
+      return;
+    }
+
     setRekapLoading(true);
     setNotice(null);
 
@@ -293,7 +321,6 @@ function DashboardGuru() {
             <div className="teacher-profile-list">
               <div><span>Kelas Akses</span><strong>{classOptions.map((item) => item.nama_kelas).join(", ") || "Belum diset"}</strong></div>
               {displaySubject && <div><span>Mata Pelajaran</span><strong>{displaySubject}</strong></div>}
-              <div><span>Status</span><strong>Aktif Terverifikasi</strong></div>
             </div>
           </article>
         </div>
@@ -305,13 +332,24 @@ function DashboardGuru() {
               <p className="teacher-empty">Belum ada pengumuman terbaru.</p>
             ) : (
               <div className="teacher-announcement-list">
-                {announcements.map((item) => (
-                  <div className="teacher-announcement" key={item.id}>
-                    <span>{formatDate(item.date)}</span>
-                    <strong>{item.title}</strong>
-                    <p>{item.content}</p>
-                  </div>
-                ))}
+                {announcements.map((item) => {
+                  const isOpen = expandedAnnouncements.includes(item.id);
+                  return (
+                    <div className="teacher-announcement" key={item.id}>
+                      <span>{formatDate(item.date)}</span>
+                      <strong>{item.title}</strong>
+                      {isOpen && <p>{item.content}</p>}
+                      <button
+                        type="button"
+                        className="teacher-announcement-toggle"
+                        onClick={() => toggleAnnouncement(item.id)}
+                        aria-expanded={isOpen}
+                      >
+                        {isOpen ? "Tutup" : "Selengkapnya"}
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </article>
@@ -337,8 +375,6 @@ function DashboardGuru() {
               <th>Kelas</th>
               <th>Hari</th>
               <th>Jam</th>
-              <th>Status</th>
-              <th>Absensi</th>
             </tr>
           </thead>
           <tbody>
@@ -347,14 +383,12 @@ function DashboardGuru() {
                 <td>1</td>
                 <td>Absensi Kelas</td>
                 <td>{profile?.kelas?.nama_kelas || "Belum diset"}</td>
-                <td>Setiap hari sekolah</td>
+                <td>Senin - Sabtu</td>
                 <td>Awal masuk</td>
-                <td><span className="teacher-badge active">Aktif</span></td>
-                <td><button type="button" className="teacher-secondary small-action" onClick={openHomeroomAttendance}>Absensi</button></td>
               </tr>
             )}
             {!isWali && (dashboard.jadwal || []).length === 0 ? (
-              <tr><td colSpan="7" className="teacher-empty-cell">Belum ada jadwal mengajar dari admin.</td></tr>
+              <tr><td colSpan="5" className="teacher-empty-cell">Belum ada jadwal mengajar dari admin.</td></tr>
             ) : (dashboard.jadwal || []).map((item, index) => (
               <tr key={item.id}>
                 <td>{index + (isWali ? 2 : 1)}</td>
@@ -362,8 +396,6 @@ function DashboardGuru() {
                 <td>{item.kelas?.nama_kelas || "-"}</td>
                 <td>{item.hari}</td>
                 <td>{formatTime(item.jam_mulai)} - {formatTime(item.jam_selesai)}</td>
-                <td><span className="teacher-badge active">Aktif</span></td>
-                <td><button type="button" className="teacher-secondary small-action" onClick={() => openScheduleAttendance(item.id)}>Absensi</button></td>
               </tr>
             ))}
           </tbody>
@@ -382,15 +414,15 @@ function DashboardGuru() {
     return (
       <section className="teacher-panel">
         <div className="teacher-panel-header compact">
-          <span>Absensi Kelas</span>
-          <h1>{attendanceIsHomeroom ? "Absensi Kelas Wali" : "Absensi Kelas Mata Pelajaran"}</h1>
-          <p>{attendanceIsHomeroom ? "Wali kelas mengisi absensi kelasnya sebagai absensi harian utama." : "Guru mata pelajaran mengisi absensi kelas sesuai mata pelajaran dan jam mengajar aktif."}</p>
+          <span>Absensi</span>
+          <h1>{attendanceIsHomeroom ? "Absensi" : "Absensi Mata Pelajaran"}</h1>
+          <p>{attendanceIsHomeroom ? "Wali kelas mengisi absensi harian kelasnya." : "Guru mata pelajaran mengisi absensi sesuai mata pelajaran dan jam mengajar aktif."}</p>
         </div>
 
         {isWali && hasSubjectRoster && (
           <div className="teacher-actions-row attendance-mode-switch">
             <button type="button" className={attendanceMode === "homeroom" ? "teacher-primary" : "teacher-secondary"} onClick={() => setAttendanceMode("homeroom")}>
-              Absensi Kelas Wali
+              Absensi Kelas
             </button>
             <button type="button" className={attendanceMode === "subject" ? "teacher-primary" : "teacher-secondary"} onClick={() => setAttendanceMode("subject")}>
               Absensi Jadwal Mapel
@@ -467,7 +499,7 @@ function DashboardGuru() {
 
           <div className="teacher-actions-row">
             <button className="teacher-primary" type="submit" disabled={savingAbsensi || siswaList.length === 0 || (!attendanceIsHomeroom && !jadwalId)}>
-              {savingAbsensi ? "Menyimpan..." : "Simpan Absensi Kelas"}
+              {savingAbsensi ? "Menyimpan..." : "Simpan Absensi"}
             </button>
           </div>
         </form>
@@ -564,10 +596,44 @@ function DashboardGuru() {
     </section>
   );
 
+  const renderProfil = () => (
+    <section className="teacher-panel">
+      <div className="teacher-panel-header compact">
+        <span>Edit Profil</span>
+        <h1>Edit Profil Guru</h1>
+        <p>Perbarui nama tampilan akun. Email akun tidak dapat diubah dan hanya bisa diganti oleh admin.</p>
+      </div>
+
+      <form className="teacher-form-stack teacher-profile-form" onSubmit={handleSaveProfile}>
+        <div className="teacher-form-grid">
+          <label className="teacher-field">Nama Lengkap
+            <input name="name" value={profileForm.name} onChange={handleProfileChange} required />
+          </label>
+          <label className="teacher-field">Email (tidak dapat diubah)
+            <input type="email" name="email" value={profileForm.email} readOnly disabled />
+          </label>
+          <label className="teacher-field">Peran
+            <input value={roleLabel} readOnly disabled />
+          </label>
+          <label className="teacher-field">Kelas Akses
+            <input value={classOptions.map((item) => item.nama_kelas).join(", ") || "Belum diset"} readOnly disabled />
+          </label>
+        </div>
+
+        <div className="teacher-actions-row">
+          <button className="teacher-primary" type="submit" disabled={savingProfile}>
+            {savingProfile ? "Menyimpan..." : "Simpan Profil"}
+          </button>
+        </div>
+      </form>
+    </section>
+  );
+
   const renderActivePanel = () => {
     if (activeMenu === "jadwal") return renderJadwal();
     if (activeMenu === "absensi") return renderAbsensi();
     if (activeMenu === "rekap") return renderRekap();
+    if (activeMenu === "profil") return renderProfil();
     return renderDashboard();
   };
 

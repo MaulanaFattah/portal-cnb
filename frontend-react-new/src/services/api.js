@@ -647,6 +647,19 @@ export async function getGuruDashboard() {
   return response.json();
 }
 
+export async function updateGuruProfile(data) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/guru-portal/profile`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
 export async function submitAbsensiGuru(data) {
   const token = localStorage.getItem("token");
   const response = await fetch(`${API_URL}/guru-portal/absensi`, {

@@ -19,6 +19,7 @@ module.exports = (sequelize) => {
         defaultValue: "mapel"
       },
       subject: { type: DataTypes.STRING, allowNull: true, field: "mata_pelajaran" },
+      jenjang: { type: DataTypes.ENUM("sd", "smp"), allowNull: true, field: "jenjang" },
       is_homeroom: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "wali_kelas" },
       kelas_id: {
         type: DataTypes.INTEGER,

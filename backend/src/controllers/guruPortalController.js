@@ -709,3 +709,31 @@ exports.createStudentAccounts = async (req, res) => {
     return res.status(500).json({ success: false, message: "Gagal membuat akun siswa/orang tua", error: error.message });
   }
 };
+
+exports.updateProfile = async (req, res) => {
+  try {
+    const name = String(req.body.name || req.body.nama || "").trim();
+    if (!name) {
+      return res.status(400).json({ success: false, message: "Nama wajib diisi" });
+    }
+
+    await req.user.update({ name });
+
+    const profile = await GuruProfile.findOne({ where: { user_id: req.user.id } });
+
+    await logAudit(req, {
+      action: "teacher.profile.update",
+      entityType: "teacher_profile",
+      entityId: profile?.id || req.user.id,
+      metadata: { userId: req.user.id }
+    });
+
+    return res.json({
+      success: true,
+      message: "Profil guru berhasil diperbarui",
+      data: { user: safeUser(req.user), guruProfile: profile }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Gagal memperbarui profil guru", error: error.message });
+  }
+};

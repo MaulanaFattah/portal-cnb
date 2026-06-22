@@ -228,7 +228,7 @@ function DashboardOrangTua() {
               <input name="alamat" value={profileForm.alamat} onChange={handleProfileChange} placeholder="Alamat tempat tinggal" />
             </label>
             <label className="teacher-field">Email
-              <input type="email" name="email" value={profileForm.email} onChange={handleProfileChange} />
+              <input type="email" name="email" value={profileForm.email} readOnly disabled />
             </label>
             <div className="teacher-actions-row">
               <button type="button" className="teacher-secondary" onClick={() => setEditing(false)}>Batal</button>

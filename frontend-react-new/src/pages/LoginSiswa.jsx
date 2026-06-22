@@ -75,7 +75,6 @@ function LoginSiswa() {
             Lupa kata sandi?
           </Link>
 
-          <Link to="/login" className="auth-link auth-back-link">Kembali ke pilihan masuk</Link>
         </div>
       </main>
 

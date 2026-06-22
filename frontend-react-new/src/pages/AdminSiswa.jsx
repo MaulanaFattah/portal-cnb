@@ -235,7 +235,7 @@ function AdminSiswa() {
                   {classTabs.map((item) => <option key={item.id} value={String(item.id)}>{item.label}</option>)}
                   {noClassCount > 0 && <option value="none">Tanpa Kelas</option>}
                 </select>
-                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari nama, NISN, kelas..." />
+                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari nama, NIS, kelas..." />
               </div>
             </div>
 
@@ -264,7 +264,7 @@ function AdminSiswa() {
                           <tr>
                             <th>No</th>
                             <th>Nama Siswa</th>
-                            <th>NIS/NISN</th>
+                            <th>NIS</th>
                             <th>JK</th>
                             <th>Kelas</th>
                             <th>Orang Tua</th>
@@ -313,7 +313,7 @@ function AdminSiswa() {
                 <div className="form-section-title">Data Siswa</div>
                 <div className="student-form-grid">
                   <div className="form-group"><label>Nama Siswa</label><input name="nama" value={formData.nama} onChange={handleChange} required /></div>
-                  <div className="form-group"><label>NIS/NISN</label><input name="nisn" value={formData.nisn} onChange={handleChange} required /></div>
+                  <div className="form-group"><label>NIS</label><input name="nisn" value={formData.nisn} onChange={handleChange} required /></div>
                   <div className="form-group"><label>Kelas</label><select name="kelas_id" value={formData.kelas_id || ""} onChange={handleChange} required><option value="">Pilih kelas</option>{kelas.map((item) => <option key={item.id} value={item.id}>{classLabel(item)}</option>)}</select></div>
                   <div className="form-group"><label>Jenis Kelamin</label><select name="jenis_kelamin" value={formData.jenis_kelamin} onChange={handleChange} required><option value="L">Laki-laki</option><option value="P">Perempuan</option></select></div>
                   <div className="form-group"><label>Tanggal Lahir</label><input type="date" name="tanggal_lahir" value={formData.tanggal_lahir || ""} onChange={handleChange} required /></div>

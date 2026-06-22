@@ -141,15 +141,8 @@ exports.updateSiswaProfile = async (req, res) => {
       if (req.body[field] !== undefined) updateData[field] = req.body[field];
     });
 
-    if (updateData.email) {
-      const email = normalizeEmail(updateData.email);
-      const existingUser = await User.findOne({ where: { email } });
-      if (existingUser && existingUser.id !== req.user.id) {
-        return res.status(409).json({ success: false, message: "Email sudah digunakan akun lain" });
-      }
-      updateData.email = email;
-      await req.user.update({ email, name: updateData.nama || req.user.name });
-    } else if (updateData.nama) {
+    delete updateData.email;
+    if (updateData.nama) {
       await req.user.update({ name: updateData.nama });
     }
 
@@ -214,16 +207,8 @@ exports.updateOrangTuaProfile = async (req, res) => {
     if (!siswa) return res.status(404).json({ success: false, message: "Data siswa anak tidak ditemukan untuk akun ini" });
 
     const name = req.body.name || req.user.name;
-    const email = req.body.email ? normalizeEmail(req.body.email) : req.user.email;
 
-    if (email !== req.user.email) {
-      const existingUser = await User.findOne({ where: { email } });
-      if (existingUser && existingUser.id !== req.user.id) {
-        return res.status(409).json({ success: false, message: "Email sudah digunakan akun lain" });
-      }
-    }
-
-    await req.user.update({ name, email });
+    await req.user.update({ name });
     await siswa.update({
       nama_ayah: req.body.parent_type === "ibu" ? siswa.nama_ayah : name,
       nama_ibu: req.body.parent_type === "ibu" ? name : siswa.nama_ibu,

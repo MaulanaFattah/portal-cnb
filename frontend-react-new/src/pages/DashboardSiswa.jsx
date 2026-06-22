@@ -266,7 +266,7 @@ function DashboardSiswa() {
             </select>
           </label>
           <label className="teacher-field">Email
-            <input type="email" name="email" value={profileForm.email} onChange={handleProfileChange} placeholder="email@cnb.sch.id" />
+            <input type="email" name="email" value={profileForm.email} readOnly disabled />
           </label>
 
           <div className="teacher-actions-row">

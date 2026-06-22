@@ -69,7 +69,7 @@ function normalizePhoneNumber(value) {
 function buildPortalEmail(nisn, type) {
   const cleanNisn = String(nisn || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
   if (!cleanNisn) return "";
-  return `${cleanNisn}.${type}@ciptanusabakti.sch.id`;
+  return type === "siswa" ? `${cleanNisn}@cnb.sch.id` : `${cleanNisn}.ortu@cnb.sch.id`;
 }
 
 function generateTemporaryPassword(prefix) {
@@ -576,7 +576,7 @@ function AdminAkunSiswa() {
                       return (
                         <tr key={student.id}>
                          <td data-label="No">{index + 1}</td>
-                          <td data-label="Siswa"><div className="management-table-cell"><strong>{student.nama}</strong><span>NIS/NISN: {student.nisn || "-"}</span></div></td>
+                          <td data-label="Siswa"><div className="management-table-cell"><strong>{student.nama}</strong><span>NIS: {student.nisn || "-"}</span></div></td>
                           <td data-label="Kelas">{getStudentClassName(student)}</td>
                           <td data-label="Orang Tua">{getStudentParentName(student)}</td>
                           <td data-label="No. HP">{student.no_telepon || "-"}</td>
@@ -624,7 +624,7 @@ function AdminAkunSiswa() {
                       return (
                         <tr key={student.id}>
                           <td data-label="No">{index + 1}</td>
-                          <td data-label="Siswa"><div className="management-table-cell"><strong>{student.nama}</strong><span>NIS/NISN: {student.nisn || "-"}</span></div></td>
+                          <td data-label="Siswa"><div className="management-table-cell"><strong>{student.nama}</strong><span>NIS: {student.nisn || "-"}</span></div></td>
                           <td data-label="Kelas">{getStudentClassName(student)}</td>
                           <td data-label="Akun Siswa">
                             <div className="management-table-cell">
@@ -712,7 +712,7 @@ function AdminAkunSiswa() {
               <div className="form-section-title">Data Siswa</div>
               <div className="student-form-grid">
                 <div className="form-group"><label>Nama Siswa</label><input name="nama" value={studentForm.nama} onChange={handleStudentChange} required /></div>
-                <div className="form-group"><label>NIS/NISN</label><input name="nisn" value={studentForm.nisn} onChange={handleStudentChange} required /></div>
+                <div className="form-group"><label>NIS</label><input name="nisn" value={studentForm.nisn} onChange={handleStudentChange} required /></div>
                 <div className="form-group"><label>Kelas</label><select name="kelas_id" value={studentForm.kelas_id || ""} onChange={handleStudentChange} required><option value="">Pilih kelas</option>{kelas.map((item) => <option key={item.id} value={item.id}>{classLabel(item)}</option>)}</select></div>
                 <div className="form-group"><label>Jenis Kelamin</label><select name="jenis_kelamin" value={studentForm.jenis_kelamin} onChange={handleStudentChange} required><option value="L">Laki-laki</option><option value="P">Perempuan</option></select></div>
                 <div className="form-group"><label>Tanggal Lahir</label><input type="date" name="tanggal_lahir" value={studentForm.tanggal_lahir || ""} onChange={handleStudentChange} required /></div>
@@ -781,7 +781,7 @@ function AdminAkunSiswa() {
                     onChange={(event) => { setStudentQuery(event.target.value); setIsStudentListOpen(true); }}
                     onFocus={() => setIsStudentListOpen(true)}
                     onBlur={() => setTimeout(() => setIsStudentListOpen(false), 150)}
-                    placeholder="Ketik nama, NISN, atau kelas siswa..."
+                    placeholder="Ketik nama, NIS, atau kelas siswa..."
                     aria-label="Cari dan pilih siswa"
                     autoComplete="off"
                   />
@@ -797,7 +797,7 @@ function AdminAkunSiswa() {
                             onMouseDown={(event) => { event.preventDefault(); selectStudentForAccount(student); }}
                           >
                             <strong>{student.nama}</strong>
-                            <span>NIS/NISN: {student.nisn || "-"} - {getStudentClassName(student)}</span>
+                            <span>NIS: {student.nisn || "-"} - {getStudentClassName(student)}</span>
                           </button>
                         </li>
                       ))}
