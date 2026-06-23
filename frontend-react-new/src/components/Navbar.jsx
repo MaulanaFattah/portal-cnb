@@ -17,8 +17,7 @@ function Navbar() {
         <nav className="menu">
           <NavLink to="/">Beranda</NavLink>
           <NavLink to="/profil">Profil</NavLink>
-          <NavLink to="/kegiatan">Kegiatan</NavLink>
-          <NavLink to="/pengumuman">Pengumuman</NavLink>
+          <NavLink to="/fasilitas">Fasilitas Sekolah</NavLink>
           <NavLink to="/galeri">Galeri</NavLink>
           <NavLink to="/ppdb">PPDB</NavLink>
           <NavLink to="/kontak">Kontak</NavLink>

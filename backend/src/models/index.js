@@ -77,4 +77,7 @@ db.PasswordResetRequest.belongsTo(db.User, { foreignKey: "matched_user_id", as: 
 db.User.hasMany(db.PasswordResetRequest, { foreignKey: "processed_by", as: "processedPasswordResetRequests", ...setNull });
 db.PasswordResetRequest.belongsTo(db.User, { foreignKey: "processed_by", as: "processedBy", ...setNull });
 
+db.User.hasOne(db.KepalaSekolah, { foreignKey: "user_id", as: "kepalaSekolahProfile", ...setNull });
+db.KepalaSekolah.belongsTo(db.User, { foreignKey: "user_id", as: "user", ...setNull });
+
 module.exports = db;

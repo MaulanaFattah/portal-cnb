@@ -39,6 +39,18 @@ export async function registerGuru(data) {
   return response.json();
 }
 
+export async function registerKepalaSekolah(data) {
+  const response = await fetch(`${API_URL}/auth/register-kepala-sekolah`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data)
+  });
+
+  return response.json();
+}
+
 export function saveAuth(token, user) {
   localStorage.setItem("token", token);
   localStorage.setItem("user", JSON.stringify(user));

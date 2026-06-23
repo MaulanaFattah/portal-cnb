@@ -8,6 +8,7 @@ const menu = [
   ["/admin/galeri", "Galeri"],
   ["/admin/ppdb", "PPDB"],
   ["/admin/verifikasi-guru", "Verifikasi Guru"],
+  ["/admin/kepala-sekolah", "Kepala Sekolah"],
   ["/admin/reset-password", "Reset Password"],
   ["/admin/kelas", "Kelas"],
   ["/admin/akun-siswa", "Manajemen Siswa & Orang Tua"]

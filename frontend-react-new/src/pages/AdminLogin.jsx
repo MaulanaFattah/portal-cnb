@@ -8,9 +8,11 @@ function AdminLogin() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
     const result = await loginUser({
       email,
@@ -19,7 +21,7 @@ function AdminLogin() {
     });
 
     if (!result.success) {
-      alert(result.message);
+      setError(result.message || "Gagal masuk sebagai administrator");
       return;
     }
 
@@ -34,6 +36,7 @@ function AdminLogin() {
 
         <h1>Masuk Administrator</h1>
         <p>Masukkan email dan kata sandi administrator.</p>
+        {error && <div className="auth-error" role="alert">{error}</div>}
 
         <form onSubmit={handleSubmit} autoComplete="off">
           <div className="form-group">

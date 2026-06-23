@@ -9,6 +9,7 @@ const User = db.User;
 const GuruProfile = db.GuruProfile;
 const Siswa = db.Siswa;
 const Kelas = db.Kelas;
+const KepalaSekolah = db.KepalaSekolah;
 const PortalAccountLink = db.PortalAccountLink;
 const PasswordResetRequest = db.PasswordResetRequest;
 const RESET_REQUEST_ROLES = ["guru", "siswa", "orangtua", "kepala_sekolah"];
@@ -77,6 +78,32 @@ function buildPortalEmail(nisn, type) {
 function normalizeResetRole(value) {
   const role = String(value || "").trim().toLowerCase();
   return RESET_REQUEST_ROLES.includes(role) ? role : "";
+}
+
+function normalizeJenjang(value) {
+  const jenjang = String(value || "").trim().toLowerCase();
+  return ["sd", "smp"].includes(jenjang) ? jenjang : null;
+}
+
+async function findActiveKepalaSekolahProfile(user, transaction) {
+  if (!user || user.role !== "kepala_sekolah") return null;
+
+  const where = {
+    status: "aktif",
+    [Op.or]: [
+      { user_id: user.id },
+      { email: user.email }
+    ]
+  };
+
+  return KepalaSekolah.findOne({ where, order: [["periode_mulai", "DESC"]], transaction });
+}
+
+function inferClassJenjang(kelas) {
+  const text = `${kelas?.tingkat || ""} ${kelas?.nama_kelas || ""}`.toLowerCase();
+  if (/(smp|vii|viii|ix|\b7\b|\b8\b|\b9\b)/.test(text)) return "smp";
+  if (/(sd|\b1\b|\b2\b|\b3\b|\b4\b|\b5\b|\b6\b|\bi\b|\bii\b|\biii\b|\biv\b|\bv\b|\bvi\b)/.test(text)) return "sd";
+  return null;
 }
 
 async function getStudentClassName(siswa) {
@@ -257,11 +284,22 @@ exports.registerGuru = async (req, res) => {
       return res.status(400).json({ success: false, message: "Minimal satu mata pelajaran wajib diisi untuk guru mata pelajaran" });
     }
 
+    if (normalizedJenjang === "sd" && (!isHomeroom || !homeroomClassroomId)) {
+      await transaction.rollback();
+      return res.status(400).json({ success: false, message: "Kelas absensi wajib dipilih untuk guru SD" });
+    }
+
     if (isHomeroom && homeroomClassroomId) {
       const kelas = await Kelas.findByPk(homeroomClassroomId, { transaction });
       if (!kelas) {
         await transaction.rollback();
         return res.status(400).json({ success: false, message: "Kelas wali tidak ditemukan" });
+      }
+
+      const classJenjang = inferClassJenjang(kelas);
+      if (normalizedJenjang && classJenjang && normalizedJenjang !== classJenjang) {
+        await transaction.rollback();
+        return res.status(400).json({ success: false, message: "Kelas tidak sesuai dengan jenjang mengajar" });
       }
     }
 
@@ -323,6 +361,77 @@ exports.registerGuru = async (req, res) => {
   }
 };
 
+exports.registerKepalaSekolah = async (req, res) => {
+  const transaction = await db.sequelize.transaction();
+
+  try {
+    const name = normalizeText(req.body.name || req.body.nama, 120);
+    const email = normalizeEmail(req.body.email);
+    const password = req.body.password || req.body.kata_sandi;
+    const nip = normalizeText(req.body.nip, 80);
+    const jenjang = normalizeJenjang(req.body.jenjang);
+    const noTelepon = normalizeText(req.body.no_telepon || req.body.phone, 40);
+
+    if (!name || !email || !password || !nip || !jenjang) {
+      await transaction.rollback();
+      return res.status(400).json({ success: false, message: "Nama, email, kata sandi, NIP, dan jenjang wajib diisi" });
+    }
+
+    if (String(password).length < 6) {
+      await transaction.rollback();
+      return res.status(400).json({ success: false, message: "Kata sandi minimal 6 karakter" });
+    }
+
+    const existingUser = await User.findOne({ where: { email }, transaction });
+    if (existingUser) {
+      await transaction.rollback();
+      return res.status(409).json({ success: false, message: "Email sudah terdaftar" });
+    }
+
+    const existingProfile = await KepalaSekolah.findOne({ where: { nip }, transaction });
+    if (existingProfile) {
+      await transaction.rollback();
+      return res.status(409).json({ success: false, message: "NIP kepala sekolah sudah terdaftar" });
+    }
+
+    const user = await User.create({
+      name,
+      email,
+      password: await bcrypt.hash(password, 10),
+      role: "kepala_sekolah",
+      profession: `Kepala Sekolah ${jenjang.toUpperCase()}`
+    }, { transaction });
+
+    const profile = await KepalaSekolah.create({
+      user_id: user.id,
+      nip,
+      nama: name,
+      email,
+      no_telepon: noTelepon || null,
+      jenjang,
+      periode_mulai: req.body.periode_mulai || new Date().toISOString().slice(0, 10),
+      status: "non-aktif"
+    }, { transaction });
+
+    await logAudit(req, {
+      action: "principal.register",
+      entityType: "principal_profile",
+      entityId: profile.id,
+      metadata: { userId: user.id, jenjang }
+    }, { transaction });
+
+    await transaction.commit();
+    return res.status(201).json({
+      success: true,
+      message: "Registrasi kepala sekolah berhasil. Akun menunggu verifikasi admin. Silakan masuk setelah akun diverifikasi.",
+      data: { id: user.id, name: user.name, email: user.email, role: user.role, kepalaSekolah: profile }
+    });
+  } catch (error) {
+    await transaction.rollback();
+    return res.status(500).json({ success: false, message: "Gagal registrasi kepala sekolah", error: error.message });
+  }
+};
+
 exports.login = async (req, res) => {
   try {
     const { email, password, kata_sandi, role, peran } = req.body;
@@ -348,6 +457,7 @@ exports.login = async (req, res) => {
     }
 
     let guruProfile = null;
+    let kepalaSekolahProfile = null;
     if (user.role === "guru") {
       guruProfile = await GuruProfile.findOne({ where: { user_id: user.id } });
 
@@ -355,6 +465,16 @@ exports.login = async (req, res) => {
         return res.status(403).json({
           success: false,
           message: "Akun guru belum diverifikasi administrator"
+        });
+      }
+    }
+
+    if (user.role === "kepala_sekolah") {
+      kepalaSekolahProfile = await findActiveKepalaSekolahProfile(user);
+      if (!kepalaSekolahProfile || !kepalaSekolahProfile.jenjang) {
+        return res.status(403).json({
+          success: false,
+          message: "Akun kepala sekolah belum diverifikasi administrator atau belum memiliki jenjang"
         });
       }
     }
@@ -372,7 +492,8 @@ exports.login = async (req, res) => {
         role: user.role,
         profession: user.profession,
         must_change_password: Boolean(user.must_change_password),
-        guruProfile
+        guruProfile,
+        kepalaSekolahProfile
       }
     });
   } catch (error) {
@@ -480,4 +601,3 @@ exports.changePassword = async (req, res) => {
     return res.status(500).json({ success: false, message: "Gagal mengganti kata sandi", error: error.message });
   }
 };
-

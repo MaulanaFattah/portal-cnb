@@ -5,8 +5,16 @@ module.exports = (sequelize) => {
     "kepala_sekolah",
     {
       id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+      user_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        unique: true,
+        field: "akun_pengguna_id",
+        references: { model: "akun_pengguna", key: "id" }
+      },
       nip: { type: DataTypes.STRING, allowNull: false, unique: true },
       nama: { type: DataTypes.STRING, allowNull: false },
+      jenjang: { type: DataTypes.ENUM("sd", "smp"), allowNull: true, field: "jenjang" },
       email: { type: DataTypes.STRING, allowNull: true },
       no_telepon: { type: DataTypes.STRING, allowNull: true },
       foto: { type: DataTypes.TEXT, allowNull: true },

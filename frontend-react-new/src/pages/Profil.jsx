@@ -8,7 +8,6 @@ const fallbackProfile = {
   visi: "Menjadi sekolah unggulan yang berkarakter, berakhlak mulia, cerdas, kreatif, dan inovatif.",
   misi: "Menyelenggarakan pendidikan bermutu yang mengembangkan karakter, kompetensi, dan keterampilan peserta didik.",
   sejarah: "Cipta Nusa Bakti hadir sebagai lembaga pendidikan yang berkomitmen memberi layanan pendidikan terbaik bagi masyarakat.",
-  fasilitas: "Ruang kelas, perpustakaan, area olahraga, dan lingkungan sekolah yang aman.",
   struktur_sekolah: "Kepala sekolah, wakil kepala sekolah, guru, wali kelas, dan tenaga kependidikan."
 };
 
@@ -26,7 +25,6 @@ function Profil() {
     ["Visi", profile.visi],
     ["Misi", profile.misi],
     ["Sejarah", profile.sejarah],
-    ["Fasilitas", profile.fasilitas],
     ["Struktur Sekolah", profile.struktur_sekolah]
   ];
 
@@ -38,7 +36,7 @@ function Profil() {
         <section className="page-hero container">
           <span className="badge">Profil Sekolah</span>
           <h1>{profile.nama_sekolah}</h1>
-          <p>Visi, misi, sejarah, fasilitas, dan struktur sekolah.</p>
+          <p>Visi, misi, sejarah, dan struktur sekolah.</p>
         </section>
 
         <section className="container">

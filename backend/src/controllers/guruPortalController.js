@@ -82,6 +82,13 @@ function isSubjectTeacherProfile(profile) {
   return profile?.teacher_type === "mapel" && normalizeSubjectInput(profile?.subject).length > 0;
 }
 
+function inferClassJenjang(kelas) {
+  const text = `${kelas?.tingkat || ""} ${kelas?.nama_kelas || ""}`.toLowerCase();
+  if (/(smp|vii|viii|ix|\b7\b|\b8\b|\b9\b)/.test(text)) return "smp";
+  if (/(sd|\b1\b|\b2\b|\b3\b|\b4\b|\b5\b|\b6\b|\bi\b|\bii\b|\biii\b|\biv\b|\bv\b|\bvi\b)/.test(text)) return "sd";
+  return null;
+}
+
 function summarizeAbsensi(rows) {
   return rows.reduce(
     (summary, row) => {
@@ -212,6 +219,14 @@ exports.verifyGuruRegistration = async (req, res) => {
       }
       if (isHomeroom && !nextClassId) {
         return res.status(400).json({ success: false, message: "Kelas wajib dipilih untuk wali kelas" });
+      }
+      if (isHomeroom && nextClassId) {
+        const kelas = await Kelas.findByPk(nextClassId);
+        if (!kelas) return res.status(400).json({ success: false, message: "Kelas wali tidak ditemukan" });
+        const classJenjang = inferClassJenjang(kelas);
+        if (profile.jenjang && classJenjang && profile.jenjang !== classJenjang) {
+          return res.status(400).json({ success: false, message: "Kelas tidak sesuai dengan jenjang guru" });
+        }
       }
       if (isSubjectTeacher && !subjectList.length) {
         return res.status(400).json({ success: false, message: "Minimal satu mata pelajaran wajib diisi untuk guru mata pelajaran" });
@@ -476,13 +491,20 @@ exports.getRekapAbsensi = async (req, res) => {
       where.guru_user_id = req.user.id;
       where.jadwal_id = jadwal.id;
       where.kelas_id = jadwal.kelas_id;
+      where.tipe_guru = "mapel";
     } else if (classId) {
       const access = await ensureClassAccess(profile, req.user.id, classId);
       if (!access.allowed) return res.status(403).json({ success: false, message: access.message });
       where.kelas_id = classId;
-      if (!access.homeroom) where.guru_user_id = req.user.id;
+      if (access.homeroom) {
+        where.tipe_guru = "wali_kelas";
+      } else {
+        where.guru_user_id = req.user.id;
+        where.tipe_guru = "mapel";
+      }
     } else if (isHomeroomProfile(profile) && profile.kelas_id) {
       where.kelas_id = Number(profile.kelas_id);
+      where.tipe_guru = "wali_kelas";
     } else {
       const context = await getAccessibleContext(profile, req.user.id, classMap);
       if (!context.classIds.length) {
@@ -490,6 +512,7 @@ exports.getRekapAbsensi = async (req, res) => {
       }
       where.guru_user_id = req.user.id;
       where.kelas_id = { [Op.in]: context.classIds };
+      where.tipe_guru = "mapel";
     }
 
     if (mapel) where.mapel = String(mapel).trim();

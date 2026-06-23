@@ -137,41 +137,60 @@ function DashboardKepalaSekolah() {
   const kepala = dashboard.kepalaSekolah;
   const absensi = dashboard.absensi || { summary: emptySummary, rows: [] };
   const monitoring = dashboard.monitoring || {};
+  const scopeLabel = dashboard.scopeJenjang ? dashboard.scopeJenjang.toUpperCase() : "Semua Jenjang";
 
-  const renderProfil = () => (
-    <section className="teacher-panel">
-      <div className="teacher-panel-header compact">
+  const renderProfil = () => {
+    const principalDetails = [
+      ["Nama", kepala?.nama || dashboard.user?.name],
+      ["NIP", kepala?.nip || "-"],
+      ["Jenjang Akses", scopeLabel],
+      ["Jabatan", "Kepala Sekolah"],
+      ["No. HP", kepala?.no_telepon || "-"],
+      ["Email", kepala?.email || dashboard.user?.email],
+      ["Alamat", kepala?.alamat || "-"]
+    ];
+
+    return (
+    <section className="teacher-panel principal-panel">
+      <div className="teacher-panel-header principal-hero compact">
         <span>Dasbor</span>
         <h1>Monitoring Kepala Sekolah</h1>
-        <p>Pantau kondisi sekolah, guru, siswa, kelas, pengumuman, kegiatan, dan rekap absensi dari satu halaman.</p>
+        <p>Pantau ringkasan guru, siswa, kelas, dan rekap absensi untuk jenjang {scopeLabel}.</p>
       </div>
 
-      <div className="teacher-stats principal-stats">
-        <div className="teacher-stat teacher-stat-total"><span>Jumlah Siswa</span><strong>{monitoring.totalSiswa || 0}</strong></div>
-        <div className="teacher-stat teacher-stat-hadir"><span>Guru Wali Kelas</span><strong>{monitoring.totalGuruWaliKelas || 0}</strong></div>
-        <div className="teacher-stat teacher-stat-sakit"><span>Guru Mata Pelajaran</span><strong>{monitoring.totalGuruMapel || 0}</strong></div>
-        <div className="teacher-stat teacher-stat-izin"><span>Data Kelas</span><strong>{monitoring.totalKelas || 0}</strong></div>
-        <div className="teacher-stat teacher-stat-alpha"><span>Absensi Tercatat</span><strong>{absensi.summary.total || 0}</strong></div>
+      <div className="principal-stat-grid">
+        <div className="principal-stat-card"><span>Jumlah Siswa</span><strong>{monitoring.totalSiswa || 0}</strong><small>Siswa aktif sesuai jenjang</small></div>
+        <div className="principal-stat-card"><span>Guru Wali Kelas</span><strong>{monitoring.totalGuruWaliKelas || 0}</strong><small>Guru wali dalam cakupan</small></div>
+        <div className="principal-stat-card"><span>Guru Mapel</span><strong>{monitoring.totalGuruMapel || 0}</strong><small>Pengajar mata pelajaran</small></div>
+        <div className="principal-stat-card"><span>Data Kelas</span><strong>{monitoring.totalKelas || 0}</strong><small>Kelas terdaftar</small></div>
+        <div className="principal-stat-card alert"><span>Absensi Tercatat</span><strong>{absensi.summary.total || 0}</strong><small>Total data absensi</small></div>
       </div>
 
-      <div className="profile-layout">
-        <div className="profile-photo-card">
-          <div className="profile-photo">
-            {kepala?.foto ? <img src={kepala.foto} alt="Foto kepala sekolah" /> : <span>Foto</span>}
+      <div className="principal-profile-card">
+        <div className="principal-profile-summary">
+          <div className="principal-avatar">
+            {kepala?.foto ? <img src={kepala.foto} alt="Foto kepala sekolah" /> : <span>{(kepala?.nama || dashboard.user?.name || "K").slice(0, 1)}</span>}
+          </div>
+          <div>
+            <span className="principal-role-chip">Monitoring {scopeLabel}</span>
+            <h2>{kepala?.nama || dashboard.user?.name}</h2>
+            <p>Kepala Sekolah</p>
           </div>
         </div>
-        <div className="profile-readonly">
-          <div><span>Nama</span><strong>{kepala?.nama || dashboard.user?.name}</strong></div>
-          <div><span>NIP</span><strong>{kepala?.nip || "-"}</strong></div>
-          <div><span>Jabatan</span><strong>Kepala Sekolah</strong></div>
-          <div><span>No. HP</span><strong>{kepala?.no_telepon || "-"}</strong></div>
-          <div><span>Alamat</span><strong>{kepala?.alamat || "-"}</strong></div>
-          <div><span>Email</span><strong>{kepala?.email || dashboard.user?.email}</strong></div>
-          <p className="readonly-note">Akun ini hanya digunakan untuk memantau data sekolah. Perubahan data utama dilakukan oleh admin.</p>
+
+        <div className="principal-detail-grid">
+          {principalDetails.map(([label, value]) => (
+            <div className={label === "Alamat" ? "wide" : ""} key={label}>
+              <span>{label}</span>
+              <strong>{value || "-"}</strong>
+            </div>
+          ))}
         </div>
+
+        <p className="principal-note">Akun ini hanya untuk monitoring. Perubahan data utama tetap dilakukan oleh admin.</p>
       </div>
 
-      <div className="teacher-grid two-columns lower-grid">
+      <div className="teacher-grid two-columns lower-grid principal-feed-grid">
         <article className="teacher-card principal-feed-card">
           <h3>Pengumuman Terbaru</h3>
           {(dashboard.pengumuman || []).length === 0 ? <p className="teacher-empty">Belum ada pengumuman.</p> : (
@@ -203,14 +222,15 @@ function DashboardKepalaSekolah() {
         </article>
       </div>
     </section>
-  );
+    );
+  };
 
   const renderDataGuru = () => (
     <section className="teacher-panel">
       <div className="teacher-panel-header compact">
         <span>Data Pegawai</span>
         <h1>Data Guru</h1>
-        <p>Daftar seluruh guru yang terdaftar dalam sistem.</p>
+          <p>Daftar guru yang sesuai dengan jenjang akses kepala sekolah.</p>
       </div>
 
       <div className="teacher-table-wrap">
@@ -242,7 +262,7 @@ function DashboardKepalaSekolah() {
       <div className="teacher-panel-header compact">
         <span>Data Murid</span>
         <h1>Data Siswa</h1>
-        <p>Daftar seluruh siswa yang terdaftar dalam sistem.</p>
+          <p>Daftar siswa yang sesuai dengan jenjang akses kepala sekolah.</p>
       </div>
 
       <div className="teacher-table-wrap">
@@ -270,40 +290,42 @@ function DashboardKepalaSekolah() {
   );
 
   const renderRekap = () => (
-    <section className="teacher-panel">
-      <div className="teacher-panel-header compact">
+    <section className="teacher-panel principal-panel principal-recap-panel">
+      <div className="teacher-panel-header principal-hero compact">
         <span>Rekapitulasi</span>
         <h1>Rekapitulasi Absensi Sekolah</h1>
-        <p>Lihat rekapitulasi kehadiran seluruh siswa atau berdasarkan kelas.</p>
+        <p>Filter data absensi berdasarkan kelas dan periode agar laporan lebih mudah dibaca.</p>
       </div>
 
-      <div className="teacher-form-grid four-columns">
-        <label className="teacher-field">Kelas
-          <select name="kelas_id" value={filter.kelas_id} onChange={handleFilterChange}>
-            <option value="">Semua Kelas</option>
-            {(dashboard.kelas || []).map((kelas) => <option key={kelas.id} value={kelas.id}>{kelas.nama_kelas}</option>)}
-          </select>
-        </label>
-        <label className="teacher-field">Dari
-          <input type="date" name="dari" value={filter.dari} onChange={handleFilterChange} />
-        </label>
-        <label className="teacher-field">Sampai
-          <input type="date" name="sampai" value={filter.sampai} onChange={handleFilterChange} />
-        </label>
-        <div className="teacher-actions-row action-height" style={{ alignItems: "flex-end", paddingBottom: "2px" }}>
+      <div className="principal-filter-card">
+        <div className="principal-filter-grid">
+          <label className="teacher-field">Kelas
+            <select name="kelas_id" value={filter.kelas_id} onChange={handleFilterChange}>
+              <option value="">Semua Kelas</option>
+              {(dashboard.kelas || []).map((kelas) => <option key={kelas.id} value={kelas.id}>{kelas.nama_kelas}</option>)}
+            </select>
+          </label>
+          <label className="teacher-field">Dari
+            <input type="date" name="dari" value={filter.dari} onChange={handleFilterChange} />
+          </label>
+          <label className="teacher-field">Sampai
+            <input type="date" name="sampai" value={filter.sampai} onChange={handleFilterChange} />
+          </label>
+        </div>
+        <div className="principal-filter-actions">
           <button type="button" className="teacher-primary" onClick={loadRekap} disabled={rekapLoading}>{rekapLoading ? "Memuat..." : "Tampilkan"}</button>
           <button type="button" className="teacher-secondary" onClick={exportRekap} disabled={!absensi.rows.length}>Ekspor Excel</button>
           <button type="button" className="teacher-secondary" onClick={exportRekapPdf} disabled={!absensi.rows.length}>Ekspor PDF</button>
         </div>
       </div>
 
-      <div className="attend-cards">
-        <div className="attend-card hadir"><span>HADIR</span><strong>{absensi.summary.hadir}</strong></div>
-        <div className="attend-card tidak"><span>TIDAK HADIR</span><strong>{absensi.summary.tidak_hadir}</strong></div>
-        <div className="attend-card keterangan"><span>KETERANGAN</span><strong>IZIN {absensi.summary.izin} • SAKIT {absensi.summary.sakit} • ALPHA {absensi.summary.alpha}</strong></div>
+      <div className="principal-attend-cards">
+        <div className="attend-card hadir"><span>Hadir</span><strong>{absensi.summary.hadir}</strong><small>Siswa tercatat hadir</small></div>
+        <div className="attend-card tidak"><span>Tidak Hadir</span><strong>{absensi.summary.tidak_hadir}</strong><small>Total izin, sakit, dan alpha</small></div>
+        <div className="attend-card keterangan"><span>Keterangan</span><strong>Izin {absensi.summary.izin} • Sakit {absensi.summary.sakit} • Alpha {absensi.summary.alpha}</strong></div>
       </div>
 
-      <div className="teacher-table-wrap">
+      <div className="teacher-table-wrap principal-table-wrap">
         <table className="teacher-table">
           <thead>
             <tr><th>No</th><th>Tanggal</th><th>Siswa</th><th>Kelas</th><th>Mapel</th><th>Status</th><th>Keterangan</th></tr>
@@ -353,7 +375,7 @@ function DashboardKepalaSekolah() {
           <div className="teacher-avatar"><span>{dashboard.user?.name?.slice(0, 1) || "K"}</span></div>
           <h2>{dashboard.user?.name}</h2>
           <p>Kepala Sekolah</p>
-          <span className="teacher-role-pill">Monitoring Sekolah</span>
+          <span className="teacher-role-pill">Monitoring {scopeLabel}</span>
 
           <nav className="teacher-menu" aria-label="Menu dashboard kepala sekolah">
             {MENU_ITEMS.map((item) => (

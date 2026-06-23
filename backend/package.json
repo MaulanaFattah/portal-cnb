@@ -14,6 +14,7 @@
     "migrate:portal-features": "node src/migratePortalFeatureEnhancements.js",
     "migrate:revision-rbac": "node src/migrateRevisionRbacAbsensi.js",
     "migrate:password-reset": "node src/migratePasswordResetRequests.js",
+    "migrate:kepala-sekolah-access": "node src/migrateKepalaSekolahAccess.js",
     "sync:legacy-guru": "node src/syncLegacyGuruRegistrations.js",
     "cleanup:duplicate-parents": "node src/mergeDuplicateParentAccountsByPhone.js"
   },

@@ -7,6 +7,7 @@ const { forgotPasswordLimiter } = require("../middlewares/rateLimitMiddleware");
 
 router.post("/login", authController.login);
 router.post("/register-guru", authController.registerGuru);
+router.post("/register-kepala-sekolah", authController.registerKepalaSekolah);
 router.post("/forgot-password", forgotPasswordLimiter, authController.requestPasswordReset);
 router.put("/change-password", verifyToken, authController.changePassword);
 

@@ -1,8 +1,8 @@
-﻿import { useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { registerGuru } from "../services/api";
+import { getKelas, registerGuru } from "../services/api";
 
 const initialForm = {
   name: "",
@@ -10,24 +10,49 @@ const initialForm = {
   password: "",
   confirmPassword: "",
   jenjang: "sd",
+  kelas_id: "",
   smpRole: "mapel",
   subject: ""
 };
 
+function inferKelasJenjang(kelas) {
+  const text = `${kelas?.tingkat || ""} ${kelas?.nama_kelas || ""}`.toLowerCase();
+  if (/(smp|vii|viii|ix|\b7\b|\b8\b|\b9\b)/.test(text)) return "smp";
+  if (/(sd|\b1\b|\b2\b|\b3\b|\b4\b|\b5\b|\b6\b|\bi\b|\bii\b|\biii\b|\biv\b|\bv\b|\bvi\b)/.test(text)) return "sd";
+  return "";
+}
+
 function RegisterGuru() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState(initialForm);
+  const [kelasOptions, setKelasOptions] = useState([]);
 
   const isSmp = formData.jenjang === "smp";
+  const isSd = formData.jenjang === "sd";
   const isHomeroom = useMemo(
     () => isSmp && formData.smpRole === "wali_mapel",
     [isSmp, formData.smpRole]
   );
   const subjectRequired = isSmp;
+  const sdKelasOptions = useMemo(
+    () => kelasOptions.filter((kelas) => inferKelasJenjang(kelas) !== "smp"),
+    [kelasOptions]
+  );
+
+  useEffect(() => {
+    (async () => {
+      const result = await getKelas();
+      if (result.success) setKelasOptions(result.data || []);
+    })();
+  }, []);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    setFormData((current) => ({ ...current, [name]: value }));
+    setFormData((current) => ({
+      ...current,
+      [name]: value,
+      ...(name === "jenjang" ? { kelas_id: "", subject: "", smpRole: "mapel" } : {})
+    }));
   };
 
   const handleRegister = async (event) => {
@@ -43,6 +68,11 @@ function RegisterGuru() {
       return;
     }
 
+    if (isSd && !formData.kelas_id) {
+      alert("Kelas absensi wajib dipilih untuk guru SD.");
+      return;
+    }
+
     const result = await registerGuru({
       name: formData.name,
       nama: formData.name,
@@ -50,14 +80,15 @@ function RegisterGuru() {
       password: formData.password,
       kata_sandi: formData.password,
       jenjang: formData.jenjang,
-      teacher_type: isHomeroom ? "wali_kelas" : "mapel",
-      tipe_guru: isHomeroom ? "wali_kelas" : "mapel",
-      is_homeroom: isHomeroom,
-      wali_kelas: isHomeroom,
+      teacher_type: isSd || isHomeroom ? "wali_kelas" : "mapel",
+      tipe_guru: isSd || isHomeroom ? "wali_kelas" : "mapel",
+      is_homeroom: isSd || isHomeroom,
+      wali_kelas: isSd || isHomeroom,
       is_subject_teacher: Boolean(formData.subject.trim()),
       guru_mata_pelajaran: Boolean(formData.subject.trim()),
-      homeroom_classroom_id: null,
-      kelas_wali_id: null,
+      homeroom_classroom_id: isSd ? formData.kelas_id : null,
+      kelas_wali_id: isSd ? formData.kelas_id : null,
+      kelas_id: isSd ? formData.kelas_id : null,
       subjects: formData.subject,
       mata_pelajaran: formData.subject,
       profession: formData.subject
@@ -93,6 +124,19 @@ function RegisterGuru() {
               </select>
             </div>
 
+            {isSd && (
+              <div className="form-group full">
+                <label>Kelas Absensi</label>
+                <select name="kelas_id" value={formData.kelas_id} onChange={handleChange} required>
+                  <option value="">Pilih kelas SD</option>
+                  {sdKelasOptions.map((kelas) => (
+                    <option key={kelas.id} value={kelas.id}>{kelas.nama_kelas} - {kelas.tahun_ajaran}</option>
+                  ))}
+                </select>
+                <small className="field-helper">Kelas ini menjadi kelas absensi utama guru SD dan tetap dapat dikonfirmasi admin.</small>
+              </div>
+            )}
+
             {isSmp && (
               <div className="form-group"><label>Status Guru SMP</label>
                 <select name="smpRole" value={formData.smpRole} onChange={handleChange} required>
@@ -114,7 +158,7 @@ function RegisterGuru() {
 
             <div className="form-group full ppdb-note-box">
               <strong>Catatan</strong>
-              <span>{isSmp ? "Guru SMP memilih status mengajar dan mata pelajaran yang diampu. Admin menetapkan kelas wali saat verifikasi." : "Guru SD cukup mengisi data dasar. Mata pelajaran opsional dan kelas ditetapkan admin saat verifikasi."}</span>
+              <span>{isSmp ? "Guru SMP memilih status mengajar dan mata pelajaran yang diampu. Admin menetapkan kelas wali saat verifikasi." : "Guru SD memilih kelas absensi utama. Mata pelajaran tidak perlu diisi untuk guru SD."}</span>
             </div>
 
             <button type="submit" className="submit-btn">Registrasi</button>

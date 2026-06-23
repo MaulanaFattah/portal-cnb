@@ -1,25 +1,13 @@
-import schoolLogo from "../assets/logo-transparent.png";
+﻿import schoolLogo from "../assets/logo-transparent.png";
 import schoolPhoto from "../assets/school-photo.jpeg";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { getKegiatan, getPengumuman, getGaleri, resolveMediaUrl } from "../services/api";
-
-function formatTanggal(value) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (isNaN(date)) return value;
-  return date.toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "long",
-    year: "numeric"
-  });
-}
+import { getGaleri, resolveMediaUrl } from "../services/api";
+import { schoolFacilities } from "../data/facilities";
 
 function Home() {
-  const [kegiatan, setKegiatan] = useState([]);
-  const [pengumuman, setPengumuman] = useState([]);
   const [galeri, setGaleri] = useState([]);
   const galleryRef = useRef(null);
 
@@ -33,13 +21,7 @@ function Home() {
 
   useEffect(() => {
     (async () => {
-      const [k, p, g] = await Promise.all([
-        getKegiatan(),
-        getPengumuman(),
-        getGaleri()
-      ]);
-      if (k.success) setKegiatan((k.data || []).slice(0, 3));
-      if (p.success) setPengumuman((p.data || []).slice(0, 3));
+      const g = await getGaleri();
       if (g.success) setGaleri(g.data || []);
     })();
   }, []);
@@ -51,7 +33,7 @@ function Home() {
       <main>
         <section className="hero container">
           <div className="hero-content">
-            <span className="badge">TK • SD • SMP</span>
+            <span className="badge">TK / SD / SMP</span>
 
             <h1>
               Portal Sekolah Modern
@@ -60,14 +42,8 @@ function Home() {
             </h1>
 
             <p>
-              Sistem informasi sekolah untuk profil, kegiatan, pengumuman,
-              galeri, PPDB online, dan layanan kontak sekolah.
+              Sistem informasi sekolah untuk profil, fasilitas, galeri, PPDB online, dan layanan kontak sekolah
             </p>
-
-            <div className="hero-actions">
-              <Link to="/ppdb" className="btn primary">Daftar PPDB</Link>
-              <Link to="/profil" className="btn secondary">Profil Sekolah</Link>
-            </div>
           </div>
 
           <div className="hero-image home-hero-photo">
@@ -79,69 +55,82 @@ function Home() {
           </div>
         </section>
 
+        <section className="section container ppdb-landing-section home-ppdb-top">
+          <div className="ppdb-landing-panel">
+            <div className="ppdb-landing-copy">
+              <span className="section-kicker">PPDB Online</span>
+              <h2>Pendaftaran peserta didik baru jadi lebih mudah</h2>
+              <p>
+                Daftar dari rumah melalui portal sekolah. Data pendaftar akan masuk ke admin PPDB
+                untuk diverifikasi dan diinformasikan kembali kepada orang tua/wali.
+              </p>
+              <div className="ppdb-landing-actions">
+                <Link to="/ppdb" className="btn primary">Daftar Sekarang</Link>
+                <span>Jenjang tersedia: TK, SD, dan SMP</span>
+              </div>
+            </div>
+
+            <div className="ppdb-highlight-card" aria-label="Ringkasan PPDB">
+              <span>Tahun Ajaran</span>
+              <strong>2026/2027</strong>
+              <p>Pendaftaran baru dan siswa pindahan tersedia sesuai jenjang pilihan.</p>
+            </div>
+          </div>
+
+        </section>
+
         <section className="section container home-profile-section">
           <div className="section-header">
             <h2>Profil Sekolah</h2>
             <Link to="/profil">Lihat Semua</Link>
           </div>
 
-          <div className="profile-card home-profile-card">
-            <h3>Cipta Nusa Bakti</h3>
-            <p>
-              Sekolah yang berkomitmen membentuk siswa yang cerdas,
-              berkarakter, disiplin, dan siap menghadapi masa depan.
-            </p>
+          <div className="home-profile-showcase">
+            <figure className="home-foundation-photo">
+              <img src={schoolLogo} alt="Kepala Yayasan Cipta Nusa Bakti" />
+              <figcaption>Kepala Yayasan Cipta Nusa Bakti</figcaption>
+            </figure>
+            <div className="profile-card home-profile-card">
+              <h3>Cipta Nusa Bakti</h3>
+              <p>
+                Cipta Nusa Bakti adalah lingkungan belajar yang mendampingi siswa tumbuh
+                dengan karakter, disiplin, dan kemampuan akademik yang kuat. Yayasan dan sekolah
+                berkomitmen menghadirkan layanan pendidikan yang dekat dengan siswa dan orang tua.
+              </p>
+            </div>
           </div>
         </section>
 
-        <section className="section container">
+        <section className="section container home-facility-section">
           <div className="section-header">
-            <h2>Kegiatan Sekolah</h2>
-            <Link to="/kegiatan">Lihat Semua</Link>
+            <div>
+              <span className="section-kicker">Fasilitas</span>
+              <h2>Fasilitas Sekolah</h2>
+            </div>
+            <Link to="/fasilitas">Lihat Semua</Link>
           </div>
 
-          <div className="activity-grid">
-            {kegiatan.length === 0 ? (
-              <p className="empty-text">Belum ada kegiatan.</p>
-            ) : (
-              kegiatan.map((item) => (
-                <div className="activity-card" key={item.id}>
-                  <img src={resolveMediaUrl(item.image, schoolLogo)} alt={item.title} loading="lazy" onError={(event) => { event.currentTarget.src = schoolLogo; }} />
-                  <div className="activity-content">
-                    <span className="activity-date">{formatTanggal(item.date)}</span>
-                    <h3>{item.title}</h3>
-                    <p>{item.description}</p>
-                  </div>
+          <p className="section-intro">
+            Fasilitas sekolah disiapkan untuk mendukung pembelajaran, pembiasaan karakter,
+            kegiatan literasi, olahraga, dan layanan administrasi yang rapi.
+          </p>
+
+          <div className="facility-grid home-facility-grid">
+            {schoolFacilities.slice(0, 3).map((item) => (
+              <article className="facility-card" key={item.id}>
+                <img src={item.image} alt={item.name} loading="lazy" />
+                <div>
+                  <h3>{item.name}</h3>
+                  <p>{item.description}</p>
                 </div>
-              ))
-            )}
+              </article>
+            ))}
           </div>
         </section>
 
         <section className="section container">
-          <div className="section-header">
-            <h2>Pengumuman Terbaru</h2>
-            <Link to="/pengumuman">Lihat Semua</Link>
-          </div>
-
-          <div className="cards home-announcement-grid">
-            {pengumuman.length === 0 ? (
-              <p className="empty-text">Belum ada pengumuman.</p>
-            ) : (
-              pengumuman.map((item) => (
-                <div className="card home-announcement-card" key={item.id}>
-                  <small>{formatTanggal(item.date)}</small>
-                  <h3>{item.title}</h3>
-                  <p>{item.content}</p>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
-
-        <section className="section container">
-          <div className="section-header">
-            <h2>Galeri Sekolah</h2>
+          <div className="section-header gallery-link-only">
+            <span aria-hidden="true"></span>
             <Link to="/galeri">Lihat Semua</Link>
           </div>
 
@@ -177,50 +166,6 @@ function Home() {
           </div>
         </section>
 
-        <section className="section container ppdb-landing-section">
-          <div className="ppdb-landing-panel">
-            <div className="ppdb-landing-copy">
-              <span className="section-kicker">PPDB Online</span>
-              <h2>Pendaftaran peserta didik baru jadi lebih mudah</h2>
-              <p>
-                Daftar dari rumah melalui portal sekolah. Data pendaftar akan masuk ke admin PPDB
-                untuk diverifikasi dan diinformasikan kembali kepada orang tua/wali.
-              </p>
-              <div className="ppdb-landing-actions">
-                <Link to="/ppdb" className="btn primary">Daftar Sekarang</Link>
-                <span>Jenjang tersedia: TK, SD, dan SMP</span>
-              </div>
-            </div>
-
-            <div className="ppdb-highlight-card" aria-label="Ringkasan PPDB">
-              <span>Tahun Ajaran</span>
-              <strong>2026/2027</strong>
-              <p>Pendaftaran baru dan siswa pindahan tersedia sesuai jenjang pilihan.</p>
-            </div>
-          </div>
-
-          <div className="ppdb-grid ppdb-landing-grid">
-            <div className="ppdb-card ppdb-feature-card">
-              <span className="ppdb-card-mark">01</span>
-              <h3>Informasi Pendaftaran</h3>
-              <p>
-                Isi formulir sesuai jenis pendaftaran, lengkapi data calon siswa,
-                lalu tunggu proses verifikasi dari pihak sekolah.
-              </p>
-            </div>
-
-            <div className="ppdb-card ppdb-feature-card">
-              <span className="ppdb-card-mark">02</span>
-              <h3>Persyaratan Utama</h3>
-              <ul>
-                <li>Fotokopi kartu keluarga</li>
-                <li>Fotokopi akta kelahiran</li>
-                <li>Foto calon siswa</li>
-                <li>Raport terakhir untuk jenjang SD dan SMP</li>
-              </ul>
-            </div>
-          </div>
-        </section>
       </main>
 
       <Footer />

@@ -512,7 +512,7 @@ function DashboardGuru() {
       <div className="teacher-panel-header compact">
         <span>Rekapitulasi</span>
         <h1>Rekapitulasi Absensi</h1>
-        <p>Filter berdasarkan kelas, mata pelajaran, dan rentang tanggal. Kosongkan mata pelajaran untuk menampilkan seluruh rekap absensi kelas.</p>
+        <p>Untuk rekap mapel, pilih mata pelajaran dan jadwal mengajar agar data tidak tercampur dengan absensi kelas.</p>
       </div>
 
       <div className="teacher-rekap-filter-card">

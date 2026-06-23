@@ -16,9 +16,10 @@ function Footer() {
 
           <Link to="/">Beranda</Link>
           <Link to="/profil">Profil</Link>
-          <Link to="/kegiatan">Kegiatan</Link>
-          <Link to="/pengumuman">Pengumuman</Link>
+          <Link to="/fasilitas">Fasilitas Sekolah</Link>
           <Link to="/galeri">Galeri</Link>
+          <Link to="/ppdb">PPDB</Link>
+          <Link to="/kontak">Kontak</Link>
         </div>
 
         <div className="footer-contact">

@@ -5,6 +5,7 @@ import Profil from "./pages/Profil";
 import Kegiatan from "./pages/Kegiatan";
 import Pengumuman from "./pages/Pengumuman";
 import Galeri from "./pages/Galeri";
+import Fasilitas from "./pages/Fasilitas";
 import PPDB from "./pages/PPDB";
 import FormPPDB from "./pages/FormPPDB";
 import Kontak from "./pages/Kontak";
@@ -16,6 +17,7 @@ import RegisterGuru from "./pages/RegisterGuru";
 import LoginSiswa from "./pages/LoginSiswa";
 import LoginOrangTua from "./pages/LoginOrangTua";
 import LoginKepalaSekolah from "./pages/LoginKepalaSekolah";
+import RegisterKepalaSekolah from "./pages/RegisterKepalaSekolah";
 import LupaPassword from "./pages/LupaPassword";
 import ChangePassword from "./pages/ChangePassword";
 import AdminKegiatan from "./pages/AdminKegiatan";
@@ -27,6 +29,7 @@ import AdminAkunSiswa from "./pages/AdminAkunSiswa";
 import AdminProfilSekolah from "./pages/AdminProfilSekolah";
 import AdminVerifikasiGuru from "./pages/AdminVerifikasiGuru";
 import AdminResetPasswordRequests from "./pages/AdminResetPasswordRequests";
+import AdminKepalaSekolah from "./pages/AdminKepalaSekolah";
 import DashboardGuru from "./pages/DashboardGuru";
 import DashboardSiswa from "./pages/DashboardSiswa";
 import DashboardOrangTua from "./pages/DashboardOrangTua";
@@ -41,6 +44,7 @@ function App() {
         <Route path="/kegiatan" element={<Kegiatan />} />
         <Route path="/pengumuman" element={<Pengumuman />} />
         <Route path="/galeri" element={<Galeri />} />
+        <Route path="/fasilitas" element={<Fasilitas />} />
         <Route path="/ppdb" element={<PPDB />} />
         <Route path="/form-ppdb" element={<FormPPDB />} />
         <Route path="/kontak" element={<Kontak />} />
@@ -56,6 +60,7 @@ function App() {
         <Route path="/login-siswa" element={<LoginSiswa />} />
         <Route path="/login-orangtua" element={<LoginOrangTua />} />
         <Route path="/login-kepala-sekolah" element={<LoginKepalaSekolah />} />
+        <Route path="/register-kepala-sekolah" element={<RegisterKepalaSekolah />} />
         <Route path="/lupa-password" element={<LupaPassword />} />
         <Route path="/change-password" element={<ChangePassword />} />
         <Route path="/admin/kegiatan" element={<AdminKegiatan />} />
@@ -68,6 +73,7 @@ function App() {
         <Route path="/admin/profil-sekolah" element={<AdminProfilSekolah />} />
         <Route path="/admin/verifikasi-guru" element={<AdminVerifikasiGuru />} />
         <Route path="/admin/reset-password" element={<AdminResetPasswordRequests />} />
+        <Route path="/admin/kepala-sekolah" element={<AdminKepalaSekolah />} />
       </Routes>
     </BrowserRouter>
   );

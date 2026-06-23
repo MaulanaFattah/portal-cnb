@@ -61,6 +61,40 @@ async function getClassMap() {
   return new Map(kelas.map((item) => [Number(item.id), item.toJSON()]));
 }
 
+function inferClassJenjang(kelas) {
+  const text = `${kelas?.tingkat || ""} ${kelas?.nama_kelas || ""}`.toLowerCase();
+  if (/(smp|vii|viii|ix|\b7\b|\b8\b|\b9\b)/.test(text)) return "smp";
+  if (/(sd|\b1\b|\b2\b|\b3\b|\b4\b|\b5\b|\b6\b|\bi\b|\bii\b|\biii\b|\biv\b|\bv\b|\bvi\b)/.test(text)) return "sd";
+  return null;
+}
+
+function matchesJenjangByClass(kelas, jenjang) {
+  if (!jenjang) return true;
+  const classJenjang = inferClassJenjang(kelas);
+  return classJenjang ? classJenjang === jenjang : false;
+}
+
+async function resolvePrincipalScope(user) {
+  if (user.role === "admin") return { jenjang: null, profile: null };
+
+  const profile = await KepalaSekolah.findOne({
+    where: {
+      status: "aktif",
+      [Op.or]: [
+        { user_id: user.id },
+        { email: user.email }
+      ]
+    },
+    order: [["periode_mulai", "DESC"]]
+  });
+
+  if (!profile || !profile.jenjang) {
+    return { blocked: true, message: "Akun kepala sekolah belum aktif atau belum memiliki jenjang" };
+  }
+
+  return { jenjang: profile.jenjang, profile };
+}
+
 function attachClass(siswa, classMap) {
   if (!siswa) return null;
   const data = siswa.toJSON ? siswa.toJSON() : siswa;
@@ -245,22 +279,81 @@ exports.getOrangTuaAbsensi = async (req, res) => {
 exports.getKepalaSekolahDashboard = async (req, res) => {
   try {
     const { dari, sampai, kelas_id, export_type } = req.query;
-    const classMap = await getClassMap();
-    const whereAbsensi = {};
-    if (kelas_id) whereAbsensi.kelas_id = Number(kelas_id);
-    formatDateFilter(whereAbsensi, dari, sampai);
+    const scope = await resolvePrincipalScope(req.user);
+    if (scope.blocked) return res.status(403).json({ success: false, message: scope.message });
 
-    const [profilSekolah, kepalaSekolah, guru, guruProfile, siswa, kelas, pengumuman, kegiatan, absensiRows] = await Promise.all([
+    const [profilSekolah, allKelas, pengumuman, kegiatan] = await Promise.all([
       ProfilSekolah.findOne(),
-      KepalaSekolah.findAll({ order: [["periode_mulai", "DESC"]] }),
-      Guru.findAll({ order: [["nama", "ASC"]] }),
-      GuruProfile.findAll({ where: { verification_status: "approved" } }),
-      Siswa.findAll({ order: [["nama", "ASC"]] }),
       Kelas.findAll({ order: [["tingkat", "ASC"], ["nama_kelas", "ASC"]] }),
       Pengumuman.findAll({ order: [["date", "DESC"]], limit: 5 }),
-      Kegiatan.findAll({ where: { status: "tampil" }, order: [["date", "DESC"]], limit: 5 }),
+      Kegiatan.findAll({ where: { status: "tampil" }, order: [["date", "DESC"]], limit: 5 })
+    ]);
+
+    const scopedKelas = scope.jenjang
+      ? allKelas.filter((item) => matchesJenjangByClass(item, scope.jenjang))
+      : allKelas;
+    const classMap = new Map(scopedKelas.map((item) => [Number(item.id), item.toJSON()]));
+    const classIds = scopedKelas.map((item) => Number(item.id)).filter(Boolean);
+
+    const whereSiswa = scope.jenjang ? { kelas_id: { [Op.in]: classIds } } : {};
+    const whereAbsensi = {};
+
+    if (scope.jenjang) {
+      if (!classIds.length) {
+        whereAbsensi.kelas_id = { [Op.in]: [] };
+      } else if (kelas_id) {
+        const requestedClassId = Number(kelas_id);
+        if (!classIds.includes(requestedClassId)) {
+          return res.status(403).json({ success: false, message: "Kelas tidak termasuk jenjang kepala sekolah" });
+        }
+        whereAbsensi.kelas_id = requestedClassId;
+      } else {
+        whereAbsensi.kelas_id = { [Op.in]: classIds };
+      }
+    } else if (kelas_id) {
+      whereAbsensi.kelas_id = Number(kelas_id);
+    }
+
+    formatDateFilter(whereAbsensi, dari, sampai);
+
+    const profileWhere = { verification_status: "approved" };
+    if (scope.jenjang) {
+      profileWhere[Op.or] = [
+        { jenjang: scope.jenjang },
+        { jenjang: null, kelas_id: { [Op.in]: classIds } }
+      ];
+    }
+
+    const [kepalaSekolah, guruProfile, siswa, absensiRows] = await Promise.all([
+      scope.profile
+        ? [scope.profile]
+        : KepalaSekolah.findAll({ order: [["periode_mulai", "DESC"]] }),
+      GuruProfile.findAll({
+        where: profileWhere,
+        include: [{ model: User, as: "user" }],
+        order: [["createdAt", "DESC"]]
+      }),
+      Siswa.findAll({ where: whereSiswa, order: [["nama", "ASC"]] }),
       AbsensiSiswa.findAll({ where: whereAbsensi, order: [["tanggal", "DESC"], ["kelas_id", "ASC"]] })
     ]);
+
+    const scopedGuruProfiles = guruProfile.filter((profile) => {
+      if (!scope.jenjang) return true;
+      if (profile.jenjang === scope.jenjang) return true;
+      return !profile.jenjang && classIds.includes(Number(profile.kelas_id));
+    });
+
+    const guru = scopedGuruProfiles.map((profile) => ({
+      id: profile.user?.id || profile.user_id,
+      nama: profile.user?.name || "Guru",
+      email: profile.user?.email || "-",
+      jenis_kelamin: null,
+      no_telepon: "-",
+      pendidikan_terakhir: profile.subject || (profile.is_homeroom ? "Wali Kelas" : "-"),
+      status: profile.verification_status === "approved" ? "aktif" : "non-aktif",
+      jenjang: profile.jenjang,
+      guruProfile: profile
+    }));
 
     const siswaMap = new Map(siswa.map((item) => [Number(item.id), item.toJSON()]));
     const absensi = absensiRows.map((row) => {
@@ -276,7 +369,7 @@ exports.getKepalaSekolahDashboard = async (req, res) => {
       await logAudit(req, {
         action: `report.export.${export_type}`,
         entityType: "attendance_report",
-        metadata: { dari, sampai, kelas_id, rows: absensi.length }
+        metadata: { dari, sampai, kelas_id, jenjang: scope.jenjang, rows: absensi.length }
       });
     }
 
@@ -287,16 +380,17 @@ exports.getKepalaSekolahDashboard = async (req, res) => {
       message: "Data dasbor kepala sekolah berhasil diambil",
       data: {
         user: safeUser(req.user),
+        scopeJenjang: scope.jenjang,
         profilSekolah,
         kepalaSekolah: kepalaSekolah[0] || null,
         daftarKepalaSekolah: kepalaSekolah,
         guru,
-        guruProfile,
+        guruProfile: scopedGuruProfiles,
         monitoring: {
           totalSiswa: siswa.length,
-          totalGuruWaliKelas: guruProfile.filter((item) => item.is_homeroom || item.teacher_type === "wali_kelas").length,
-          totalGuruMapel: guruProfile.filter((item) => item.teacher_type === "mapel" || item.subject).length,
-          totalKelas: kelas.length,
+          totalGuruWaliKelas: scopedGuruProfiles.filter((item) => item.is_homeroom || item.teacher_type === "wali_kelas").length,
+          totalGuruMapel: scopedGuruProfiles.filter((item) => item.teacher_type === "mapel" || item.subject).length,
+          totalKelas: scopedKelas.length,
           totalPengumuman: pengumuman.length,
           totalKegiatan: kegiatan.length,
           hadir: attendanceSummary.hadir,
@@ -306,7 +400,7 @@ exports.getKepalaSekolahDashboard = async (req, res) => {
           terlambat: 0
         },
         siswa: siswa.map((item) => attachClass(item, classMap)),
-        kelas,
+        kelas: scopedKelas,
         pengumuman,
         kegiatan,
         absensi: {
