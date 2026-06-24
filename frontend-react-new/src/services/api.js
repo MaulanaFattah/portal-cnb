@@ -232,6 +232,50 @@ export async function deleteGaleri(id) {
   return response.json();
 }
 
+
+// ========== FASILITAS API ==========
+export async function getFasilitas() {
+  const response = await fetch(`${API_URL}/fasilitas`);
+  return response.json();
+}
+
+export async function getFasilitasAdmin() {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/fasilitas/admin/all`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.json();
+}
+
+export async function createFasilitas(data) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/fasilitas`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: toFormData(data)
+  });
+  return response.json();
+}
+
+export async function updateFasilitas(id, data) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/fasilitas/${id}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+    body: toFormData(data)
+  });
+  return response.json();
+}
+
+export async function deleteFasilitas(id) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/fasilitas/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.json();
+}
+
 // ========== PPDB API ==========
 export async function getPPDB() {
   const token = localStorage.getItem("token");
@@ -786,6 +830,19 @@ export async function getKepalaSekolahDashboard(params = {}) {
   const token = localStorage.getItem("token");
   const response = await fetch(`${API_URL}/portal/kepala-sekolah/dashboard${buildQuery(params)}`, {
     headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.json();
+}
+
+export async function updateKepalaSekolahProfile(data) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/portal/kepala-sekolah/profile`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
   });
   return response.json();
 }

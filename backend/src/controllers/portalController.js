@@ -276,6 +276,51 @@ exports.getOrangTuaAbsensi = async (req, res) => {
   }
 };
 
+exports.updateKepalaSekolahProfile = async (req, res) => {
+  try {
+    if (req.user.role !== "kepala_sekolah") {
+      return res.status(403).json({ success: false, message: "Akses hanya untuk kepala sekolah" });
+    }
+
+    const scope = await resolvePrincipalScope(req.user);
+    if (scope.blocked) return res.status(403).json({ success: false, message: scope.message });
+
+    const profile = scope.profile;
+    const updateData = {};
+    ["nama", "no_telepon", "alamat", "foto"].forEach((field) => {
+      if (req.body[field] !== undefined) updateData[field] = req.body[field] || null;
+    });
+
+    if (!String(updateData.nama || profile.nama || "").trim()) {
+      return res.status(400).json({ success: false, message: "Nama wajib diisi" });
+    }
+
+    if (updateData.nama) updateData.nama = String(updateData.nama).trim();
+    await profile.update(updateData);
+
+    if (updateData.nama) {
+      await req.user.update({ name: updateData.nama });
+    }
+
+    await logAudit(req, {
+      action: "principal.profile.update",
+      entityType: "principal_profile",
+      entityId: profile.id
+    });
+
+    return res.json({
+      success: true,
+      message: "Profil kepala sekolah berhasil diperbarui",
+      data: {
+        user: safeUser(req.user),
+        kepalaSekolah: profile
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Gagal memperbarui profil kepala sekolah", error: error.message });
+  }
+};
+
 exports.getKepalaSekolahDashboard = async (req, res) => {
   try {
     const { dari, sampai, kelas_id, export_type } = req.query;
@@ -343,17 +388,27 @@ exports.getKepalaSekolahDashboard = async (req, res) => {
       return !profile.jenjang && classIds.includes(Number(profile.kelas_id));
     });
 
-    const guru = scopedGuruProfiles.map((profile) => ({
-      id: profile.user?.id || profile.user_id,
-      nama: profile.user?.name || "Guru",
-      email: profile.user?.email || "-",
-      jenis_kelamin: null,
-      no_telepon: "-",
-      pendidikan_terakhir: profile.subject || (profile.is_homeroom ? "Wali Kelas" : "-"),
-      status: profile.verification_status === "approved" ? "aktif" : "non-aktif",
-      jenjang: profile.jenjang,
-      guruProfile: profile
-    }));
+    const guru = scopedGuruProfiles.map((profile) => {
+      const isHomeroom = Boolean(profile.is_homeroom) || profile.teacher_type === "wali_kelas";
+      const isSubjectTeacher = profile.teacher_type === "mapel" || Boolean(profile.subject);
+      const statusGuru = [
+        isHomeroom ? "Guru Wali Kelas" : null,
+        isSubjectTeacher ? "Guru Mapel" : null
+      ].filter(Boolean).join(" + ") || "-";
+
+      return {
+        id: profile.user?.id || profile.user_id,
+        nama: profile.user?.name || "Guru",
+        email: profile.user?.email || "-",
+        jenis_kelamin: null,
+        no_telepon: "-",
+        pendidikan_terakhir: profile.subject || (isHomeroom ? "Wali Kelas" : "-"),
+        status: profile.verification_status === "approved" ? "aktif" : "non-aktif",
+        status_guru: statusGuru,
+        jenjang: profile.jenjang,
+        guruProfile: profile
+      };
+    });
 
     const siswaMap = new Map(siswa.map((item) => [Number(item.id), item.toJSON()]));
     const absensi = absensiRows.map((row) => {

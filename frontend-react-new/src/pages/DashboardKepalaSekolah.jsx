@@ -1,8 +1,9 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   getKepalaSekolahDashboard,
-  logout
+  logout,
+  updateKepalaSekolahProfile
 } from "../services/api";
 import { exportExcel, exportPdf } from "../utils/exportExcel";
 
@@ -15,8 +16,12 @@ const MENU_ITEMS = [
 
 const emptySummary = { hadir: 0, tidak_hadir: 0, izin: 0, sakit: 0, alpha: 0, total: 0 };
 
+function toDateInputValue(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+  return toDateInputValue();
 }
 
 function firstDayOfMonthISO() {
@@ -40,6 +45,9 @@ function DashboardKepalaSekolah() {
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState(null);
   const [rekapLoading, setRekapLoading] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({ nama: "", no_telepon: "", alamat: "", foto: "", email: "" });
   const [filter, setFilter] = useState({ kelas_id: "", dari: firstDayOfMonthISO(), sampai: todayISO() });
 
   useEffect(() => {
@@ -52,6 +60,13 @@ function DashboardKepalaSekolah() {
       }
 
       setDashboard(result.data);
+      setProfileForm({
+        nama: result.data.kepalaSekolah?.nama || result.data.user?.name || "",
+        no_telepon: result.data.kepalaSekolah?.no_telepon || "",
+        alamat: result.data.kepalaSekolah?.alamat || "",
+        foto: result.data.kepalaSekolah?.foto || "",
+        email: result.data.kepalaSekolah?.email || result.data.user?.email || ""
+      });
       setLoading(false);
     };
 
@@ -60,13 +75,52 @@ function DashboardKepalaSekolah() {
 
   const handleLogout = () => {
     logout();
-    navigate("/login-kepala-sekolah");
+    navigate("/");
   };
 
   const handleFilterChange = (event) => {
     const { name, value } = event.target;
     setFilter((previous) => ({ ...previous, [name]: value }));
   };
+
+  const handleProfileChange = (event) => {
+    const { name, value } = event.target;
+    setProfileForm((previous) => ({ ...previous, [name]: value }));
+  };
+
+  const handleProfilePhoto = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => setProfileForm((previous) => ({ ...previous, foto: reader.result }));
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveProfile = async (event) => {
+    event.preventDefault();
+    setSavingProfile(true);
+    setNotice(null);
+
+    const result = await updateKepalaSekolahProfile({
+      nama: profileForm.nama,
+      no_telepon: profileForm.no_telepon,
+      alamat: profileForm.alamat,
+      foto: profileForm.foto
+    });
+
+    setSavingProfile(false);
+    setNotice({ type: result.success ? "success" : "error", text: result.message });
+
+    if (result.success) {
+      setEditingProfile(false);
+      setDashboard((previous) => previous ? {
+        ...previous,
+        user: result.data.user,
+        kepalaSekolah: result.data.kepalaSekolah
+      } : previous);
+    }
+  };
+
 
   const loadRekap = async () => {
     setRekapLoading(true);
@@ -166,10 +220,10 @@ function DashboardKepalaSekolah() {
         <div className="principal-stat-card alert"><span>Absensi Tercatat</span><strong>{absensi.summary.total || 0}</strong><small>Total data absensi</small></div>
       </div>
 
-      <div className="principal-profile-card">
+      <div className="principal-profile-card editable">
         <div className="principal-profile-summary">
           <div className="principal-avatar">
-            {kepala?.foto ? <img src={kepala.foto} alt="Foto kepala sekolah" /> : <span>{(kepala?.nama || dashboard.user?.name || "K").slice(0, 1)}</span>}
+            {profileForm.foto || kepala?.foto ? <img src={profileForm.foto || kepala.foto} alt="Foto kepala sekolah" /> : <span>{(kepala?.nama || dashboard.user?.name || "K").slice(0, 1)}</span>}
           </div>
           <div>
             <span className="principal-role-chip">Monitoring {scopeLabel}</span>
@@ -178,16 +232,43 @@ function DashboardKepalaSekolah() {
           </div>
         </div>
 
-        <div className="principal-detail-grid">
-          {principalDetails.map(([label, value]) => (
-            <div className={label === "Alamat" ? "wide" : ""} key={label}>
-              <span>{label}</span>
-              <strong>{value || "-"}</strong>
+        {editingProfile ? (
+          <form className="principal-edit-form" onSubmit={handleSaveProfile}>
+            <label className="teacher-field">Nama
+              <input name="nama" value={profileForm.nama} onChange={handleProfileChange} required />
+            </label>
+            <label className="teacher-field">Email
+              <input type="email" name="email" value={profileForm.email} readOnly disabled />
+            </label>
+            <label className="teacher-field">No. HP
+              <input name="no_telepon" value={profileForm.no_telepon} onChange={handleProfileChange} placeholder="08xxxxxxxxxx" />
+            </label>
+            <label className="teacher-field wide">Alamat
+              <textarea name="alamat" value={profileForm.alamat} onChange={handleProfileChange} placeholder="Alamat kepala sekolah" rows="3" />
+            </label>
+            <label className="teacher-field wide">Foto Profil
+              <input type="file" accept="image/*" onChange={handleProfilePhoto} />
+            </label>
+            <div className="teacher-actions-row wide">
+              <button type="button" className="teacher-secondary" onClick={() => setEditingProfile(false)}>Batal</button>
+              <button type="submit" className="teacher-primary" disabled={savingProfile}>{savingProfile ? "Menyimpan..." : "Simpan Profil"}</button>
             </div>
-          ))}
-        </div>
-
-        <p className="principal-note">Akun ini hanya untuk monitoring. Perubahan data utama tetap dilakukan oleh admin.</p>
+          </form>
+        ) : (
+          <>
+            <div className="principal-detail-grid">
+              {principalDetails.map(([label, value]) => (
+                <div className={label === "Alamat" ? "wide" : ""} key={label}>
+                  <span>{label}</span>
+                  <strong>{value || "-"}</strong>
+                </div>
+              ))}
+            </div>
+            <div className="teacher-actions-row principal-profile-actions">
+              <button type="button" className="teacher-primary" onClick={() => setEditingProfile(true)}>Edit Profil</button>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="teacher-grid two-columns lower-grid principal-feed-grid">
@@ -236,7 +317,7 @@ function DashboardKepalaSekolah() {
       <div className="teacher-table-wrap">
         <table className="teacher-table">
           <thead>
-            <tr><th>No</th><th>Nama</th><th>Jenis Kelamin</th><th>No. HP</th><th>Pendidikan</th><th>Status</th></tr>
+            <tr><th>No</th><th>Nama</th><th>Status Guru</th><th>No. HP</th><th>Mata Pelajaran</th><th>Status Akun</th></tr>
           </thead>
           <tbody>
             {(dashboard.guru || []).length === 0 ? (
@@ -245,7 +326,7 @@ function DashboardKepalaSekolah() {
               <tr key={guru.id}>
                 <td>{index + 1}</td>
                 <td>{guru.nama}</td>
-                <td>{guru.jenis_kelamin === "P" ? "Perempuan" : guru.jenis_kelamin === "L" ? "Laki-laki" : "-"}</td>
+                <td>{guru.status_guru || "-"}</td>
                 <td>{guru.no_telepon || "-"}</td>
                 <td>{guru.pendidikan_terakhir || "-"}</td>
                 <td><span className={guru.status === "aktif" ? "teacher-badge active" : "teacher-badge"}>{guru.status}</span></td>
@@ -268,7 +349,7 @@ function DashboardKepalaSekolah() {
       <div className="teacher-table-wrap">
         <table className="teacher-table">
           <thead>
-            <tr><th>No</th><th>NISN</th><th>Nama Siswa</th><th>Kelas</th><th>Jenis Kelamin</th><th>Status</th></tr>
+            <tr><th>No</th><th>NIS</th><th>Nama Siswa</th><th>Kelas</th><th>Jenis Kelamin</th><th>Status</th></tr>
           </thead>
           <tbody>
             {(dashboard.siswa || []).length === 0 ? (
@@ -322,7 +403,7 @@ function DashboardKepalaSekolah() {
       <div className="principal-attend-cards">
         <div className="attend-card hadir"><span>Hadir</span><strong>{absensi.summary.hadir}</strong><small>Siswa tercatat hadir</small></div>
         <div className="attend-card tidak"><span>Tidak Hadir</span><strong>{absensi.summary.tidak_hadir}</strong><small>Total izin, sakit, dan alpha</small></div>
-        <div className="attend-card keterangan"><span>Keterangan</span><strong>Izin {absensi.summary.izin} • Sakit {absensi.summary.sakit} • Alpha {absensi.summary.alpha}</strong></div>
+        <div className="attend-card keterangan"><span>Keterangan</span><strong>Izin {absensi.summary.izin} â€¢ Sakit {absensi.summary.sakit} â€¢ Alpha {absensi.summary.alpha}</strong></div>
       </div>
 
       <div className="teacher-table-wrap principal-table-wrap">

@@ -5,6 +5,7 @@ const portalController = require("../controllers/portalController");
 const { verifyToken, onlySiswa, onlyOrangTua, onlyKepalaSekolahOrAdmin } = require("../middlewares/authMiddleware");
 
 router.get("/kepala-sekolah/dashboard", verifyToken, onlyKepalaSekolahOrAdmin, portalController.getKepalaSekolahDashboard);
+router.put("/kepala-sekolah/profile", verifyToken, onlyKepalaSekolahOrAdmin, portalController.updateKepalaSekolahProfile);
 
 router.get("/siswa/dashboard", verifyToken, onlySiswa, portalController.getSiswaDashboard);
 router.put("/siswa/profile", verifyToken, onlySiswa, portalController.updateSiswaProfile);

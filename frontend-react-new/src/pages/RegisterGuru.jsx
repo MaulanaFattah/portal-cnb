@@ -1,8 +1,9 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { getKelas, registerGuru } from "../services/api";
+import PasswordField from "../components/PasswordField";
 
 const initialForm = {
   name: "",
@@ -115,7 +116,7 @@ function RegisterGuru() {
 
           <form className="teacher-register-form" onSubmit={handleRegister} autoComplete="off">
             <div className="form-group"><label>Nama Lengkap</label><input type="text" name="name" placeholder="Masukkan nama lengkap" value={formData.name} onChange={handleChange} autoComplete="off" required /></div>
-            <div className="form-group"><label>Email</label><input type="email" name="email" placeholder="Masukkan email guru" value={formData.email} onChange={handleChange} autoComplete="off" required /></div>
+            <div className="form-group"><label>Email</label><input type="email" name="email" placeholder="email@cnb.sch.id" value={formData.email} onChange={handleChange} autoComplete="off" required /></div>
 
             <div className="form-group"><label>Jenjang Mengajar</label>
               <select name="jenjang" value={formData.jenjang} onChange={handleChange} required>
@@ -153,8 +154,8 @@ function RegisterGuru() {
               </div>
             )}
 
-            <div className="form-group"><label>Kata Sandi</label><input type="password" name="password" placeholder="Masukkan kata sandi" value={formData.password} onChange={handleChange} autoComplete="new-password" required /></div>
-            <div className="form-group"><label>Konfirmasi Kata Sandi</label><input type="password" name="confirmPassword" placeholder="Ulangi kata sandi" value={formData.confirmPassword} onChange={handleChange} autoComplete="new-password" required /></div>
+            <div className="form-group"><label>Kata Sandi</label><PasswordField name="password" placeholder="Masukkan kata sandi" value={formData.password} onChange={handleChange} autoComplete="new-password" required /></div>
+            <div className="form-group"><label>Konfirmasi Kata Sandi</label><PasswordField name="confirmPassword" placeholder="Ulangi kata sandi" value={formData.confirmPassword} onChange={handleChange} autoComplete="new-password" required /></div>
 
             <div className="form-group full ppdb-note-box">
               <strong>Catatan</strong>

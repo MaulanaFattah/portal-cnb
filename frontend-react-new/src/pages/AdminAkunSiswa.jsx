@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AdminSidebar from "../components/AdminSidebar";
+import PasswordField from "../components/PasswordField";
 import {
   getUsersByRole,
   getSiswa,
@@ -232,14 +233,16 @@ function AdminAkunSiswa() {
       });
   }, [accountsByStudent, search, siswaList]);
 
-  const filteredParents = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
-    if (!keyword) return parentRows;
-    return parentRows.filter(({ account, students }) => {
-      const values = [account.name, account.email, ...students.map((student) => student.nama)];
-      return values.some((value) => String(value || "").toLowerCase().includes(keyword));
+  const groupedStudentsByClass = useMemo(() => {
+    const groups = new Map();
+    filteredStudents.forEach((student) => {
+      const className = getStudentClassName(student);
+      if (!groups.has(className)) groups.set(className, []);
+      groups.get(className).push(student);
     });
-  }, [parentRows, search]);
+    return [...groups.entries()].map(([className, students]) => ({ className, students }));
+  }, [filteredStudents]);
+
 
   const summaryItems = useMemo(() => {
     const studentAccounts = users.filter((account) => account.role === "siswa" && getAccountPortalLinks(account).some((link) => link.siswa_id)).length;
@@ -554,47 +557,60 @@ function AdminAkunSiswa() {
                 <span>Tambahkan siswa lewat tab Siswa.</span>
               </div>
             ) : (
-              <div className="table-responsive portal-management-table-wrap">
-                <table className="admin-table portal-management-table">
-                  <thead>
-                    <tr>
-                      <th>No</th>
-                      <th>Siswa</th>
-                      <th>Kelas</th>
-                      <th>Orang Tua</th>
-                      <th>No. HP</th>
-                      <th>Keterangan</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredStudents.map((student, index) => {
-                      const accounts = accountsByStudent.get(String(student.id)) || {};
-                      const parentAccount = accounts.orangtua;
-                      const parentSiblings = parentAccount
-                        ? getAccountPortalLinks(parentAccount).filter((link) => link.siswa_id).length
-                        : 0;
-                      return (
-                        <tr key={student.id}>
-                         <td data-label="No">{index + 1}</td>
-                          <td data-label="Siswa"><div className="management-table-cell"><strong>{student.nama}</strong><span>NIS: {student.nisn || "-"}</span></div></td>
-                          <td data-label="Kelas">{getStudentClassName(student)}</td>
-                          <td data-label="Orang Tua">{getStudentParentName(student)}</td>
-                          <td data-label="No. HP">{student.no_telepon || "-"}</td>
-                          <td data-label="Keterangan">
-                           {!parentAccount && <span className="management-status missing">Belum ada akun orang tua</span>}
-                            {parentAccount && (
-                              <div className="management-table-cell">
-                                <span className="management-status linked">Terhubung: {parentAccount.name}</span>
-                                <span>{parentAccount.email}</span>
-                                {parentSiblings > 1 && <span>Dipakai {parentSiblings} siswa</span>}
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="class-group-list">
+                {groupedStudentsByClass.map(({ className, students: cls }) => (
+                  <div key={className} className="class-group-card">
+                    <div className="class-group-header">
+                      <span className="class-group-name">{className}</span>
+                      <span className="class-group-count">{cls.length} siswa</span>
+                    </div>
+                    <div className="table-responsive portal-management-table-wrap">
+                      <table className="admin-table portal-management-table">
+                        <thead>
+                          <tr>
+                            <th>No</th>
+                            <th>Siswa</th>
+                            <th>Nama Orang Tua</th>
+                            <th>No. HP</th>
+                            <th>Akun Orang Tua</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {cls.map((student, index) => {
+                            const accounts = accountsByStudent.get(String(student.id)) || {};
+                            const parentAccount = accounts.orangtua;
+                            const parentSiblings = parentAccount
+                              ? getAccountPortalLinks(parentAccount).filter((link) => link.siswa_id).length
+                              : 0;
+                            return (
+                              <tr key={student.id}>
+                                <td data-label="No">{index + 1}</td>
+                                <td data-label="Siswa">
+                                  <div className="management-table-cell">
+                                    <strong>{student.nama}</strong>
+                                    <span>NIS: {student.nisn || "-"}</span>
+                                  </div>
+                                </td>
+                                <td data-label="Nama Orang Tua">{getStudentParentName(student)}</td>
+                                <td data-label="No. HP">{student.no_telepon || "-"}</td>
+                                <td data-label="Akun Orang Tua">
+                                  {!parentAccount && <span className="management-status missing">Belum ada akun</span>}
+                                  {parentAccount && (
+                                    <div className="management-table-cell">
+                                      <span className="management-status linked">{parentAccount.name}</span>
+                                      <span>{parentAccount.email}</span>
+                                      {parentSiblings > 1 && <span className="class-group-shared">Dipakai {parentSiblings} anak</span>}
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
               </div>
             )
           )}
@@ -606,92 +622,140 @@ function AdminAkunSiswa() {
                 <span>Klik Tambah Siswa untuk membuat data dan akun siswa otomatis.</span>
               </div>
             ) : (
-              <div className="table-responsive portal-management-table-wrap">
-                <table className="admin-table portal-management-table">
-                  <thead>
-                    <tr>
-                      <th>No</th>
-                      <th>Siswa</th>
-                      <th>Kelas</th>
-                      <th>Akun Siswa</th>
-                      <th>Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredStudents.map((student, index) => {
-                      const accounts = accountsByStudent.get(String(student.id)) || {};
-                      const studentAccount = accounts.siswa;
-                      return (
-                        <tr key={student.id}>
-                          <td data-label="No">{index + 1}</td>
-                          <td data-label="Siswa"><div className="management-table-cell"><strong>{student.nama}</strong><span>NIS: {student.nisn || "-"}</span></div></td>
-                          <td data-label="Kelas">{getStudentClassName(student)}</td>
-                          <td data-label="Akun Siswa">
-                            <div className="management-table-cell">
-                              {renderAccountStatus(studentAccount)}
-                              <span>{studentAccount?.email || "Email belum tersedia"}</span>
-                            </div>
-                          </td>
-                          <td data-label="Aksi">
-                            <div className="admin-action compact management-table-actions">
-                              <button type="button" onClick={() => openEditStudentDialog(student)}>Ubah</button>
-                              {studentAccount && <button type="button" onClick={() => openResetDialog(studentAccount)}>Reset</button>}
-                              <button type="button" onClick={() => handleStudentDelete(student)}>Hapus</button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="class-group-list">
+                {groupedStudentsByClass.map(({ className, students: cls }) => (
+                  <div key={className} className="class-group-card">
+                    <div className="class-group-header">
+                      <span className="class-group-name">{className}</span>
+                      <span className="class-group-count">{cls.length} siswa</span>
+                    </div>
+                    <div className="table-responsive portal-management-table-wrap">
+                      <table className="admin-table portal-management-table">
+                        <thead>
+                          <tr>
+                            <th>No</th>
+                            <th>Siswa</th>
+                            <th>Akun Siswa</th>
+                            <th>Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {cls.map((student, index) => {
+                            const accounts = accountsByStudent.get(String(student.id)) || {};
+                            const studentAccount = accounts.siswa;
+                            return (
+                              <tr key={student.id}>
+                                <td data-label="No">{index + 1}</td>
+                                <td data-label="Siswa">
+                                  <div className="management-table-cell">
+                                    <strong>{student.nama}</strong>
+                                    <span>NIS: {student.nisn || "-"}</span>
+                                  </div>
+                                </td>
+                                <td data-label="Akun Siswa">
+                                  <div className="management-table-cell">
+                                    {renderAccountStatus(studentAccount)}
+                                    <span>{studentAccount?.email || "Email belum tersedia"}</span>
+                                  </div>
+                                </td>
+                                <td data-label="Aksi">
+                                  <div className="admin-action compact management-table-actions">
+                                    <button type="button" onClick={() => openEditStudentDialog(student)}>Ubah</button>
+                                    {studentAccount && <button type="button" onClick={() => openResetDialog(studentAccount)}>Reset</button>}
+                                    <button type="button" onClick={() => handleStudentDelete(student)}>Hapus</button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
               </div>
             )
           )}
 
           {activeTab === "orangtua" && (
-            filteredParents.length === 0 ? (
+            filteredStudents.length === 0 ? (
               <div className="student-empty-state">
-                <strong>Belum ada akun orang tua.</strong>
-                <span>Tambahkan orang tua manual, lalu pilih siswa yang akan dihubungkan.</span>
+                <strong>Belum ada data siswa.</strong>
+                <span>Tambahkan siswa terlebih dahulu untuk mengelola orang tua.</span>
               </div>
             ) : (
-              <div className="table-responsive portal-management-table-wrap">
-                <table className="admin-table portal-management-table">
-                  <thead>
-                    <tr>
-                      <th>No</th>
-                      <th>Orang Tua</th>
-                      <th>Email Akun</th>
-                      <th>Terhubung ke</th>
-                      <th>Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredParents.map(({ account, students }, index) => (
-                      <tr key={account.id}>
-                        <td data-label="No">{index + 1}</td>
-                        <td data-label="Orang Tua"><div className="management-table-cell"><strong>{account.name}</strong>{students[0]?.no_telepon && <span>No. HP: {students[0].no_telepon}</span>}</div></td>
-                        <td data-label="Email Akun">{account.email}</td>
-                        <td data-label="Terhubung ke">
-                          {students.length === 0 && <span className="management-status missing">Belum terhubung</span>}
-                          {students.length > 0 && (
-                            <div className="management-table-cell">
-                              <span>{students.map((student) => student.nama).join(", ")}</span>
-                              {students.length > 1 && <span className="management-status linked">{students.length} siswa</span>}
-                            </div>
-                          )}
-                        </td>
-                        <td data-label="Aksi">
-                          <div className="admin-action compact management-table-actions">
-                            <button type="button" onClick={() => openAccountDialog({ role: "orangtua", account })}>Ubah</button>
-                            <button type="button" onClick={() => openResetDialog(account)}>Reset</button>
-                            <button type="button" onClick={() => handleAccountDelete(account)}>Hapus</button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="class-group-list">
+                {groupedStudentsByClass.map(({ className, students: cls }) => (
+                  <div key={className} className="class-group-card">
+                    <div className="class-group-header">
+                      <span className="class-group-name">{className}</span>
+                      <span className="class-group-count">{cls.length} siswa</span>
+                    </div>
+                    <div className="table-responsive portal-management-table-wrap">
+                      <table className="admin-table portal-management-table">
+                        <thead>
+                          <tr>
+                            <th>No</th>
+                            <th>Nama Siswa</th>
+                            <th>Nama Orang Tua</th>
+                            <th>Email Akun</th>
+                            <th>No. HP</th>
+                            <th>Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {cls.map((student, index) => {
+                            const accounts = accountsByStudent.get(String(student.id)) || {};
+                            const parentAccount = accounts.orangtua;
+                            const parentSiblings = parentAccount
+                              ? getAccountPortalLinks(parentAccount).filter((link) => link.siswa_id).length
+                              : 0;
+                            return (
+                              <tr key={student.id}>
+                                <td data-label="No">{index + 1}</td>
+                                <td data-label="Nama Siswa">
+                                  <div className="management-table-cell">
+                                    <strong>{student.nama}</strong>
+                                    <span>NIS: {student.nisn || "-"}</span>
+                                  </div>
+                                </td>
+                                <td data-label="Nama Orang Tua">
+                                  {parentAccount ? (
+                                    <div className="management-table-cell">
+                                      <strong className="ortu-name">{parentAccount.name}</strong>
+                                      {parentSiblings > 1 && (
+                                        <span className="class-group-shared">Orang tua {parentSiblings} anak</span>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="management-status missing">Belum ada</span>
+                                  )}
+                                </td>
+                                <td data-label="Email Akun">
+                                  {parentAccount ? parentAccount.email : <span className="ortu-dash">-</span>}
+                                </td>
+                                <td data-label="No. HP">{student.no_telepon || "-"}</td>
+                                <td data-label="Aksi">
+                                  <div className="admin-action compact management-table-actions">
+                                    {parentAccount ? (
+                                      <>
+                                        <button type="button" onClick={() => openAccountDialog({ role: "orangtua", account: parentAccount })}>Ubah</button>
+                                        <button type="button" onClick={() => openResetDialog(parentAccount)}>Reset</button>
+                                        <button type="button" onClick={() => handleAccountDelete(parentAccount)}>Hapus</button>
+                                      </>
+                                    ) : (
+                                      <button type="button" className="save-btn compact-add-btn" onClick={() => openAccountDialog({ role: "orangtua", student })}>+ Tambah</button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
               </div>
             )
           )}
@@ -818,8 +882,7 @@ function AdminAkunSiswa() {
 
               <div className="form-group">
                 <label>Kata Sandi {accountDialog.account ? <span className="field-optional">kosongkan jika tidak diubah</span> : <span className="field-optional">otomatis jika kosong</span>}</label>
-                <input
-                  type="password"
+                <PasswordField
                   name="password"
                   value={accountForm.password}
                   onChange={handleAccountChange}
@@ -854,8 +917,7 @@ function AdminAkunSiswa() {
             <form className="management-dialog-form single" onSubmit={handleResetSubmit}>
               <div className="form-group">
                 <label>Kata Sandi Baru</label>
-                <input
-                  type="password"
+                <PasswordField
                   value={resetPasswordValue}
                   onChange={(event) => setResetPasswordValue(event.target.value)}
                   minLength="6"

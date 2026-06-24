@@ -11,6 +11,50 @@ function safeCell(value) {
   return /^[=+\-@]/.test(text) ? `'${text}` : text;
 }
 
+function escapeCsv(value) {
+  const text = safeCell(value);
+  return `"${String(text ?? "").replace(/"/g, '""')}"`;
+}
+
+function isMobileDevice() {
+  if (typeof navigator === "undefined") return false;
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "");
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.rel = "noopener";
+  anchor.style.display = "none";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1200);
+}
+
+function buildCsv({ title, subtitle, summary = [], columns, rows }) {
+  const lines = [];
+  if (title) lines.push([title].map(escapeCsv).join(","));
+  if (subtitle) lines.push([subtitle].map(escapeCsv).join(","));
+  if (summary.length) {
+    lines.push("");
+    summary.filter((item) => item && item.label).forEach((item) => {
+      lines.push([item.label, item.value].map(escapeCsv).join(","));
+    });
+  }
+  lines.push("");
+  lines.push(columns.map((column) => escapeCsv(column.header)).join(","));
+  rows.forEach((row, index) => {
+    lines.push(columns.map((column) => {
+      const value = typeof column.value === "function" ? column.value(row, index) : row[column.value];
+      return escapeCsv(value);
+    }).join(","));
+  });
+  return "\ufeff" + lines.join("\r\n");
+}
+
 export function exportExcel({ filename, title, subtitle, summary = [], columns, rows }) {
   const summaryRows = summary
     .filter((item) => item && item.label)
@@ -53,13 +97,15 @@ export function exportExcel({ filename, title, subtitle, summary = [], columns, 
       </body>
     </html>`;
 
+  if (isMobileDevice()) {
+    const csv = buildCsv({ title, subtitle, summary, columns, rows });
+    const csvFilename = filename.replace(/\.(xls|xlsx)$/i, "") + ".csv";
+    downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8" }), csvFilename);
+    return;
+  }
+
   const blob = new Blob([workbook], { type: "application/vnd.ms-excel;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename.endsWith(".xls") ? filename : `${filename}.xls`;
-  anchor.click();
-  URL.revokeObjectURL(url);
+  downloadBlob(blob, filename.endsWith(".xls") ? filename : `${filename}.xls`);
 }
 
 

@@ -575,8 +575,8 @@ exports.changePassword = async (req, res) => {
     const kataSandiLama = kata_sandi_lama || currentPassword;
     const kataSandiBaru = kata_sandi_baru || newPassword;
 
-    if (!kataSandiLama || !kataSandiBaru) {
-      return res.status(400).json({ success: false, message: "Kata sandi lama dan kata sandi baru wajib diisi" });
+    if (!kataSandiBaru) {
+      return res.status(400).json({ success: false, message: "Kata sandi baru wajib diisi" });
     }
 
     if (String(kataSandiBaru).length < 6) {
@@ -584,9 +584,14 @@ exports.changePassword = async (req, res) => {
     }
 
     const user = await User.findByPk(req.user.id);
-    const validCurrentPassword = await bcrypt.compare(kataSandiLama, user.password);
-    if (!validCurrentPassword) {
-      return res.status(401).json({ success: false, message: "Kata sandi lama tidak sesuai" });
+    if (!user.must_change_password) {
+      if (!kataSandiLama) {
+        return res.status(400).json({ success: false, message: "Kata sandi lama wajib diisi" });
+      }
+      const validCurrentPassword = await bcrypt.compare(kataSandiLama, user.password);
+      if (!validCurrentPassword) {
+        return res.status(401).json({ success: false, message: "Kata sandi lama tidak sesuai" });
+      }
     }
 
     await user.update({

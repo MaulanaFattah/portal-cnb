@@ -156,7 +156,7 @@ function AdminGuru() {
 
               <div className="form-group">
                 <label>Email</label>
-                <input type="email" name="email" value={formData.email} onChange={handleChange} />
+                <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Masukkan nama@cnb.sch.id" />
               </div>
 
               <div className="form-group">
@@ -239,7 +239,7 @@ function AdminGuru() {
                     <img src={item.foto || schoolLogo} alt={item.nama} />
                     <div>
                       <h4>{item.nama}</h4>
-                      <p>{item.nip} • {item.mata_pelajaran || "Belum ada mapel"}</p>
+                      <p>{item.nip} â€¢ {item.mata_pelajaran || "Belum ada mapel"}</p>
                     </div>
                     <div className="admin-action">
                       <button onClick={() => handleEdit(item)}>Ubah</button>

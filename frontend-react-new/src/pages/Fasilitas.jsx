@@ -1,8 +1,33 @@
+import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import schoolPhoto from "../assets/school-photo.jpeg";
 import { schoolFacilities } from "../data/facilities";
+import { getFasilitas, resolveMediaUrl } from "../services/api";
 
 function Fasilitas() {
+  const [facilities, setFacilities] = useState(schoolFacilities);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const result = await getFasilitas();
+        if (result.success) {
+          setFacilities(result.data || []);
+          setLoadError("");
+        } else {
+          setLoadError("Menampilkan data fasilitas default karena data server belum tersedia.");
+        }
+      } catch {
+        setLoadError("Menampilkan data fasilitas default karena server belum bisa diakses.");
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  }, []);
+
   return (
     <>
       <Navbar />
@@ -18,18 +43,30 @@ function Fasilitas() {
         </section>
 
         <section className="container facility-page-section">
-          <div className="facility-grid facility-page-grid">
-            {schoolFacilities.map((item) => (
-              <article className="facility-card facility-page-card" key={item.id}>
-                <img src={item.image} alt={item.name} loading="lazy" />
-                <div>
-                  <span className="section-kicker">Fasilitas</span>
-                  <h2>{item.name}</h2>
-                  <p>{item.description}</p>
-                </div>
-              </article>
-            ))}
-          </div>
+          {loadError && <p className="facility-page-note">{loadError}</p>}
+          {isLoading ? (
+            <p className="empty-text">Memuat fasilitas sekolah...</p>
+          ) : facilities.length === 0 ? (
+            <p className="empty-text">Belum ada fasilitas yang ditampilkan.</p>
+          ) : (
+            <div className="facility-grid facility-page-grid">
+              {facilities.map((item) => (
+                <article className="facility-card facility-page-card" key={item.id}>
+                  <img
+                    src={resolveMediaUrl(item.image, schoolPhoto)}
+                    alt={item.name}
+                    loading="lazy"
+                    onError={(event) => { event.currentTarget.src = schoolPhoto; }}
+                  />
+                  <div>
+                    <span className="section-kicker">Fasilitas</span>
+                    <h2>{item.name}</h2>
+                    <p>{item.description}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
       </main>
 

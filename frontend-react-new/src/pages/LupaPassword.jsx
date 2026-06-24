@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -159,7 +159,7 @@ function LupaPassword() {
                     <input
                       type="email"
                       name="parent_email"
-                      placeholder="contoh: 123456.ortu@cnb.sch.id"
+                      placeholder="Masukkan nama@cnb.sch.id"
                       value={formData.parent_email}
                       onChange={handleChange}
                       autoComplete="email"
@@ -187,7 +187,7 @@ function LupaPassword() {
                   <input
                     type="email"
                     name="guru_email"
-                    placeholder="Masukkan email guru"
+                    placeholder="Masukkan nama@cnb.sch.id"
                     value={formData.guru_email}
                     onChange={handleChange}
                     autoComplete="email"
@@ -202,7 +202,7 @@ function LupaPassword() {
                   <input
                     type="email"
                     name="kepala_email"
-                    placeholder="contoh: kepala@cnb.sch.id"
+                    placeholder="Masukkan nama@cnb.sch.id"
                     value={formData.kepala_email}
                     onChange={handleChange}
                     autoComplete="email"

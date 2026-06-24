@@ -1,7 +1,8 @@
-﻿import schoolLogo from "../assets/logo-transparent.png";
+import schoolLogo from "../assets/logo-transparent.png";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AdminSidebar from "../components/AdminSidebar";
+import PasswordField from "../components/PasswordField";
 import {
   getKepalaSekolah,
   createKepalaSekolah,
@@ -17,12 +18,7 @@ const emptyForm = {
   no_telepon: "",
   jenjang: "sd",
   password: "",
-  foto: "",
-  periode_mulai: "",
-  periode_akhir: "",
-  alamat: "",
-  pendidikan_terakhir: "",
-  status: "aktif"
+  foto: ""
 };
 
 function getStatusLabel(status) {
@@ -71,9 +67,20 @@ function AdminKepalaSekolah() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const payload = {
+      nip: formData.nip,
+      nama: formData.nama,
+      email: formData.email,
+      no_telepon: formData.no_telepon,
+      jenjang: formData.jenjang,
+      password: formData.password,
+      foto: formData.foto,
+      status: editId ? formData.status || "aktif" : "aktif"
+    };
+
     const result = editId
-      ? await updateKepalaSekolah(editId, formData)
-      : await createKepalaSekolah(formData);
+      ? await updateKepalaSekolah(editId, payload)
+      : await createKepalaSekolah(payload);
 
     if (!result.success) {
       alert(result.message);
@@ -177,6 +184,7 @@ function AdminKepalaSekolah() {
         <section className="admin-kegiatan-card">
           <div className="kegiatan-form-area">
             <h2>{editId ? "Ubah Data Kepala Sekolah" : "Tambah Data Kepala Sekolah"}</h2>
+            <p className="empty-text">Isi data inti saja. Kepala sekolah yang ditambahkan admin otomatis aktif/terverifikasi.</p>
 
             <form onSubmit={handleSubmit}>
               <div className="form-group">
@@ -191,7 +199,7 @@ function AdminKepalaSekolah() {
 
               <div className="form-group">
                 <label>Email</label>
-                <input type="email" name="email" value={formData.email} onChange={handleChange} required />
+                <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Masukkan nama@cnb.sch.id" required />
               </div>
 
               <div className="form-group">
@@ -209,8 +217,7 @@ function AdminKepalaSekolah() {
 
               <div className="form-group">
                 <label>{editId ? "Password Baru (opsional)" : "Password Akun"}</label>
-                <input
-                  type="password"
+                <PasswordField
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
@@ -218,34 +225,6 @@ function AdminKepalaSekolah() {
                   autoComplete="new-password"
                   required={!editId}
                 />
-              </div>
-
-              <div className="form-group">
-                <label>Periode Mulai</label>
-                <input type="date" name="periode_mulai" value={formData.periode_mulai} onChange={handleChange} required />
-              </div>
-
-              <div className="form-group">
-                <label>Periode Akhir</label>
-                <input type="date" name="periode_akhir" value={formData.periode_akhir} onChange={handleChange} />
-              </div>
-
-              <div className="form-group">
-                <label>Pendidikan Terakhir</label>
-                <input type="text" name="pendidikan_terakhir" value={formData.pendidikan_terakhir} onChange={handleChange} />
-              </div>
-
-              <div className="form-group">
-                <label>Alamat</label>
-                <textarea name="alamat" value={formData.alamat} onChange={handleChange} rows="2" />
-              </div>
-
-              <div className="form-group">
-                <label>Status</label>
-                <select name="status" value={formData.status} onChange={handleChange}>
-                  <option value="aktif">Terverifikasi / Aktif</option>
-                  <option value="non-aktif">Menunggu Verifikasi</option>
-                </select>
               </div>
 
               <div className="form-group">
@@ -287,7 +266,7 @@ function AdminKepalaSekolah() {
                     <img src={item.foto || schoolLogo} alt={item.nama} />
                     <div>
                       <h4>{item.nama}</h4>
-                      <p>{(item.jenjang || "-").toUpperCase()} • {item.periode_mulai} - {item.periode_akhir || "Sekarang"}</p>
+                      <p>{(item.jenjang || "-").toUpperCase()} • {item.email || "Email belum diisi"}</p>
                       <span className={`status-badge ${item.status === "aktif" ? "approved" : "pending"}`}>{getStatusLabel(item.status)}</span>
                     </div>
                     <div className="admin-action">

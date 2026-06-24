@@ -4,11 +4,18 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { getGaleri, resolveMediaUrl } from "../services/api";
+import { getFasilitas, getGaleri, getProfilSekolah, resolveMediaUrl } from "../services/api";
 import { schoolFacilities } from "../data/facilities";
+
+const fallbackHomeProfile = {
+  nama_sekolah: "Cipta Nusa Bakti",
+  sejarah: "Cipta Nusa Bakti hadir sebagai lingkungan pendidikan yang mendampingi siswa tumbuh dengan karakter, disiplin, dan kemampuan akademik yang kuat."
+};
 
 function Home() {
   const [galeri, setGaleri] = useState([]);
+  const [profile, setProfile] = useState(fallbackHomeProfile);
+  const [facilities, setFacilities] = useState(schoolFacilities);
   const galleryRef = useRef(null);
 
   const scrollGallery = (direction) => {
@@ -21,8 +28,19 @@ function Home() {
 
   useEffect(() => {
     (async () => {
-      const g = await getGaleri();
-      if (g.success) setGaleri(g.data || []);
+      const [galleryResult, profileResult, facilityResult] = await Promise.allSettled([
+        getGaleri(),
+        getProfilSekolah(),
+        getFasilitas()
+      ]);
+
+      if (galleryResult.status === "fulfilled" && galleryResult.value.success) setGaleri(galleryResult.value.data || []);
+      if (profileResult.status === "fulfilled" && profileResult.value.success && profileResult.value.data) {
+        setProfile({ ...fallbackHomeProfile, ...profileResult.value.data });
+      }
+      if (facilityResult.status === "fulfilled" && facilityResult.value.success) {
+        setFacilities(facilityResult.value.data || []);
+      }
     })();
   }, []);
 
@@ -30,7 +48,7 @@ function Home() {
     <>
       <Navbar />
 
-      <main>
+      <main className="home-page">
         <section className="hero container">
           <div className="hero-content">
             <span className="badge">TK / SD / SMP</span>
@@ -42,7 +60,7 @@ function Home() {
             </h1>
 
             <p>
-              Sistem informasi sekolah untuk profil, fasilitas, galeri, PPDB online, dan layanan kontak sekolah
+              Portal resmi Cipta Nusa Bakti untuk mengenal sekolah, fasilitas, galeri kegiatan, PPDB online, dan layanan kontak.
             </p>
           </div>
 
@@ -87,15 +105,18 @@ function Home() {
 
           <div className="home-profile-showcase">
             <figure className="home-foundation-photo">
-              <img src={schoolLogo} alt="Kepala Yayasan Cipta Nusa Bakti" />
+              <img src={schoolPhoto} alt="Kepala Yayasan Cipta Nusa Bakti" />
               <figcaption>Kepala Yayasan Cipta Nusa Bakti</figcaption>
             </figure>
             <div className="profile-card home-profile-card">
-              <h3>Cipta Nusa Bakti</h3>
+              <span className="section-kicker">Yayasan & Sekolah</span>
+              <h3>{profile.nama_sekolah || "Cipta Nusa Bakti"}</h3>
               <p>
-                Cipta Nusa Bakti adalah lingkungan belajar yang mendampingi siswa tumbuh
-                dengan karakter, disiplin, dan kemampuan akademik yang kuat. Yayasan dan sekolah
-                berkomitmen menghadirkan layanan pendidikan yang dekat dengan siswa dan orang tua.
+                {profile.sejarah || fallbackHomeProfile.sejarah}
+              </p>
+              <p>
+                Yayasan dan sekolah berkomitmen menghadirkan layanan pendidikan yang dekat dengan siswa,
+                orang tua, dan masyarakat melalui pembelajaran yang tertib, aman, dan berkarakter.
               </p>
             </div>
           </div>
@@ -116,9 +137,16 @@ function Home() {
           </p>
 
           <div className="facility-grid home-facility-grid">
-            {schoolFacilities.slice(0, 3).map((item) => (
+            {facilities.length === 0 ? (
+              <p className="empty-text">Belum ada fasilitas yang ditampilkan.</p>
+            ) : facilities.slice(0, 3).map((item) => (
               <article className="facility-card" key={item.id}>
-                <img src={item.image} alt={item.name} loading="lazy" />
+                <img
+                  src={resolveMediaUrl(item.image, schoolPhoto)}
+                  alt={item.name}
+                  loading="lazy"
+                  onError={(event) => { event.currentTarget.src = schoolPhoto; }}
+                />
                 <div>
                   <h3>{item.name}</h3>
                   <p>{item.description}</p>

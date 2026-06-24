@@ -8,7 +8,6 @@ const emptyProfile = {
   visi: "",
   misi: "",
   sejarah: "",
-  fasilitas: "",
   struktur_sekolah: ""
 };
 
@@ -25,7 +24,6 @@ function AdminProfilSekolah() {
         visi: result.data.visi || "",
         misi: result.data.misi || "",
         sejarah: result.data.sejarah || "",
-        fasilitas: result.data.fasilitas || "",
         struktur_sekolah: result.data.struktur_sekolah || ""
       });
       setIsEdit(true);
@@ -68,7 +66,6 @@ function AdminProfilSekolah() {
               <div className="form-group"><label>Visi</label><textarea name="visi" value={formData.visi} onChange={handleChange} rows="3" /></div>
               <div className="form-group"><label>Misi</label><textarea name="misi" value={formData.misi} onChange={handleChange} rows="5" /></div>
               <div className="form-group"><label>Sejarah</label><textarea name="sejarah" value={formData.sejarah} onChange={handleChange} rows="5" /></div>
-              <div className="form-group"><label>Fasilitas</label><textarea name="fasilitas" value={formData.fasilitas} onChange={handleChange} rows="4" /></div>
               <div className="form-group"><label>Struktur Sekolah</label><textarea name="struktur_sekolah" value={formData.struktur_sekolah} onChange={handleChange} rows="4" /></div>
               <div className="button-row full"><button type="submit" className="save-btn">Simpan</button></div>
             </form>

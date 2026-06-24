@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   getGuruDashboard,
@@ -26,8 +26,12 @@ const MENU_ITEMS = [
 
 const emptySummary = { hadir: 0, izin: 0, sakit: 0, alpha: 0, total: 0 };
 
+function toDateInputValue(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+  return toDateInputValue();
 }
 
 function firstDayOfMonthISO() {
@@ -48,6 +52,16 @@ function getStatusLabel(value) {
   return ABSENSI_OPTIONS.find((item) => item.value === value)?.label || value;
 }
 
+function summarizeAttendanceRows(rows = []) {
+  return rows.reduce((summary, row) => {
+    const status = row?.status;
+    if (!ABSENSI_OPTIONS.some((item) => item.value === status)) return summary;
+    summary[status] += 1;
+    summary.total += 1;
+    return summary;
+  }, { ...emptySummary });
+}
+
 function isHomeroomSubjectLabel(value) {
   return ["wali kelas", "guru wali kelas"].includes(String(value || "").trim().toLowerCase());
 }
@@ -62,8 +76,12 @@ function DashboardGuru() {
   const [tanggal, setTanggal] = useState(todayISO());
   const [jadwalId, setJadwalId] = useState("");
   const [attendanceMode, setAttendanceMode] = useState("homeroom");
-  const [entries, setEntries] = useState({});
-  const [savedAttendanceSummary, setSavedAttendanceSummary] = useState(emptySummary);
+  const [attendanceEntryBuckets, setAttendanceEntryBuckets] = useState({});
+  const [savedAttendanceSummaries, setSavedAttendanceSummaries] = useState({});
+  const [savedAttendanceRows, setSavedAttendanceRows] = useState({});
+  const [loadingSavedAttendance, setLoadingSavedAttendance] = useState(false);
+  const [savedAttendanceErrors, setSavedAttendanceErrors] = useState({});
+  const [rekapMode, setRekapMode] = useState("homeroom");
   const [savingAbsensi, setSavingAbsensi] = useState(false);
   const [profileForm, setProfileForm] = useState({ name: "", email: "" });
   const [savingProfile, setSavingProfile] = useState(false);
@@ -87,12 +105,22 @@ function DashboardGuru() {
       }
 
       const data = result.data;
-      const firstJadwalId = data.jadwal?.[0]?.id ? String(data.jadwal[0].id) : "";
-      const firstClassId = data.kelasAkses?.[0]?.id || data.guruProfile?.kelas_id || "";
+      const firstJadwal = data.jadwal?.[0] || null;
+      const firstJadwalId = firstJadwal?.id ? String(firstJadwal.id) : "";
+      const firstClassId = data.kelasAkses?.[0]?.id || data.guruProfile?.kelas_id || firstJadwal?.kelas_id || "";
       const isHomeroom = Boolean(data.guruProfile?.is_homeroom) || data.guruProfile?.teacher_type === "wali_kelas";
+      const defaultRekapMode = isHomeroom ? "homeroom" : "subject";
       setJadwalId(firstJadwalId);
       setAttendanceMode(isHomeroom ? "homeroom" : "subject");
-      setRekapFilter((previous) => ({ ...previous, kelas_id: firstClassId ? String(firstClassId) : "" }));
+      setRekapMode(defaultRekapMode);
+      setRekapFilter((previous) => ({
+        ...previous,
+        kelas_id: defaultRekapMode === "homeroom"
+          ? String(data.guruProfile?.kelas_id || firstClassId || "")
+          : String(firstJadwal?.kelas_id || firstClassId || ""),
+        jadwal_id: defaultRekapMode === "subject" ? firstJadwalId : "",
+        mapel: defaultRekapMode === "subject" ? firstJadwal?.mapel || "" : ""
+      }));
       setProfileForm({ name: data.user?.name || "", email: data.user?.email || "" });
       setDashboard(data);
       setLoading(false);
@@ -120,16 +148,19 @@ function DashboardGuru() {
     return (dashboard.jadwal || []).find((item) => Number(item.id) === Number(jadwalId)) || null;
   }, [dashboard, jadwalId]);
 
-  const mapelOptions = useMemo(() => {
-    const options = new Set();
-    if (displaySubject) {
-      displaySubject.split(/[,;+]/).map((item) => item.trim()).filter(Boolean).forEach((item) => options.add(item));
-    }
-    (dashboard?.jadwal || []).forEach((item) => {
-      if (item.mapel) options.add(item.mapel);
-    });
-    return [...options].sort((first, second) => first.localeCompare(second, "id"));
-  }, [dashboard, displaySubject]);
+  const selectedRekapJadwal = useMemo(() => {
+    if (!dashboard || !rekapFilter.jadwal_id) return null;
+    return (dashboard.jadwal || []).find((item) => Number(item.id) === Number(rekapFilter.jadwal_id)) || null;
+  }, [dashboard, rekapFilter.jadwal_id]);
+
+  const rekapIsHomeroom = isWali && rekapMode === "homeroom";
+  const attendanceContextKey = attendanceIsHomeroom
+    ? `wali-${profile?.kelas_id || "none"}-${tanggal || "no-date"}`
+    : `mapel-${jadwalId || "none"}-${tanggal || "no-date"}`;
+  const entries = useMemo(() => attendanceEntryBuckets[attendanceContextKey] || {}, [attendanceEntryBuckets, attendanceContextKey]);
+  const savedAttendanceSummary = savedAttendanceSummaries[attendanceContextKey] || emptySummary;
+  const currentSavedAttendanceRows = savedAttendanceRows[attendanceContextKey] || [];
+  const currentSavedAttendanceError = savedAttendanceErrors[attendanceContextKey] || "";
 
   const attendanceClassId = attendanceIsHomeroom ? profile?.kelas_id : selectedJadwal?.kelas_id;
 
@@ -149,6 +180,86 @@ function DashboardGuru() {
       return summary;
     }, { ...emptySummary });
   }, [entries, siswaList]);
+
+  const applySavedAttendanceRows = useCallback((contextKey, rows) => {
+    const currentStudentIds = new Set(siswaList.map((siswa) => Number(siswa.id)));
+    const studentMap = new Map(siswaList.map((siswa) => [Number(siswa.id), siswa]));
+    const normalizedRows = (rows || [])
+      .filter((row) => currentStudentIds.has(Number(row.siswa_id)))
+      .map((row) => ({
+        ...row,
+        siswa_id: Number(row.siswa_id),
+        siswa: row.siswa || studentMap.get(Number(row.siswa_id)) || null,
+        keterangan: row.keterangan || ""
+      }));
+
+    const nextEntries = normalizedRows.reduce((bucket, row) => {
+      bucket[row.siswa_id] = {
+        siswa_id: row.siswa_id,
+        status: row.status,
+        keterangan: row.keterangan || ""
+      };
+      return bucket;
+    }, {});
+
+    setAttendanceEntryBuckets((previous) => ({
+      ...previous,
+      [contextKey]: nextEntries
+    }));
+    setSavedAttendanceRows((previous) => ({
+      ...previous,
+      [contextKey]: normalizedRows
+    }));
+    setSavedAttendanceSummaries((previous) => ({
+      ...previous,
+      [contextKey]: summarizeAttendanceRows(normalizedRows)
+    }));
+  }, [siswaList]);
+
+  useEffect(() => {
+    if (!dashboard || !tanggal || !attendanceClassId || siswaList.length === 0 || (!attendanceIsHomeroom && !jadwalId)) {
+      return undefined;
+    }
+
+    let active = true;
+    const loadSavedAttendance = async () => {
+      await Promise.resolve();
+      if (!active) return;
+      setLoadingSavedAttendance(true);
+      setSavedAttendanceErrors((previous) => ({ ...previous, [attendanceContextKey]: "" }));
+
+      const params = {
+        dari: tanggal,
+        sampai: tanggal
+      };
+
+      if (attendanceIsHomeroom) {
+        params.kelas_id = attendanceClassId;
+      } else {
+        params.jadwal_id = jadwalId;
+      }
+
+      const result = await getRekapAbsensiGuru(params);
+      if (!active) return;
+
+      setLoadingSavedAttendance(false);
+      if (!result.success) {
+        setSavedAttendanceErrors((previous) => ({
+          ...previous,
+          [attendanceContextKey]: result.message || "Gagal memuat data absensi tersimpan."
+        }));
+        applySavedAttendanceRows(attendanceContextKey, []);
+        return;
+      }
+
+      applySavedAttendanceRows(attendanceContextKey, result.data?.rows || []);
+    };
+
+    loadSavedAttendance();
+    return () => {
+      active = false;
+    };
+  }, [applySavedAttendanceRows, attendanceClassId, attendanceContextKey, attendanceIsHomeroom, dashboard, jadwalId, siswaList.length, tanggal]);
 
   const handleProfileChange = (event) => {
     const { name, value } = event.target;
@@ -175,15 +286,20 @@ function DashboardGuru() {
 
   const handleLogout = () => {
     logout();
-    navigate("/login-guru");
+    navigate("/");
   };
 
   const handleEntry = (id, field, value) => {
-    setSavedAttendanceSummary(emptySummary);
-    setEntries((previous) => ({
-      ...previous,
-      [id]: { ...previous[id], siswa_id: id, [field]: value }
-    }));
+    setAttendanceEntryBuckets((previous) => {
+      const currentEntries = previous[attendanceContextKey] || {};
+      return {
+        ...previous,
+        [attendanceContextKey]: {
+          ...currentEntries,
+          [id]: { ...currentEntries[id], siswa_id: id, [field]: value }
+        }
+      };
+    });
   };
 
   const handleSubmitAbsensi = async (event) => {
@@ -208,36 +324,88 @@ function DashboardGuru() {
     });
 
     setSavingAbsensi(false);
-    setNotice({ type: result.success ? "success" : "error", text: result.message });
-    if (result.success) setSavedAttendanceSummary(attendanceSummary);
+    if (!result.success) {
+      setNotice({ type: "error", text: result.message });
+      return;
+    }
+
+    setNotice(null);
+    const studentMap = new Map(siswaList.map((siswa) => [Number(siswa.id), siswa]));
+    const savedRows = selectedEntries.map((entry) => ({
+      siswa_id: Number(entry.siswa_id),
+      kelas_id: attendanceClassId,
+      guru_user_id: dashboard?.user?.id,
+      jadwal_id: attendanceIsHomeroom ? null : Number(jadwalId),
+      tanggal,
+      tipe_guru: attendanceIsHomeroom ? "wali_kelas" : "mapel",
+      mapel: attendanceIsHomeroom ? null : selectedJadwal?.mapel || null,
+      status: entry.status,
+      keterangan: entry.keterangan || "",
+      siswa: studentMap.get(Number(entry.siswa_id)) || null
+    }));
+    applySavedAttendanceRows(attendanceContextKey, savedRows);
   };
 
   const handleRekapFilter = (event) => {
     const { name, value } = event.target;
+    setRekap({ summary: emptySummary, rows: [] });
+    setRekapFilter((previous) => {
+      if (name === "jadwal_id") {
+        const jadwal = (dashboard?.jadwal || []).find((item) => Number(item.id) === Number(value));
+        return {
+          ...previous,
+          jadwal_id: value,
+          kelas_id: jadwal?.kelas_id ? String(jadwal.kelas_id) : "",
+          mapel: jadwal?.mapel || ""
+        };
+      }
+      return { ...previous, [name]: value };
+    });
+  };
+
+  const handleRekapModeChange = (mode) => {
+    const firstJadwal = dashboard?.jadwal?.[0] || null;
+    setRekapMode(mode);
+    setRekap({ summary: emptySummary, rows: [] });
+    setNotice(null);
     setRekapFilter((previous) => ({
       ...previous,
-      [name]: value,
-      ...(name === "kelas_id" ? { jadwal_id: "" } : {})
+      kelas_id: mode === "homeroom"
+        ? String(profile?.kelas_id || "")
+        : String(firstJadwal?.kelas_id || ""),
+      jadwal_id: mode === "subject" ? (firstJadwal?.id ? String(firstJadwal.id) : "") : "",
+      mapel: mode === "subject" ? firstJadwal?.mapel || "" : ""
     }));
   };
 
   const loadRekap = async () => {
-    if (!rekapFilter.mapel.trim()) {
-      setRekap({ summary: emptySummary, rows: [] });
-      setNotice({ type: "error", text: "Pilih mata pelajaran terlebih dahulu untuk menampilkan rekap." });
-      return;
-    }
+    const params = {
+      dari: rekapFilter.dari,
+      sampai: rekapFilter.sampai
+    };
 
-    if (hasSubjectRoster && !rekapFilter.jadwal_id) {
-      setRekap({ summary: emptySummary, rows: [] });
-      setNotice({ type: "error", text: "Pilih jadwal mengajar terlebih dahulu untuk menampilkan rekap." });
-      return;
+    if (rekapIsHomeroom) {
+      if (!profile?.kelas_id) {
+        setRekap({ summary: emptySummary, rows: [] });
+        setNotice({ type: "error", text: "Kelas wali belum ditentukan administrator." });
+        return;
+      }
+      params.kelas_id = profile.kelas_id;
+    } else {
+      if (!rekapFilter.jadwal_id) {
+        setRekap({ summary: emptySummary, rows: [] });
+        setNotice({ type: "error", text: "Pilih jadwal mengajar terlebih dahulu untuk menampilkan rekap mapel." });
+        return;
+      }
+      params.jadwal_id = rekapFilter.jadwal_id;
+      if (selectedRekapJadwal?.kelas_id) params.kelas_id = selectedRekapJadwal.kelas_id;
+      if (selectedRekapJadwal?.mapel) params.mapel = selectedRekapJadwal.mapel;
     }
 
     setRekapLoading(true);
     setNotice(null);
 
-    const result = await getRekapAbsensiGuru(rekapFilter);
+    const result = await getRekapAbsensiGuru(params);
     setRekapLoading(false);
 
     if (!result.success) {
@@ -252,9 +420,9 @@ function DashboardGuru() {
     if (!rekap.rows.length) return;
 
     exportExcel({
-      filename: `rekap-absensi-${rekapFilter.dari || "awal"}-${rekapFilter.sampai || "akhir"}.xls`,
-      title: "Rekapitulasi Absensi Siswa",
-      subtitle: `${roleLabel} â€¢ ${rekapFilter.mapel ? `Mapel ${rekapFilter.mapel} â€¢ ` : ""}Periode ${rekapFilter.dari || "awal"} sampai ${rekapFilter.sampai || "akhir"}`,
+      filename: `rekap-absensi-${rekapIsHomeroom ? "kelas" : "mapel"}-${rekapFilter.dari || "awal"}-${rekapFilter.sampai || "akhir"}.xls`,
+      title: rekapIsHomeroom ? "Rekapitulasi Absensi Kelas" : "Rekapitulasi Absensi Mata Pelajaran",
+      subtitle: `${rekapIsHomeroom ? "Absensi Kelas" : `Mapel ${selectedRekapJadwal?.mapel || rekapFilter.mapel || "-"}`} - Periode ${rekapFilter.dari || "awal"} sampai ${rekapFilter.sampai || "akhir"}`,
       summary: [
         { label: "Hadir", value: rekap.summary?.hadir || 0 },
         { label: "Izin", value: rekap.summary?.izin || 0 },
@@ -267,7 +435,7 @@ function DashboardGuru() {
         { header: "Tanggal", value: (row) => formatDate(row.tanggal) },
         { header: "Nama Siswa", value: (row) => row.siswa?.nama || "-" },
         { header: "Kelas", value: (row) => row.kelas?.nama_kelas || "-" },
-        { header: "Mata Pelajaran", value: (row) => row.mapel || "Absensi Kelas" },
+        { header: rekapIsHomeroom ? "Jenis Absensi" : "Mata Pelajaran", value: (row) => rekapIsHomeroom ? "Absensi Kelas" : row.mapel || "-" },
         { header: "Status", value: (row) => getStatusLabel(row.status) },
         { header: "Keterangan", value: (row) => row.keterangan || "-" }
       ],
@@ -335,7 +503,7 @@ function DashboardGuru() {
                 {announcements.map((item) => {
                   const isOpen = expandedAnnouncements.includes(item.id);
                   return (
-                    <div className="teacher-announcement" key={item.id}>
+                    <div className={`teacher-announcement${isOpen ? " expanded" : ""}`} key={item.id}>
                       <span>{formatDate(item.date)}</span>
                       <strong>{item.title}</strong>
                       {isOpen && <p>{item.content}</p>}
@@ -461,7 +629,7 @@ function DashboardGuru() {
             </label>
           )}
 
-          {renderSummaryCards(savedAttendanceSummary)}
+          {renderSummaryCards(attendanceSummary.total ? attendanceSummary : savedAttendanceSummary)}
 
           <div className="teacher-table-wrap">
             <table className="teacher-table attendance-table">
@@ -469,7 +637,7 @@ function DashboardGuru() {
                 <tr>
                   <th>No</th>
                   <th>Nama Siswa</th>
-                  <th>NISN</th>
+                  <th>NIS</th>
                   <th>Status</th>
                   <th>Keterangan</th>
                 </tr>
@@ -502,99 +670,165 @@ function DashboardGuru() {
               {savingAbsensi ? "Menyimpan..." : "Simpan Absensi"}
             </button>
           </div>
+
+          <div className="saved-attendance-panel">
+            <div className="saved-attendance-heading">
+              <div>
+                <span>Data Absensi Tersimpan</span>
+                <strong>{loadingSavedAttendance ? "Memuat data tersimpan..." : `${savedAttendanceSummary.total || 0} data absensi tersimpan`}</strong>
+              </div>
+              <p>
+                {attendanceIsHomeroom
+                  ? `Absensi kelas ${selectedClassName} untuk tanggal ${formatDate(tanggal)}.`
+                  : `Absensi ${selectedMapel} kelas ${selectedClassName} untuk tanggal ${formatDate(tanggal)}.`}
+              </p>
+            </div>
+
+            {currentSavedAttendanceError ? (
+              <p className="saved-attendance-empty error">{currentSavedAttendanceError}</p>
+            ) : loadingSavedAttendance ? (
+              <p className="saved-attendance-empty">Sedang memuat data absensi yang sudah tersimpan...</p>
+            ) : currentSavedAttendanceRows.length === 0 ? (
+              <p className="saved-attendance-empty">Belum ada data absensi tersimpan untuk tanggal ini.</p>
+            ) : (
+              <div className="teacher-table-wrap saved-attendance-table-wrap">
+                <table className="teacher-table saved-attendance-table">
+                  <thead>
+                    <tr>
+                      <th>No</th>
+                      <th>Nama Siswa</th>
+                      <th>NIS</th>
+                      <th>Status</th>
+                      <th>Keterangan</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentSavedAttendanceRows.map((row, index) => (
+                      <tr key={`${row.siswa_id}-${index}`}>
+                        <td>{index + 1}</td>
+                        <td>{row.siswa?.nama || "-"}</td>
+                        <td>{row.siswa?.nisn || "-"}</td>
+                        <td><span className={`teacher-badge status-${row.status}`}>{getStatusLabel(row.status)}</span></td>
+                        <td>{row.keterangan || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </form>
       </section>
     );
   };
 
-  const renderRekap = () => (
-    <section className="teacher-panel teacher-rekap-panel">
-      <div className="teacher-panel-header compact">
-        <span>Rekapitulasi</span>
-        <h1>Rekapitulasi Absensi</h1>
-        <p>Untuk rekap mapel, pilih mata pelajaran dan jadwal mengajar agar data tidak tercampur dengan absensi kelas.</p>
-      </div>
+  const renderRekap = () => {
+    const rekapClassName = rekapIsHomeroom
+      ? profile?.kelas?.nama_kelas || "Kelas wali belum diset"
+      : selectedRekapJadwal?.kelas?.nama_kelas || "Pilih jadwal mengajar";
+    const rekapMapelName = selectedRekapJadwal?.mapel || rekapFilter.mapel || "Pilih jadwal mengajar";
+    const rekapModeLabel = rekapIsHomeroom ? "Rekap Absensi Kelas" : "Rekap Absensi Mata Pelajaran";
 
-      <div className="teacher-rekap-filter-card">
-        <div className="teacher-form-grid teacher-rekap-grid">
-          <label className="teacher-field">Kelas
-            <select name="kelas_id" value={rekapFilter.kelas_id} onChange={handleRekapFilter}>
-              <option value="">Semua kelas akses</option>
-              {classOptions.map((kelas) => <option key={kelas.id} value={kelas.id}>{kelas.nama_kelas}</option>)}
-            </select>
-          </label>
+    return (
+      <section className="teacher-panel teacher-rekap-panel">
+        <div className="teacher-panel-header compact">
+          <span>Rekapitulasi</span>
+          <h1>{rekapModeLabel}</h1>
+          <p>{rekapIsHomeroom ? "Data ini hanya mengambil absensi wali kelas, bukan absensi mata pelajaran." : "Data ini hanya mengambil absensi jadwal mapel yang dipilih, bukan absensi kelas wali."}</p>
+        </div>
 
-          <label className="teacher-field">Mata Pelajaran
-            <input list="rekap-mapel-options" name="mapel" value={rekapFilter.mapel} onChange={handleRekapFilter} placeholder="Kosongkan untuk semua" />
-            <datalist id="rekap-mapel-options">
-              {mapelOptions.map((mapel) => <option key={mapel} value={mapel} />)}
-            </datalist>
-          </label>
+        {isWali && hasSubjectRoster && (
+          <div className="teacher-actions-row attendance-mode-switch rekap-mode-switch">
+            <button type="button" className={rekapMode === "homeroom" ? "teacher-primary" : "teacher-secondary"} onClick={() => handleRekapModeChange("homeroom")}>
+              Rekap Absensi Kelas
+            </button>
+            <button type="button" className={rekapMode === "subject" ? "teacher-primary" : "teacher-secondary"} onClick={() => handleRekapModeChange("subject")}>
+              Rekap Absensi Mapel
+            </button>
+          </div>
+        )}
 
-          {hasSubjectRoster && (
-            <label className="teacher-field">Jadwal Mengajar
-              <select name="jadwal_id" value={rekapFilter.jadwal_id} onChange={handleRekapFilter}>
-                <option value="">Semua jadwal mengajar</option>
-                {(dashboard.jadwal || []).map((item) => (
-                  <option key={item.id} value={item.id}>{item.mapel} - {item.kelas?.nama_kelas} - {item.hari} - {formatTime(item.jam_mulai)}-{formatTime(item.jam_selesai)}</option>
-                ))}
-              </select>
+        <div className="teacher-rekap-filter-card">
+          <div className="teacher-form-grid teacher-rekap-grid">
+            {rekapIsHomeroom ? (
+              <label className="teacher-field">Kelas Wali
+                <input value={rekapClassName} readOnly />
+              </label>
+            ) : (
+              <>
+                <label className="teacher-field">Jadwal Mengajar
+                  <select name="jadwal_id" value={rekapFilter.jadwal_id} onChange={handleRekapFilter} required>
+                    <option value="">Pilih jadwal mengajar</option>
+                    {(dashboard.jadwal || []).map((item) => (
+                      <option key={item.id} value={item.id}>{item.mapel} - {item.kelas?.nama_kelas} - {item.hari} - {formatTime(item.jam_mulai)}-{formatTime(item.jam_selesai)}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="teacher-field">Kelas
+                  <input value={rekapClassName} readOnly />
+                </label>
+
+                <label className="teacher-field">Mata Pelajaran
+                  <input value={rekapMapelName} readOnly />
+                </label>
+              </>
+            )}
+
+            <label className="teacher-field">Dari
+              <input type="date" name="dari" value={rekapFilter.dari} onChange={handleRekapFilter} />
             </label>
-          )}
 
-          <label className="teacher-field">Dari
-            <input type="date" name="dari" value={rekapFilter.dari} onChange={handleRekapFilter} />
-          </label>
+            <label className="teacher-field">Sampai
+              <input type="date" name="sampai" value={rekapFilter.sampai} onChange={handleRekapFilter} />
+            </label>
+          </div>
 
-          <label className="teacher-field">Sampai
-            <input type="date" name="sampai" value={rekapFilter.sampai} onChange={handleRekapFilter} />
-          </label>
+          <div className="teacher-actions-row teacher-rekap-actions">
+            <button type="button" className="teacher-primary" onClick={loadRekap} disabled={rekapLoading}>
+              {rekapLoading ? "Memuat..." : "Tampilkan"}
+            </button>
+            <button type="button" className="teacher-secondary" onClick={exportRekap} disabled={!rekap.rows.length}>
+              Ekspor Excel
+            </button>
+          </div>
         </div>
 
-        <div className="teacher-actions-row teacher-rekap-actions">
-          <button type="button" className="teacher-primary" onClick={loadRekap} disabled={rekapLoading}>
-            {rekapLoading ? "Memuat..." : "Tampilkan"}
-          </button>
-          <button type="button" className="teacher-secondary" onClick={exportRekap} disabled={!rekap.rows.length}>
-            Ekspor Excel
-          </button>
-        </div>
-      </div>
+        {renderSummaryCards(rekap.summary || emptySummary)}
 
-      {renderSummaryCards(rekap.summary || emptySummary)}
-
-      <div className="teacher-table-wrap">
-        <table className="teacher-table">
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>Tanggal</th>
-              <th>Nama Siswa</th>
-              <th>Kelas</th>
-              <th>Mata Pelajaran</th>
-              <th>Status</th>
-              <th>Keterangan</th>
-            </tr>
-          </thead>
-          <tbody>
-            {!rekap.rows.length ? (
-              <tr><td colSpan="7" className="teacher-empty-cell">Belum ada data rekap pada filter ini.</td></tr>
-            ) : rekap.rows.map((row, index) => (
-              <tr key={row.id}>
-                <td>{index + 1}</td>
-                <td>{formatDate(row.tanggal)}</td>
-                <td>{row.siswa?.nama || "-"}</td>
-                <td>{row.kelas?.nama_kelas || "-"}</td>
-                <td>{row.mapel || "Absensi Kelas"}</td>
-                <td><span className={`teacher-badge status-${row.status}`}>{getStatusLabel(row.status)}</span></td>
-                <td>{row.keterangan || "-"}</td>
+        <div className="teacher-table-wrap">
+          <table className="teacher-table">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Tanggal</th>
+                <th>Nama Siswa</th>
+                <th>Kelas</th>
+                <th>{rekapIsHomeroom ? "Jenis Absensi" : "Mata Pelajaran"}</th>
+                <th>Status</th>
+                <th>Keterangan</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
+            </thead>
+            <tbody>
+              {!rekap.rows.length ? (
+                <tr><td colSpan="7" className="teacher-empty-cell">Belum ada data rekap pada filter ini.</td></tr>
+              ) : rekap.rows.map((row, index) => (
+                <tr key={row.id}>
+                  <td>{index + 1}</td>
+                  <td>{formatDate(row.tanggal)}</td>
+                  <td>{row.siswa?.nama || "-"}</td>
+                  <td>{row.kelas?.nama_kelas || "-"}</td>
+                  <td>{rekapIsHomeroom ? "Absensi Kelas" : row.mapel || "-"}</td>
+                  <td><span className={`teacher-badge status-${row.status}`}>{getStatusLabel(row.status)}</span></td>
+                  <td>{row.keterangan || "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    );
+  };
 
   const renderProfil = () => (
     <section className="teacher-panel">

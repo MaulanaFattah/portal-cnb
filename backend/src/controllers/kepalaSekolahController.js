@@ -14,6 +14,10 @@ function normalizeJenjang(value) {
   return ["sd", "smp"].includes(jenjang) ? jenjang : null;
 }
 
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 function buildKepalaSekolahPayload(body) {
   const payload = {};
   [
@@ -95,16 +99,19 @@ exports.createKepalaSekolah = async (req, res) => {
 
   try {
     const payload = buildKepalaSekolahPayload(req.body);
-    const { nip, nama, periode_mulai, jenjang } = payload;
+    const { nip, nama, jenjang } = payload;
     const password = req.body.password || req.body.kata_sandi;
 
-    if (!nip || !nama || !payload.email || !password || !periode_mulai || !jenjang) {
+    if (!nip || !nama || !payload.email || !password || !jenjang) {
       await transaction.rollback();
       return res.status(400).json({
         success: false,
-        message: "NIP, nama, email, password, jenjang, dan periode mulai wajib diisi"
+        message: "NIP, nama, email, password, dan jenjang wajib diisi"
       });
     }
+
+    if (!payload.periode_mulai) payload.periode_mulai = todayISO();
+    if (!payload.status) payload.status = "aktif";
 
     payload.user_id = await resolveOrCreatePrincipalUser({
       nama,

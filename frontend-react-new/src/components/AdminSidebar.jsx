@@ -6,6 +6,7 @@ const menu = [
   ["/admin/kegiatan", "Kegiatan"],
   ["/admin/pengumuman", "Pengumuman"],
   ["/admin/galeri", "Galeri"],
+  ["/admin/fasilitas", "Fasilitas"],
   ["/admin/ppdb", "PPDB"],
   ["/admin/verifikasi-guru", "Verifikasi Guru"],
   ["/admin/kepala-sekolah", "Kepala Sekolah"],

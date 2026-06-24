@@ -1,7 +1,8 @@
 import schoolLogo from "../assets/logo-transparent.png";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { loginUser, saveAuth } from "../services/api";
+import PasswordField from "../components/PasswordField";
 
 function AdminLogin() {
   const navigate = useNavigate();
@@ -43,7 +44,7 @@ function AdminLogin() {
             <label>Email</label>
             <input
               type="email"
-              placeholder="Masukkan email admin"
+              placeholder="Masukkan nama@cnb.sch.id"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="off"
@@ -53,8 +54,7 @@ function AdminLogin() {
 
           <div className="form-group">
             <label>Kata Sandi</label>
-            <input
-              type="password"
+            <PasswordField
               placeholder="Masukkan kata sandi"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -66,6 +66,9 @@ function AdminLogin() {
           <button className="submit-btn">Masuk</button>
         </form>
 
+        <div className="auth-links-stack">
+          <Link to="/" className="auth-home-link">Kembali ke Beranda</Link>
+        </div>
       </div>
     </div>
   );

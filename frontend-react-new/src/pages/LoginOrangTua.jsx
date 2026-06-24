@@ -2,6 +2,7 @@ import schoolLogo from "../assets/logo-transparent.png";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { loginUser, saveAuth } from "../services/api";
+import PasswordField from "../components/PasswordField";
 
 function LoginOrangTua() {
   const navigate = useNavigate();
@@ -35,16 +36,19 @@ function LoginOrangTua() {
         <form onSubmit={handleLogin} autoComplete="off">
           <div className="form-group">
             <label>Email</label>
-            <input type="email" placeholder="Masukkan email orang tua" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" required />
+            <input type="email" placeholder="Masukkan nama@cnb.sch.id" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" required />
           </div>
           <div className="form-group">
             <label>Kata Sandi</label>
-            <input type="password" placeholder="Masukkan kata sandi" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required />
+            <PasswordField placeholder="Masukkan kata sandi" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required />
           </div>
           <button type="submit" className="submit-btn">Masuk</button>
         </form>
 
-        <Link to="/lupa-password?role=orangtua" className="auth-link">Lupa kata sandi?</Link>
+        <div className="auth-links-stack">
+          <Link to="/lupa-password?role=orangtua" className="auth-link">Lupa kata sandi?</Link>
+          <Link to="/" className="auth-home-link">Kembali ke Beranda</Link>
+        </div>
       </div>
     </div>
   );

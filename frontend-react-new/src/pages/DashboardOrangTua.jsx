@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   getOrangTuaAbsensi,
@@ -16,8 +16,12 @@ const MENU_ITEMS = [
 
 const emptySummary = { hadir: 0, tidak_hadir: 0, izin: 0, sakit: 0, alpha: 0, total: 0 };
 
+function toDateInputValue(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+  return toDateInputValue();
 }
 
 function firstDayOfMonthISO() {
@@ -81,7 +85,7 @@ function DashboardOrangTua() {
 
   const handleLogout = () => {
     logout();
-    navigate("/login-orangtua");
+    navigate("/");
   };
 
   const handleProfileChange = (event) => {
@@ -124,7 +128,7 @@ function DashboardOrangTua() {
     exportExcel({
       filename: `absensi-anak-${filter.dari}-${filter.sampai}.xls`,
       title: "Absensi Utama Anak",
-      subtitle: `${siswa?.nama || "Anak"} • Guru Wali Kelas • ${filter.dari} sampai ${filter.sampai}`,
+      subtitle: `${siswa?.nama || "Anak"} â€¢ Guru Wali Kelas â€¢ ${filter.dari} sampai ${filter.sampai}`,
       summary: [
         { label: "Hadir", value: absensi.summary.hadir || 0 },
         { label: "Izin", value: absensi.summary.izin || 0 },
@@ -296,7 +300,20 @@ function DashboardOrangTua() {
         <p>Data yang tampil hanya absensi utama dari Guru Wali Kelas, satu data untuk setiap hari sekolah.</p>
       </div>
 
-      <div className="teacher-form-grid four-columns">
+      <div className="parent-attendance-overview">
+        <div>
+          <span>Siswa</span>
+          <strong>{siswa?.nama || "Belum tertaut"}</strong>
+          <small>{siswa?.kelas?.nama_kelas || "Kelas belum tersedia"}</small>
+        </div>
+        <div>
+          <span>Periode</span>
+          <strong>{formatDate(filter.dari)} - {formatDate(filter.sampai)}</strong>
+          <small>{absensi.summary.total || 0} data absensi tercatat</small>
+        </div>
+      </div>
+
+      <div className="teacher-form-grid four-columns parent-attendance-filter">
         <label className="teacher-field">Dari
           <input type="date" value={filter.dari} onChange={(event) => setFilter((prev) => ({ ...prev, dari: event.target.value }))} />
         </label>
@@ -311,10 +328,10 @@ function DashboardOrangTua() {
         </button>
       </div>
 
-      <div className="attend-cards">
+      <div className="attend-cards parent-attendance-cards">
         <div className="attend-card hadir"><span>HADIR</span><strong>{absensi.summary.hadir}</strong></div>
         <div className="attend-card tidak"><span>TIDAK HADIR</span><strong>{absensi.summary.tidak_hadir}</strong></div>
-        <div className="attend-card keterangan"><span>KETERANGAN</span><strong>IZIN {absensi.summary.izin} • SAKIT {absensi.summary.sakit} • ALPHA {absensi.summary.alpha}</strong></div>
+        <div className="attend-card keterangan"><span>KETERANGAN</span><strong>IZIN {absensi.summary.izin} â€¢ SAKIT {absensi.summary.sakit} â€¢ ALPHA {absensi.summary.alpha}</strong></div>
       </div>
 
       {groupedAbsensi.length === 0 ? (

@@ -1,769 +1,652 @@
 ﻿# Penjelasan ERD Portal CNB
 
-Dokumen ini menjelaskan Entity Relationship Diagram (ERD) untuk project Portal CNB. ERD ini dibuat berdasarkan model Sequelize pada folder `backend/src/models` dan asosiasi relasi pada `backend/src/models/index.js`.
+Dokumen ini menjelaskan ERD Portal CNB dengan bahasa yang lebih mudah dipahami. Penjelasan ini sudah mengikuti schema database terbaru yang menggunakan nama tabel dan kolom berbahasa Indonesia.
+
+## 1. Gambaran Besar Sistem
 
-## 1. Gambaran Umum
+Database Portal CNB terbagi menjadi beberapa kelompok data besar:
+
+1. **Akun dan keamanan akses**: `akun_pengguna`, `permintaan_reset_password`, dan `log_audit`.
+2. **Akademik sekolah**: `kelas`, `siswa`, `profil_guru`, `jadwal_mengajar`, dan `absensi_siswa`.
+3. **Portal siswa/orang tua**: `tautan_akun_portal`.
+4. **PPDB**: `pendaftaran_ppdb`.
+5. **Konten website/profil sekolah**: `profil_sekolah`, `guru`, `kepala_sekolah`, `kegiatan`, `pengumuman`, dan `galeri`.
 
-Portal CNB adalah sistem informasi sekolah yang memiliki beberapa domain data utama:
+Pusat relasi utama ada pada `akun_pengguna`, `kelas`, dan `siswa`. Tiga tabel ini menghubungkan fitur guru, jadwal, absensi, portal orang tua/siswa, audit, dan reset password.
 
-1. **Akun dan Peran Pengguna**
-   - Menyimpan akun masuk untuk administrator, guru, siswa, dan orang tua.
-   - Direpresentasikan oleh tabel `akun_pengguna`.
+## 2. Cara Membaca Relasi
 
-2. **Akademik Sekolah**
-   - Mengelola kelas, siswa, jadwal mengajar, profil guru portal, dan absensi siswa.
-   - Direpresentasikan oleh tabel `kelas`, `siswa`, `profil_guru`, `jadwal_mengajar`, dan `absensi_siswa`.
+ERD Draw.io menggunakan notasi **Crow's Foot**. Simbol `|` berarti satu data, sedangkan simbol kaki tiga berarti banyak data. Contoh `kelas |----< siswa` berarti satu kelas dapat memiliki banyak siswa.
 
-3. **Portal Siswa dan Orang Tua**
-   - Menghubungkan akun portal dengan data siswa.
-   - Direpresentasikan oleh tabel `tautan_akun_portal`.
-
-4. **Konten Situs Web Sekolah**
-   - Menyimpan kegiatan, pengumuman, galeri, profil sekolah, data guru, dan kepala sekolah.
-   - Direpresentasikan oleh tabel `kegiatan`, `pengumuman`, `galeri`, `profil_sekolah`, `guru`, dan `kepala_sekolah`.
-
-5. **PPDB / Pendaftaran Siswa Baru**
-   - Menyimpan data calon siswa dan dokumen pendaftaran.
-   - Direpresentasikan oleh tabel `pendaftaran_ppdb`.
-
-## 2. Notasi Relasi ERD
-
-Diagram menggunakan notasi **Crow's Foot**.
-
-| Simbol | Arti |
-|---|---|
-| `|` | Satu data / wajib satu |
-| `o` | Nol / opsional |
-| Crow's foot / kaki tiga | Banyak data |
-| `1:1` | Satu data berhubungan dengan satu data |
-| `1:N` | Satu data berhubungan dengan banyak data |
+| Notasi | Arti | Contoh |
+|---|---|---|
+| `1:1` | Satu data terhubung ke satu data | Satu `akun_pengguna` guru hanya punya satu `profil_guru` |
+| `1:N` | Satu data terhubung ke banyak data | Satu `kelas` punya banyak `siswa` |
+| `SET NULL` | Jika induk dihapus, FK anak dikosongkan | Siswa tetap ada walau kelas dihapus |
+| `CASCADE` | Jika induk dihapus, data anak ikut terhapus | Absensi ikut hilang jika siswa dihapus |
+
+## 3. Penjelasan Tiap Tabel
+
+### 3.1 Akun Pengguna (`akun_pengguna`)
+
+Menyimpan akun login seluruh pengguna sistem, termasuk admin, guru, siswa, orang tua, dan kepala sekolah.
+
+**Kolom penting:**
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | `INTEGER - PK, AI` | Primary key unik untuk setiap baris data. |
+| `nama` | `STRING - NOT NULL` | Nama pengguna/orang/data utama sesuai konteks tabel. |
+| `email` | `STRING - UK, NOT NULL` | Alamat email untuk kontak atau login. |
+| `kata_sandi` | `STRING - NOT NULL` | Password akun; seharusnya berupa hash. |
+| `peran` | `ENUM(admin, guru, siswa, orangtua, kepala_sekolah)` | Role pengguna dalam sistem. |
+| `profesi` | `STRING` | Profesi pengguna bila diperlukan. |
+| `wajib_ganti_kata_sandi` | `BOOLEAN - NOT NULL` | Penanda pengguna wajib mengganti password. |
+| `dibuat_pada` | `DATETIME - NOT NULL` | Timestamp saat data dibuat. |
+| `diperbarui_pada` | `DATETIME - NOT NULL` | Timestamp saat data terakhir diperbarui. |
+
+**Relasi tabel:**
+
+- `akun_pengguna` ke `profil_guru` adalah `1:1`: Satu akun guru hanya memiliki satu profil guru karena FK unique.
+- `akun_pengguna` ke `profil_guru` adalah `1:N`: Satu admin/user dapat menyetujui banyak profil guru.
+- `akun_pengguna` ke `jadwal_mengajar` adalah `1:N`: Satu akun guru dapat memiliki banyak jadwal mengajar.
+- `akun_pengguna` ke `absensi_siswa` adalah `1:N`: Satu guru dapat mencatat banyak absensi siswa.
+- `akun_pengguna` ke `tautan_akun_portal` adalah `1:N`: Satu akun dapat memiliki banyak tautan portal ke siswa.
+- `akun_pengguna` ke `log_audit` adalah `1:N`: Satu akun dapat menghasilkan banyak log audit; log tetap ada jika akun pelaku dihapus.
+- `akun_pengguna` ke `permintaan_reset_password` adalah `1:N`: Satu akun dapat cocok dengan banyak permintaan reset password.
+- `akun_pengguna` ke `permintaan_reset_password` adalah `1:N`: Satu admin/user dapat memproses banyak permintaan reset password.
+
+### 3.2 Profil Guru Portal (`profil_guru`)
+
+Menyimpan profil tambahan untuk akun guru: tipe guru, mata pelajaran, jenjang, status wali kelas, kelas terkait, dan status verifikasi.
+
+**Kolom penting:**
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | `INTEGER - PK, AI` | Primary key unik untuk setiap baris data. |
+| `akun_pengguna_id` | `INTEGER - UK, FK -> akun_pengguna.id, NOT NULL` | Foreign key ke tabel akun_pengguna. |
+| `tipe_guru` | `ENUM(wali_kelas, mapel) - NOT NULL` | Jenis guru: wali_kelas atau mapel. |
+| `mata_pelajaran` | `STRING` | Mata pelajaran terkait. |
+| `jenjang` | `ENUM(sd, smp)` | Jenjang pendidikan terkait guru. |
+| `wali_kelas` | `BOOLEAN - NOT NULL` | Penanda apakah guru adalah wali kelas. |
+| `kelas_id` | `INTEGER - FK -> kelas.id` | Foreign key ke tabel kelas. |
+| `status_verifikasi` | `ENUM(pending, approved, rejected)` | Status verifikasi profil guru. |
+| `catatan` | `TEXT` | Catatan tambahan. |
+| `disetujui_oleh_akun_pengguna_id` | `INTEGER - FK -> akun_pengguna.id` | Akun/admin yang menyetujui profil guru. |
+| `disetujui_pada` | `DATETIME` | Waktu profil guru disetujui. |
+| `dibuat_pada` | `DATETIME - NOT NULL` | Timestamp saat data dibuat. |
+| `diperbarui_pada` | `DATETIME - NOT NULL` | Timestamp saat data terakhir diperbarui. |
+
+**Relasi tabel:**
+
+- `akun_pengguna` ke `profil_guru` adalah `1:1`: Satu akun guru hanya memiliki satu profil guru karena FK unique.
+- `akun_pengguna` ke `profil_guru` adalah `1:N`: Satu admin/user dapat menyetujui banyak profil guru.
+- `kelas` ke `profil_guru` adalah `1:N`: Satu kelas dapat terkait dengan banyak profil guru.
+
+### 3.3 Kelas (`kelas`)
+
+Menyimpan data kelas/rombongan belajar, tingkat, tahun ajaran, wali kelas teks, dan jumlah siswa.
+
+**Kolom penting:**
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | `INTEGER - PK, AI` | Primary key unik untuk setiap baris data. |
+| `nama_kelas` | `STRING - NOT NULL` | Nama kelas/rombongan belajar. |
+| `tingkat` | `STRING - NOT NULL` | Tingkat/level kelas. |
+| `wali_kelas` | `STRING` | Penanda apakah guru adalah wali kelas. |
+| `tahun_ajaran` | `STRING - NOT NULL` | Tahun ajaran data berlaku. |
+| `jumlah_siswa` | `INTEGER` | Jumlah siswa pada kelas. |
+| `dibuat_pada` | `DATETIME - NOT NULL` | Timestamp saat data dibuat. |
+| `diperbarui_pada` | `DATETIME - NOT NULL` | Timestamp saat data terakhir diperbarui. |
+
+**Relasi tabel:**
+
+- `kelas` ke `siswa` adalah `1:N`: Satu kelas dapat memiliki banyak siswa; siswa boleh belum punya kelas.
+- `kelas` ke `profil_guru` adalah `1:N`: Satu kelas dapat terkait dengan banyak profil guru.
+- `kelas` ke `jadwal_mengajar` adalah `1:N`: Satu kelas dapat memiliki banyak jadwal mengajar.
+- `kelas` ke `absensi_siswa` adalah `1:N`: Satu kelas dapat memiliki banyak catatan absensi.
+
+### 3.4 Siswa (`siswa`)
+
+Menyimpan data induk siswa, identitas, kelas, data orang tua, kontak, foto, dan status siswa.
+
+**Kolom penting:**
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | `INTEGER - PK, AI` | Primary key unik untuk setiap baris data. |
+| `nisn` | `STRING - UK, NOT NULL` | Nomor Induk Siswa Nasional. |
+| `nama` | `STRING - NOT NULL` | Nama pengguna/orang/data utama sesuai konteks tabel. |
+| `kelas_id` | `INTEGER - FK -> kelas.id` | Foreign key ke tabel kelas. |
+| `tempat_lahir` | `STRING` | Tempat lahir. |
+| `tanggal_lahir` | `DATEONLY` | Tanggal lahir. |
+| `jenis_kelamin` | `ENUM(L, P) - NOT NULL` | Jenis kelamin. |
+| `agama` | `STRING` | Agama. |
+| `alamat` | `TEXT` | Alamat lengkap. |
+| `nama_ayah` | `STRING` | Nama ayah. |
+| `nama_ibu` | `STRING` | Nama ibu. |
+| `no_telepon` | `STRING` | Nomor telepon/kontak. |
+| `email` | `STRING` | Alamat email untuk kontak atau login. |
+| `foto` | `TEXT` | Foto profil/dokumentasi. |
+| `status` | `ENUM(aktif, lulus, pindah, keluar)` | Status data sesuai konteks tabel. |
+| `dibuat_pada` | `DATETIME - NOT NULL` | Timestamp saat data dibuat. |
+| `diperbarui_pada` | `DATETIME - NOT NULL` | Timestamp saat data terakhir diperbarui. |
+
+**Relasi tabel:**
+
+- `siswa` ke `absensi_siswa` adalah `1:N`: Satu siswa dapat memiliki banyak catatan absensi.
+- `siswa` ke `tautan_akun_portal` adalah `1:N`: Satu siswa dapat terhubung ke akun siswa dan/atau orang tua.
+- `kelas` ke `siswa` adalah `1:N`: Satu kelas dapat memiliki banyak siswa; siswa boleh belum punya kelas.
+
+### 3.5 Jadwal Mengajar (`jadwal_mengajar`)
+
+Menyimpan jadwal mengajar guru per kelas, mata pelajaran, hari, jam, dan status jadwal.
 
-Contoh:
-
-```text
-kelas 1 ----< N siswa
-```
-
-Artinya satu kelas dapat memiliki banyak siswa, sedangkan satu siswa hanya berada pada satu kelas.
-
-## 3. Daftar Entitas Utama
-
-### 3.1 `akun_pengguna` - Akun Pengguna
-
-Tabel ini menyimpan akun login seluruh pengguna sistem.
-
-| Kolom | Fungsi |
-|---|---|
-| `id` | Primary key akun pengguna |
-| `name` | Nama pengguna |
-| `email` | Email masuk, bersifat unik |
-| `password` | Kata sandi pengguna, idealnya berupa hash |
-| `role` | Peran pengguna: `admin`, `guru`, `siswa`, atau `orangtua` |
-| `profession` | Profesi pengguna jika diperlukan |
-| `dibuat_pada` | Waktu data dibuat |
-| `diperbarui_pada` | Waktu data terakhir diperbarui |
-
-Relasi penting:
-
-- Satu `akun_pengguna` dapat memiliki satu `profil_guru` jika role pengguna adalah guru.
-- Satu `akun_pengguna` dapat membuat banyak `jadwal_mengajar` sebagai guru pengajar.
-- Satu `akun_pengguna` dapat mencatat banyak `absensi_siswa`.
-- Satu `akun_pengguna` dapat memiliki banyak `tautan_akun_portal` untuk akun siswa/orang tua.
-- Satu `akun_pengguna` juga dapat menjadi approver untuk banyak `profil_guru`.
-
-### 3.2 `kelas` - Kelas
-
-Tabel ini menyimpan data kelas di sekolah.
-
-| Kolom | Fungsi |
-|---|---|
-| `id` | Primary key kelas |
-| `class_name` | Nama kelas, contoh: `7A`, `8B`, `TK A` |
-| `grade_level` | Tingkat kelas atau jenjang |
-| `wali_kelas` | Nama wali kelas dalam bentuk teks |
-| `academic_year` | Tahun ajaran |
-| `siswa_count` | Jumlah siswa pada kelas tersebut |
-| `room` | Nama atau nomor ruangan kelas |
-| `dibuat_pada` | Waktu data dibuat |
-| `diperbarui_pada` | Waktu data terakhir diperbarui |
-
-Relasi penting:
-
-- Satu kelas memiliki banyak siswa.
-- Satu kelas dapat memiliki banyak profil guru wali/mapel.
-- Satu kelas dapat memiliki banyak jadwal mengajar.
-- Satu kelas dapat memiliki banyak data absensi siswa.
-
-Catatan desain:
-
-- Kolom `wali_kelas` masih berupa teks.
-- Relasi wali kelas yang lebih terstruktur sebenarnya ada di `profil_guru.kelas_id` dengan `tipe_guru = 'wali_kelas'`.
-
-### 3.3 `siswa` - Siswa
-
-Tabel ini menyimpan data siswa aktif maupun nonaktif.
-
-| Kolom | Fungsi |
-|---|---|
-| `id` | Primary key siswa |
-| `national_siswa_id` | NISN siswa, bersifat unik |
-| `name` | Nama siswa |
-| `kelas_id` | Foreign key ke tabel `kelas` |
-| `birthplace` | Tempat lahir |
-| `birth_date` | Tanggal lahir |
-| `gender` | Jenis kelamin: `L` atau `P` |
-| `religion` | Agama siswa |
-| `address` | Alamat siswa |
-| `father_name` | Nama ayah |
-| `mother_name` | Nama ibu |
-| `phone_number` | Nomor telepon siswa/orang tua |
-| `email` | Email siswa/orang tua |
-| `photo` | Foto siswa |
-| `status` | Status siswa: `aktif`, `lulus`, `pindah`, atau `keluar` |
-| `dibuat_pada` | Waktu data dibuat |
-| `diperbarui_pada` | Waktu data terakhir diperbarui |
-
-Relasi penting:
-
-- Banyak siswa dapat berada dalam satu kelas.
-- Satu siswa dapat memiliki banyak data absensi.
-- Satu siswa dapat dihubungkan dengan banyak akun portal melalui `tautan_akun_portal`.
-
-Contoh penggunaan:
-
-- Jika satu siswa memiliki akun sendiri dan orang tua juga memiliki akun, maka tabel `tautan_akun_portal` dapat menyimpan dua baris untuk siswa yang sama dengan `link_type` berbeda.
-
-### 3.4 `profil_guru` - Profil Guru Portal
-
-Tabel ini menyimpan profil guru yang terhubung dengan akun login.
-
-| Kolom | Fungsi |
-|---|---|
-| `id` | Primary key profil guru |
-| `akun_pengguna_id` | Foreign key ke `akun_pengguna.id`, bersifat unik |
-| `tipe_guru` | Jenis guru: `wali_kelas` atau `mapel` |
-| `mata_pelajaran` | Mata pelajaran yang diajar |
-| `kelas_id` | Foreign key ke kelas jika guru menjadi wali kelas atau terkait kelas tertentu |
-| `verification_status` | Status verifikasi: `pending`, `approved`, atau `rejected` |
-| `note` | Catatan verifikasi |
-| `disetujui_oleh_akun_pengguna_id` | Pengguna/administrator yang menyetujui profil guru |
-| `approved_at` | Waktu profil disetujui |
-| `dibuat_pada` | Waktu data dibuat |
-| `diperbarui_pada` | Waktu data terakhir diperbarui |
-
-Relasi penting:
-
-- Satu akun guru hanya dapat memiliki satu profil guru karena `akun_pengguna_id` bersifat unik.
-- Satu admin/user dapat menyetujui banyak profil guru.
-- Satu kelas dapat terhubung ke banyak profil guru.
-
-Makna relasi:
-
-```text
-akun_pengguna 1 ---- 1 profil_guru
-```
-
-Artinya satu akun guru hanya memiliki satu profil guru portal.
-
-```text
-akun_pengguna 1 ----< N profil_guru
-```
-
-Artinya satu user/admin dapat menjadi approver untuk banyak profil guru.
-
-### 3.5 `jadwal_mengajar` - Jadwal Mengajar
-
-Tabel ini menyimpan jadwal mengajar guru per kelas dan mata pelajaran.
-
-| Kolom | Fungsi |
-|---|---|
-| `id` | Primary key jadwal mengajar |
-| `guru_akun_pengguna_id` | Foreign key ke akun guru di `akun_pengguna` |
-| `kelas_id` | Foreign key ke kelas |
-| `mata_pelajaran` | Mata pelajaran |
-| `day_name` | Hari jadwal: `senin` sampai `minggu` |
-| `start_time` | Jam mulai |
-| `end_time` | Jam selesai |
-| `status` | Status jadwal: `aktif` atau `non-aktif` |
-| `dibuat_pada` | Waktu data dibuat |
-| `diperbarui_pada` | Waktu data terakhir diperbarui |
-
-Relasi penting:
-
-- Satu guru dapat memiliki banyak jadwal mengajar.
-- Satu kelas dapat memiliki banyak jadwal mengajar.
-- Satu jadwal mengajar dapat digunakan oleh banyak data absensi siswa.
-
-Contoh:
-
-Jika guru matematika mengajar kelas `7A` setiap Senin pukul 08:00, maka data tersebut masuk ke tabel `jadwal_mengajar`.
-
-### 3.6 `absensi_siswa` - Absensi Siswa
-
-Tabel ini menyimpan catatan kehadiran siswa.
-
-| Kolom | Fungsi |
-|---|---|
-| `id` | Primary key absensi |
-| `siswa_id` | Foreign key ke siswa |
-| `kelas_id` | Foreign key ke kelas |
-| `guru_akun_pengguna_id` | Foreign key ke akun guru pencatat absensi |
-| `jadwal_mengajar_id` | Foreign key opsional ke jadwal mengajar |
-| `attendance_date` | Tanggal absensi |
-| `day_name` | Nama hari absensi |
-| `tipe_guru` | Jenis guru yang mencatat: `wali_kelas` atau `mapel` |
-| `mata_pelajaran` | Mata pelajaran jika absensi berdasarkan mapel |
-| `status` | Status kehadiran: `hadir`, `izin`, `sakit`, atau `alpha` |
-| `note` | Catatan absensi |
-| `dibuat_pada` | Waktu data dibuat |
-| `diperbarui_pada` | Waktu data terakhir diperbarui |
-
-Relasi penting:
-
-- Satu siswa dapat memiliki banyak catatan absensi.
-- Satu kelas dapat memiliki banyak catatan absensi.
-- Satu guru dapat mencatat banyak absensi.
-- Satu jadwal mengajar dapat memiliki banyak catatan absensi.
-
-Catatan:
-
-- `jadwal_mengajar_id` bersifat opsional, sehingga absensi tetap bisa dibuat tanpa terhubung langsung ke jadwal.
-- Data `kelas_id`, `guru_akun_pengguna_id`, dan `mata_pelajaran` disimpan juga di absensi agar riwayat tetap jelas walaupun data jadwal berubah.
-
-### 3.7 `tautan_akun_portal` - Link Akun Portal
-
-Tabel ini menjadi penghubung antara akun login dengan siswa.
-
-| Kolom | Fungsi |
-|---|---|
-| `id` | Primary key link akun portal |
-| `akun_pengguna_id` | Foreign key ke akun pengguna |
-| `siswa_id` | Foreign key ke siswa |
-| `link_type` | Jenis link: `siswa` atau `orangtua` |
-| `dibuat_pada` | Waktu data dibuat |
-| `diperbarui_pada` | Waktu data terakhir diperbarui |
-
-Relasi penting:
-
-- Satu akun pengguna dapat memiliki banyak link ke siswa.
-- Satu siswa dapat memiliki banyak akun portal terkait.
-
-Contoh:
-
-- Akun siswa: `link_type = 'siswa'`
-- Akun orang tua: `link_type = 'orangtua'`
-
-Dengan desain ini, satu siswa bisa diakses oleh akun siswa dan akun orang tua.
-
-## 4. Entitas Konten Situs Web
-
-### 4.1 `guru` - Data Guru
-
-Tabel ini menyimpan data guru untuk kebutuhan informasi sekolah atau halaman publik.
-
-| Kolom | Fungsi |
-|---|---|
-| `id` | Primary key data guru |
-| `employee_number` | NIP guru, bersifat unik |
-| `name` | Nama guru |
-| `email` | Email guru |
-| `phone_number` | Nomor telepon |
-| `mata_pelajaran` | Mata pelajaran |
-| `last_education` | Pendidikan terakhir |
-| `photo` | Foto guru |
-| `address` | Alamat guru |
-| `birth_date` | Tanggal lahir |
-| `gender` | Jenis kelamin |
-| `status` | Status guru: `aktif` atau `non-aktif` |
-| `dibuat_pada` | Waktu data dibuat |
-| `diperbarui_pada` | Waktu data terakhir diperbarui |
-
-Catatan:
-
-- Tabel ini belum memiliki relasi langsung ke `akun_pengguna` atau `profil_guru`.
-- Jika ingin menyatukan data guru publik dengan akun guru, perlu ditambahkan FK seperti `akun_pengguna_id` atau `profil_guru_id`.
-
-### 4.2 `kepala_sekolah` - Kepala Sekolah
-
-Tabel ini menyimpan data kepala sekolah.
-
-| Kolom | Fungsi |
-|---|---|
-| `id` | Primary key kepala sekolah |
-| `employee_number` | NIP kepala sekolah, bersifat unik |
-| `name` | Nama kepala sekolah |
-| `email` | Email |
-| `phone_number` | Nomor telepon |
-| `photo` | Foto |
-| `start_period` | Tanggal mulai periode jabatan |
-| `end_period` | Tanggal akhir periode jabatan |
-| `address` | Alamat |
-| `last_education` | Pendidikan terakhir |
-| `status` | Status: `aktif` atau `non-aktif` |
-| `dibuat_pada` | Waktu data dibuat |
-| `diperbarui_pada` | Waktu data terakhir diperbarui |
-
-Tabel ini berdiri sendiri dan belum memiliki FK ke tabel lain.
-
-### 4.3 `profil_sekolah` - Profil Sekolah
-
-Tabel ini menyimpan informasi umum sekolah.
-
-| Kolom | Fungsi |
-|---|---|
-| `id` | Primary key profil sekolah |
-| `school_name` | Nama sekolah |
-| `npsn` | Nomor Pokok Sekolah Nasional |
-| `address` | Alamat sekolah |
-| `phone_number` | Nomor telepon sekolah |
-| `email` | Email sekolah |
-| `website` | Situs web sekolah |
-| `logo` | Logo sekolah |
-| `vision` | Visi sekolah |
-| `mission` | Misi sekolah |
-| `history` | Sejarah sekolah |
-| `facility` | Fasilitas sekolah |
-| `school_structure` | Struktur organisasi sekolah |
-| `accreditation` | Akreditasi sekolah |
-| `dibuat_pada` | Waktu data dibuat |
-| `diperbarui_pada` | Waktu data terakhir diperbarui |
-
-Catatan:
-
-- Biasanya tabel ini hanya berisi satu data aktif, tetapi schema saat ini belum membatasi jumlah baris menjadi satu.
-
-### 4.4 `kegiatan` - Kegiatan
-
-Tabel ini menyimpan data kegiatan sekolah.
-
-| Kolom | Fungsi |
-|---|---|
-| `id` | Primary key kegiatan |
-| `title` | Judul kegiatan |
-| `date` | Tanggal kegiatan |
-| `description` | Deskripsi kegiatan |
-| `image` | Gambar kegiatan |
-| `dibuat_pada` | Waktu data dibuat |
-| `diperbarui_pada` | Waktu data terakhir diperbarui |
-
-### 4.5 `pengumuman` - Pengumuman
-
-Tabel ini menyimpan pengumuman sekolah.
-
-| Kolom | Fungsi |
-|---|---|
-| `id` | Primary key pengumuman |
-| `title` | Judul pengumuman |
-| `date` | Tanggal pengumuman |
-| `content` | Isi pengumuman |
-| `category` | Kategori pengumuman |
-| `image` | Gambar pengumuman |
-| `dibuat_pada` | Waktu data dibuat |
-| `diperbarui_pada` | Waktu data terakhir diperbarui |
-
-### 4.6 `galeri` - Galeri
-
-Tabel ini menyimpan dokumentasi foto atau gambar sekolah.
-
-| Kolom | Fungsi |
-|---|---|
-| `id` | Primary key galeri |
-| `title` | Judul galeri |
-| `image` | Gambar galeri |
-| `description` | Deskripsi gambar |
-| `category` | Kategori galeri |
-| `dibuat_pada` | Waktu data dibuat |
-| `diperbarui_pada` | Waktu data terakhir diperbarui |
-
-## 5. Entitas PPDB
-
-### 5.1 `pendaftaran_ppdb` - Pendaftaran PPDB
-
-Tabel ini menyimpan data calon siswa yang mendaftar melalui PPDB.
-
-| Kolom | Fungsi |
-|---|---|
-| `id` | Primary key pendaftaran |
-| `registration_type` | Jenis pendaftaran: `pendaftaran_baru` atau `siswa_pindahan` |
-| `target_level` | Target jenjang: `tk`, `sd`, atau `smp` |
-| `full_name` | Nama lengkap calon siswa |
-| `national_siswa_id` | NISN calon siswa, jika ada |
-| `birthplace` | Tempat lahir |
-| `birth_date` | Tanggal lahir |
-| `gender` | Jenis kelamin: `L` atau `P` |
-| `religion` | Agama |
-| `address` | Alamat calon siswa |
-| `parent_name` | Nama orang tua/wali utama |
-| `father_name` | Nama ayah |
-| `mother_name` | Nama ibu |
-| `father_occupation` | Pekerjaan ayah |
-| `mother_occupation` | Pekerjaan ibu |
-| `phone_number` | Nomor telepon pendaftar |
-| `email` | Email pendaftar |
-| `previous_school` | Asal sekolah |
-| `status` | Status pendaftaran: `pending`, `diterima`, atau `ditolak` |
-| `academic_year` | Tahun ajaran tujuan |
-| `family_card_file` | Berkas kartu keluarga |
-| `report_file` | Berkas rapor |
-| `siswa_photo_file` | Foto calon siswa |
-| `transfer_letter_file` | Surat pindah untuk siswa pindahan |
-| `notification_note` | Catatan notifikasi atau keputusan |
-| `dibuat_pada` | Waktu data dibuat |
-| `diperbarui_pada` | Waktu data terakhir diperbarui |
-
-Catatan relasi:
-
-- Tabel ini belum memiliki FK ke `siswa`.
-- Jika pendaftaran diterima dan calon siswa menjadi siswa aktif, proses konversi dari `pendaftaran_ppdb` ke `siswa` dilakukan di level aplikasi.
-- Jika ingin relasi lebih eksplisit, dapat ditambahkan kolom seperti `siswa_id` pada `pendaftaran_ppdb` setelah calon siswa diterima.
-
-## 6. Detail Relasi Antar Tabel
-
-### 6.1 `kelas` ke `siswa`
-
-```text
-kelas 1 ----< N siswa
-```
-
+**Kolom penting:**
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | `INTEGER - PK, AI` | Primary key unik untuk setiap baris data. |
+| `guru_akun_pengguna_id` | `INTEGER - FK -> akun_pengguna.id, NOT NULL` | Akun guru yang mengajar atau mencatat absensi. |
+| `kelas_id` | `INTEGER - FK -> kelas.id, NOT NULL` | Foreign key ke tabel kelas. |
+| `mata_pelajaran` | `STRING - NOT NULL` | Mata pelajaran terkait. |
+| `hari` | `ENUM(senin, selasa, rabu, kamis, jumat, sabtu, minggu) - NOT NULL` | Nama hari jadwal atau absensi. |
+| `jam_mulai` | `TIME - NOT NULL` | Kolom data sesuai kebutuhan domain sistem. |
+| `jam_selesai` | `TIME - NOT NULL` | Kolom data sesuai kebutuhan domain sistem. |
+| `status` | `ENUM(aktif, non-aktif)` | Status data sesuai konteks tabel. |
+| `dibuat_pada` | `DATETIME - NOT NULL` | Timestamp saat data dibuat. |
+| `diperbarui_pada` | `DATETIME - NOT NULL` | Timestamp saat data terakhir diperbarui. |
+
+**Relasi tabel:**
+
+- `jadwal_mengajar` ke `absensi_siswa` adalah `1:N`: Satu jadwal dapat menjadi referensi banyak absensi; absensi tetap ada jika jadwal dihapus.
+- `akun_pengguna` ke `jadwal_mengajar` adalah `1:N`: Satu akun guru dapat memiliki banyak jadwal mengajar.
+- `kelas` ke `jadwal_mengajar` adalah `1:N`: Satu kelas dapat memiliki banyak jadwal mengajar.
+
+### 3.6 Absensi Siswa (`absensi_siswa`)
+
+Menyimpan catatan kehadiran siswa berdasarkan siswa, kelas, guru pencatat, tanggal, mata pelajaran, dan status kehadiran.
+
+**Kolom penting:**
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | `INTEGER - PK, AI` | Primary key unik untuk setiap baris data. |
+| `siswa_id` | `INTEGER - FK -> siswa.id, NOT NULL` | Kolom data sesuai kebutuhan domain sistem. |
+| `kelas_id` | `INTEGER - FK -> kelas.id, NOT NULL` | Foreign key ke tabel kelas. |
+| `guru_akun_pengguna_id` | `INTEGER - FK -> akun_pengguna.id, NOT NULL` | Akun guru yang mengajar atau mencatat absensi. |
+| `jadwal_mengajar_id` | `INTEGER - FK -> jadwal_mengajar.id` | Foreign key ke tabel jadwal_mengajar. |
+| `tanggal` | `DATEONLY - NOT NULL` | Tanggal kegiatan/pengumuman/absensi. |
+| `hari` | `STRING - NOT NULL` | Nama hari jadwal atau absensi. |
+| `tipe_guru` | `ENUM(wali_kelas, mapel) - NOT NULL` | Jenis guru: wali_kelas atau mapel. |
+| `mata_pelajaran` | `STRING` | Mata pelajaran terkait. |
+| `status` | `ENUM(hadir, izin, sakit, alpha) - NOT NULL` | Status data sesuai konteks tabel. |
+| `keterangan` | `TEXT` | Keterangan absensi. |
+| `dibuat_pada` | `DATETIME - NOT NULL` | Timestamp saat data dibuat. |
+| `diperbarui_pada` | `DATETIME - NOT NULL` | Timestamp saat data terakhir diperbarui. |
+
+**Relasi tabel:**
+
+- `siswa` ke `absensi_siswa` adalah `1:N`: Satu siswa dapat memiliki banyak catatan absensi.
+- `kelas` ke `absensi_siswa` adalah `1:N`: Satu kelas dapat memiliki banyak catatan absensi.
+- `akun_pengguna` ke `absensi_siswa` adalah `1:N`: Satu guru dapat mencatat banyak absensi siswa.
+- `jadwal_mengajar` ke `absensi_siswa` adalah `1:N`: Satu jadwal dapat menjadi referensi banyak absensi; absensi tetap ada jika jadwal dihapus.
+
+### 3.7 Tautan Akun Portal (`tautan_akun_portal`)
+
+Menghubungkan akun pengguna dengan data siswa untuk akses portal siswa dan orang tua.
+
+**Kolom penting:**
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | `INTEGER - PK, AI` | Primary key unik untuk setiap baris data. |
+| `akun_pengguna_id` | `INTEGER - FK -> akun_pengguna.id, NOT NULL` | Foreign key ke tabel akun_pengguna. |
+| `siswa_id` | `INTEGER - FK -> siswa.id, NOT NULL` | Kolom data sesuai kebutuhan domain sistem. |
+| `jenis_tautan` | `ENUM(siswa, orangtua) - NOT NULL` | Jenis relasi akun portal: siswa atau orangtua. |
+| `dibuat_pada` | `DATETIME - NOT NULL` | Timestamp saat data dibuat. |
+| `diperbarui_pada` | `DATETIME - NOT NULL` | Timestamp saat data terakhir diperbarui. |
+
+**Relasi tabel:**
+
+- `akun_pengguna` ke `tautan_akun_portal` adalah `1:N`: Satu akun dapat memiliki banyak tautan portal ke siswa.
+- `siswa` ke `tautan_akun_portal` adalah `1:N`: Satu siswa dapat terhubung ke akun siswa dan/atau orang tua.
+
+### 3.8 Log Audit (`log_audit`)
+
+Mencatat aktivitas penting sistem: pelaku, aksi, entitas, metadata, IP address, dan user agent.
+
+**Kolom penting:**
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | `INTEGER - PK, AI` | Primary key unik untuk setiap baris data. |
+| `pelaku_akun_pengguna_id` | `INTEGER - FK -> akun_pengguna.id` | Akun pengguna yang melakukan aksi audit. |
+| `aksi` | `STRING - NOT NULL` | Aksi yang dicatat pada audit log. |
+| `jenis_entitas` | `STRING - NOT NULL` | Jenis entitas yang terdampak audit. |
+| `entitas_id` | `STRING` | ID entitas yang terdampak audit. |
+| `metadata` | `TEXT` | Metadata tambahan audit. |
+| `alamat_ip` | `STRING` | IP address asal request. |
+| `agen_pengguna` | `TEXT` | User agent/browser/perangkat asal request. |
+| `dibuat_pada` | `DATETIME - NOT NULL` | Timestamp saat data dibuat. |
+
+**Relasi tabel:**
+
+- `akun_pengguna` ke `log_audit` adalah `1:N`: Satu akun dapat menghasilkan banyak log audit; log tetap ada jika akun pelaku dihapus.
+
+### 3.9 Permintaan Reset Password (`permintaan_reset_password`)
+
+Menyimpan permintaan reset password, pencocokan akun, status, admin pemroses, alasan penolakan, dan informasi request.
+
+**Kolom penting:**
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | `INTEGER - PK, AI` | Primary key unik untuk setiap baris data. |
+| `peran` | `ENUM(guru, siswa, orangtua, kepala_sekolah) - NOT NULL` | Role pengguna dalam sistem. |
+| `email` | `STRING - NOT NULL` | Alamat email untuk kontak atau login. |
+| `nama` | `STRING - NOT NULL` | Nama pengguna/orang/data utama sesuai konteks tabel. |
+| `nisn` | `STRING` | Nomor Induk Siswa Nasional. |
+| `kelas` | `STRING` | Nama kelas pada permintaan reset password. |
+| `catatan` | `TEXT` | Catatan tambahan. |
+| `status` | `ENUM(pending, completed, rejected) - NOT NULL` | Status data sesuai konteks tabel. |
+| `akun_pengguna_terkait_id` | `INTEGER - FK -> akun_pengguna.id` | Akun yang cocok dengan permintaan reset password. |
+| `diproses_oleh_akun_pengguna_id` | `INTEGER - FK -> akun_pengguna.id` | Akun/admin yang memproses reset password. |
+| `alasan_penolakan` | `TEXT` | Alasan reset password ditolak. |
+| `alamat_ip` | `STRING` | IP address asal request. |
+| `agen_pengguna` | `TEXT` | User agent/browser/perangkat asal request. |
+| `diproses_pada` | `DATETIME` | Waktu reset password diproses. |
+| `dibuat_pada` | `DATETIME - NOT NULL` | Timestamp saat data dibuat. |
+| `diperbarui_pada` | `DATETIME - NOT NULL` | Timestamp saat data terakhir diperbarui. |
+
+**Relasi tabel:**
+
+- `akun_pengguna` ke `permintaan_reset_password` adalah `1:N`: Satu akun dapat cocok dengan banyak permintaan reset password.
+- `akun_pengguna` ke `permintaan_reset_password` adalah `1:N`: Satu admin/user dapat memproses banyak permintaan reset password.
+
+### 3.10 Pendaftaran PPDB (`pendaftaran_ppdb`)
+
+Menyimpan data calon siswa PPDB, data orang tua, dokumen pendukung, status penerimaan, dan catatan notifikasi.
+
+**Kolom penting:**
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | `INTEGER - PK, AI` | Primary key unik untuk setiap baris data. |
+| `jenis_pendaftaran` | `ENUM(pendaftaran_baru, siswa_pindahan) - NOT NULL` | Jenis pendaftaran PPDB. |
+| `target_jenjang` | `ENUM(tk, sd, smp) - NOT NULL` | Jenjang tujuan PPDB. |
+| `nama_lengkap` | `STRING - NOT NULL` | Nama lengkap calon siswa. |
+| `nisn` | `STRING` | Nomor Induk Siswa Nasional. |
+| `tempat_lahir` | `STRING` | Tempat lahir. |
+| `tanggal_lahir` | `DATEONLY - NOT NULL` | Tanggal lahir. |
+| `jenis_kelamin` | `ENUM(L, P) - NOT NULL` | Jenis kelamin. |
+| `agama` | `STRING` | Agama. |
+| `alamat` | `TEXT - NOT NULL` | Alamat lengkap. |
+| `nama_orang_tua` | `STRING - NOT NULL` | Nama orang tua/wali utama. |
+| `nama_ayah` | `STRING` | Nama ayah. |
+| `nama_ibu` | `STRING` | Nama ibu. |
+| `pekerjaan_ayah` | `STRING` | Pekerjaan ayah. |
+| `pekerjaan_ibu` | `STRING` | Pekerjaan ibu. |
+| `no_telepon` | `STRING - NOT NULL` | Nomor telepon/kontak. |
+| `email` | `STRING - NOT NULL` | Alamat email untuk kontak atau login. |
+| `asal_sekolah` | `STRING` | Asal sekolah calon siswa. |
+| `status` | `ENUM(pending, diterima, ditolak)` | Status data sesuai konteks tabel. |
+| `tahun_ajaran` | `STRING - NOT NULL` | Tahun ajaran data berlaku. |
+| `berkas_kk` | `LONGTEXT` | File kartu keluarga. |
+| `berkas_raport` | `LONGTEXT` | File rapor. |
+| `foto_siswa` | `LONGTEXT` | Foto calon siswa. |
+| `berkas_surat_pindah` | `LONGTEXT` | File surat pindah. |
+| `catatan_notifikasi` | `TEXT` | Catatan notifikasi/keputusan PPDB. |
+| `dibuat_pada` | `DATETIME - NOT NULL` | Timestamp saat data dibuat. |
+| `diperbarui_pada` | `DATETIME - NOT NULL` | Timestamp saat data terakhir diperbarui. |
+
+Tabel ini berdiri sendiri dan belum memiliki relasi foreign key langsung pada model Sequelize saat ini.
+
+### 3.11 Profil Sekolah (`profil_sekolah`)
+
+Menyimpan profil sekolah: NPSN, kontak, visi, misi, sejarah, fasilitas, struktur, dan akreditasi.
+
+**Kolom penting:**
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | `INTEGER - PK, AI` | Primary key unik untuk setiap baris data. |
+| `nama_sekolah` | `STRING - NOT NULL` | Nama sekolah. |
+| `npsn` | `STRING` | Nomor Pokok Sekolah Nasional. |
+| `alamat` | `TEXT` | Alamat lengkap. |
+| `telepon` | `STRING` | Telepon sekolah. |
+| `email` | `STRING` | Alamat email untuk kontak atau login. |
+| `website` | `STRING` | Website sekolah. |
+| `logo` | `TEXT` | Logo sekolah. |
+| `visi` | `TEXT` | Visi sekolah. |
+| `misi` | `TEXT` | Misi sekolah. |
+| `sejarah` | `TEXT` | Sejarah sekolah. |
+| `fasilitas` | `TEXT` | Fasilitas sekolah. |
+| `struktur_sekolah` | `TEXT` | Struktur organisasi sekolah. |
+| `akreditasi` | `STRING` | Akreditasi sekolah. |
+| `dibuat_pada` | `DATETIME - NOT NULL` | Timestamp saat data dibuat. |
+| `diperbarui_pada` | `DATETIME - NOT NULL` | Timestamp saat data terakhir diperbarui. |
+
+Tabel ini berdiri sendiri dan belum memiliki relasi foreign key langsung pada model Sequelize saat ini.
+
+### 3.12 Data Guru (`guru`)
+
+Menyimpan data guru untuk administrasi atau publikasi profil guru pada website sekolah.
+
+**Kolom penting:**
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | `INTEGER - PK, AI` | Primary key unik untuk setiap baris data. |
+| `nip` | `STRING - UK, NOT NULL` | Nomor Induk Pegawai. |
+| `nama` | `STRING - NOT NULL` | Nama pengguna/orang/data utama sesuai konteks tabel. |
+| `email` | `STRING` | Alamat email untuk kontak atau login. |
+| `no_telepon` | `STRING` | Nomor telepon/kontak. |
+| `mata_pelajaran` | `STRING` | Mata pelajaran terkait. |
+| `pendidikan_terakhir` | `STRING` | Pendidikan terakhir. |
+| `foto` | `TEXT` | Foto profil/dokumentasi. |
+| `alamat` | `TEXT` | Alamat lengkap. |
+| `tanggal_lahir` | `DATEONLY` | Tanggal lahir. |
+| `jenis_kelamin` | `ENUM(L, P)` | Jenis kelamin. |
+| `status` | `ENUM(aktif, non-aktif)` | Status data sesuai konteks tabel. |
+| `dibuat_pada` | `DATETIME - NOT NULL` | Timestamp saat data dibuat. |
+| `diperbarui_pada` | `DATETIME - NOT NULL` | Timestamp saat data terakhir diperbarui. |
+
+Tabel ini berdiri sendiri dan belum memiliki relasi foreign key langsung pada model Sequelize saat ini.
+
+### 3.13 Kepala Sekolah (`kepala_sekolah`)
+
+Menyimpan data kepala sekolah, periode jabatan, kontak, pendidikan, foto, dan status.
+
+**Kolom penting:**
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | `INTEGER - PK, AI` | Primary key unik untuk setiap baris data. |
+| `nip` | `STRING - UK, NOT NULL` | Nomor Induk Pegawai. |
+| `nama` | `STRING - NOT NULL` | Nama pengguna/orang/data utama sesuai konteks tabel. |
+| `email` | `STRING` | Alamat email untuk kontak atau login. |
+| `no_telepon` | `STRING` | Nomor telepon/kontak. |
+| `foto` | `TEXT` | Foto profil/dokumentasi. |
+| `periode_mulai` | `DATEONLY - NOT NULL` | Tanggal mulai periode jabatan. |
+| `periode_akhir` | `DATEONLY` | Tanggal akhir periode jabatan. |
+| `alamat` | `TEXT` | Alamat lengkap. |
+| `pendidikan_terakhir` | `STRING` | Pendidikan terakhir. |
+| `status` | `ENUM(aktif, non-aktif)` | Status data sesuai konteks tabel. |
+| `dibuat_pada` | `DATETIME - NOT NULL` | Timestamp saat data dibuat. |
+| `diperbarui_pada` | `DATETIME - NOT NULL` | Timestamp saat data terakhir diperbarui. |
+
+Tabel ini berdiri sendiri dan belum memiliki relasi foreign key langsung pada model Sequelize saat ini.
+
+### 3.14 Kegiatan (`kegiatan`)
+
+Menyimpan konten kegiatan sekolah yang ditampilkan pada website.
+
+**Kolom penting:**
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | `INTEGER - PK, AI` | Primary key unik untuk setiap baris data. |
+| `judul` | `STRING - NOT NULL` | Judul konten. |
+| `tanggal` | `DATEONLY - NOT NULL` | Tanggal kegiatan/pengumuman/absensi. |
+| `deskripsi` | `TEXT - NOT NULL` | Deskripsi konten. |
+| `gambar` | `LONGTEXT` | File atau URL gambar. |
+| `status` | `ENUM(tampil, tidak_tampil) - NOT NULL` | Status data sesuai konteks tabel. |
+| `dibuat_pada` | `DATETIME - NOT NULL` | Timestamp saat data dibuat. |
+| `diperbarui_pada` | `DATETIME - NOT NULL` | Timestamp saat data terakhir diperbarui. |
+
+Tabel ini berdiri sendiri dan belum memiliki relasi foreign key langsung pada model Sequelize saat ini.
+
+### 3.15 Pengumuman (`pengumuman`)
+
+Menyimpan konten pengumuman sekolah, kategori, isi, tanggal, dan gambar.
+
+**Kolom penting:**
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | `INTEGER - PK, AI` | Primary key unik untuk setiap baris data. |
+| `judul` | `STRING - NOT NULL` | Judul konten. |
+| `tanggal` | `DATEONLY - NOT NULL` | Tanggal kegiatan/pengumuman/absensi. |
+| `isi` | `TEXT - NOT NULL` | Isi pengumuman/konten. |
+| `kategori` | `STRING` | Kategori konten. |
+| `gambar` | `TEXT` | File atau URL gambar. |
+| `dibuat_pada` | `DATETIME - NOT NULL` | Timestamp saat data dibuat. |
+| `diperbarui_pada` | `DATETIME - NOT NULL` | Timestamp saat data terakhir diperbarui. |
+
+Tabel ini berdiri sendiri dan belum memiliki relasi foreign key langsung pada model Sequelize saat ini.
+
+### 3.16 Galeri (`galeri`)
+
+Menyimpan dokumentasi gambar/foto galeri sekolah beserta kategori dan deskripsi.
+
+**Kolom penting:**
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | `INTEGER - PK, AI` | Primary key unik untuk setiap baris data. |
+| `judul` | `STRING - NOT NULL` | Judul konten. |
+| `gambar` | `LONGTEXT - NOT NULL` | File atau URL gambar. |
+| `deskripsi` | `TEXT` | Deskripsi konten. |
+| `kategori` | `STRING` | Kategori konten. |
+| `dibuat_pada` | `DATETIME - NOT NULL` | Timestamp saat data dibuat. |
+| `diperbarui_pada` | `DATETIME - NOT NULL` | Timestamp saat data terakhir diperbarui. |
+
+Tabel ini berdiri sendiri dan belum memiliki relasi foreign key langsung pada model Sequelize saat ini.
+
+## 4. Penjelasan Relasi Utama
+
+### 4.1 `kelas` ke `siswa`
+
+- Kardinalitas: `1:N`
 - Foreign key: `siswa.kelas_id`
 - Referensi: `kelas.id`
-- Kardinalitas: satu kelas memiliki banyak siswa.
-- Ketika kelas dihapus: `siswa.kelas_id` menjadi `NULL`.
-- Ketika ID kelas berubah: ikut `CASCADE`.
+- Saat data induk dihapus: `SET NULL`
+- Saat data induk diupdate: `CASCADE`
+- Makna bisnis: Satu kelas dapat memiliki banyak siswa; siswa boleh belum punya kelas.
 
-Makna bisnis:
+### 4.2 `akun_pengguna` ke `profil_guru`
 
-Siswa boleh belum memiliki kelas, misalnya saat baru dibuat atau sedang proses penempatan kelas.
-
-### 6.2 `akun_pengguna` ke `profil_guru`
-
-```text
-akun_pengguna 1 ---- 1 profil_guru
-```
-
+- Kardinalitas: `1:1`
 - Foreign key: `profil_guru.akun_pengguna_id`
 - Referensi: `akun_pengguna.id`
-- Kardinalitas: satu akun guru memiliki satu profil guru.
-- Constraint: `profil_guru.akun_pengguna_id` unik.
-- Ketika akun dihapus: profil guru ikut terhapus.
+- Saat data induk dihapus: `CASCADE`
+- Saat data induk diupdate: `CASCADE`
+- Makna bisnis: Satu akun guru hanya memiliki satu profil guru karena FK unique.
 
-Makna bisnis:
+### 4.3 `akun_pengguna` ke `profil_guru`
 
-Akun dengan role guru dapat melengkapi profil guru portal hanya satu kali.
-
-### 6.3 `akun_pengguna` sebagai approver `profil_guru`
-
-```text
-akun_pengguna 1 ----< N profil_guru
-```
-
+- Kardinalitas: `1:N`
 - Foreign key: `profil_guru.disetujui_oleh_akun_pengguna_id`
 - Referensi: `akun_pengguna.id`
-- Kardinalitas: satu user/admin dapat menyetujui banyak profil guru.
-- Ketika approver dihapus: kolom approver menjadi `NULL`.
+- Saat data induk dihapus: `SET NULL`
+- Saat data induk diupdate: `CASCADE`
+- Makna bisnis: Satu admin/user dapat menyetujui banyak profil guru.
 
-Makna bisnis:
+### 4.4 `kelas` ke `profil_guru`
 
-Riwayat profil tetap tersimpan walaupun akun admin/verifikator dihapus.
-
-### 6.4 `kelas` ke `profil_guru`
-
-```text
-kelas 1 ----< N profil_guru
-```
-
+- Kardinalitas: `1:N`
 - Foreign key: `profil_guru.kelas_id`
 - Referensi: `kelas.id`
-- Kardinalitas: satu kelas dapat terkait dengan banyak profil guru.
-- Ketika kelas dihapus: `profil_guru.kelas_id` menjadi `NULL`.
+- Saat data induk dihapus: `SET NULL`
+- Saat data induk diupdate: `CASCADE`
+- Makna bisnis: Satu kelas dapat terkait dengan banyak profil guru.
 
-Makna bisnis:
+### 4.5 `akun_pengguna` ke `jadwal_mengajar`
 
-Relasi ini dipakai terutama untuk guru wali kelas atau guru yang terkait dengan kelas tertentu.
-
-### 6.5 `akun_pengguna` ke `jadwal_mengajar`
-
-```text
-akun_pengguna 1 ----< N jadwal_mengajar
-```
-
+- Kardinalitas: `1:N`
 - Foreign key: `jadwal_mengajar.guru_akun_pengguna_id`
 - Referensi: `akun_pengguna.id`
-- Kardinalitas: satu guru dapat memiliki banyak jadwal mengajar.
-- Ketika akun guru dihapus: jadwal mengajar ikut terhapus.
+- Saat data induk dihapus: `CASCADE`
+- Saat data induk diupdate: `CASCADE`
+- Makna bisnis: Satu akun guru dapat memiliki banyak jadwal mengajar.
 
-Makna bisnis:
+### 4.6 `kelas` ke `jadwal_mengajar`
 
-Jadwal mengajar bergantung pada akun guru.
-
-### 6.6 `kelas` ke `jadwal_mengajar`
-
-```text
-kelas 1 ----< N jadwal_mengajar
-```
-
+- Kardinalitas: `1:N`
 - Foreign key: `jadwal_mengajar.kelas_id`
 - Referensi: `kelas.id`
-- Kardinalitas: satu kelas dapat memiliki banyak jadwal mengajar.
-- Ketika kelas dihapus: jadwal mengajar ikut terhapus.
+- Saat data induk dihapus: `CASCADE`
+- Saat data induk diupdate: `CASCADE`
+- Makna bisnis: Satu kelas dapat memiliki banyak jadwal mengajar.
 
-Makna bisnis:
+### 4.7 `siswa` ke `absensi_siswa`
 
-Jadwal tidak dapat berdiri tanpa kelas.
-
-### 6.7 `siswa` ke `absensi_siswa`
-
-```text
-siswa 1 ----< N absensi_siswa
-```
-
+- Kardinalitas: `1:N`
 - Foreign key: `absensi_siswa.siswa_id`
 - Referensi: `siswa.id`
-- Kardinalitas: satu siswa memiliki banyak catatan absensi.
-- Ketika siswa dihapus: absensi siswa ikut terhapus.
+- Saat data induk dihapus: `CASCADE`
+- Saat data induk diupdate: `CASCADE`
+- Makna bisnis: Satu siswa dapat memiliki banyak catatan absensi.
 
-Makna bisnis:
+### 4.8 `kelas` ke `absensi_siswa`
 
-Absensi adalah riwayat milik siswa tertentu.
-
-### 6.8 `kelas` ke `absensi_siswa`
-
-```text
-kelas 1 ----< N absensi_siswa
-```
-
+- Kardinalitas: `1:N`
 - Foreign key: `absensi_siswa.kelas_id`
 - Referensi: `kelas.id`
-- Kardinalitas: satu kelas memiliki banyak catatan absensi.
-- Ketika kelas dihapus: absensi kelas ikut terhapus.
+- Saat data induk dihapus: `CASCADE`
+- Saat data induk diupdate: `CASCADE`
+- Makna bisnis: Satu kelas dapat memiliki banyak catatan absensi.
 
-Makna bisnis:
+### 4.9 `akun_pengguna` ke `absensi_siswa`
 
-Absensi disimpan berdasarkan kelas saat absensi dibuat.
-
-### 6.9 `akun_pengguna` ke `absensi_siswa`
-
-```text
-akun_pengguna 1 ----< N absensi_siswa
-```
-
+- Kardinalitas: `1:N`
 - Foreign key: `absensi_siswa.guru_akun_pengguna_id`
 - Referensi: `akun_pengguna.id`
-- Kardinalitas: satu guru dapat mencatat banyak absensi.
-- Ketika akun guru dihapus: absensi yang dicatat guru ikut terhapus.
+- Saat data induk dihapus: `CASCADE`
+- Saat data induk diupdate: `CASCADE`
+- Makna bisnis: Satu guru dapat mencatat banyak absensi siswa.
 
-Makna bisnis:
+### 4.10 `jadwal_mengajar` ke `absensi_siswa`
 
-Setiap catatan absensi memiliki informasi guru yang mencatat.
-
-### 6.10 `jadwal_mengajar` ke `absensi_siswa`
-
-```text
-jadwal_mengajar 1 ----< N absensi_siswa
-```
-
+- Kardinalitas: `1:N`
 - Foreign key: `absensi_siswa.jadwal_mengajar_id`
 - Referensi: `jadwal_mengajar.id`
-- Kardinalitas: satu jadwal dapat digunakan pada banyak catatan absensi.
-- Ketika jadwal dihapus: `absensi_siswa.jadwal_mengajar_id` menjadi `NULL`.
+- Saat data induk dihapus: `SET NULL`
+- Saat data induk diupdate: `CASCADE`
+- Makna bisnis: Satu jadwal dapat menjadi referensi banyak absensi; absensi tetap ada jika jadwal dihapus.
 
-Makna bisnis:
+### 4.11 `akun_pengguna` ke `tautan_akun_portal`
 
-Absensi tetap ada walaupun jadwal asalnya dihapus, karena jadwal hanya referensi tambahan.
-
-### 6.11 `akun_pengguna` ke `tautan_akun_portal`
-
-```text
-akun_pengguna 1 ----< N tautan_akun_portal
-```
-
+- Kardinalitas: `1:N`
 - Foreign key: `tautan_akun_portal.akun_pengguna_id`
 - Referensi: `akun_pengguna.id`
-- Kardinalitas: satu akun dapat memiliki banyak link portal.
-- Ketika akun dihapus: link portal ikut terhapus.
+- Saat data induk dihapus: `CASCADE`
+- Saat data induk diupdate: `CASCADE`
+- Makna bisnis: Satu akun dapat memiliki banyak tautan portal ke siswa.
 
-Makna bisnis:
+### 4.12 `siswa` ke `tautan_akun_portal`
 
-Akun orang tua dapat dihubungkan ke satu atau beberapa siswa.
-
-### 6.12 `siswa` ke `tautan_akun_portal`
-
-```text
-siswa 1 ----< N tautan_akun_portal
-```
-
+- Kardinalitas: `1:N`
 - Foreign key: `tautan_akun_portal.siswa_id`
 - Referensi: `siswa.id`
-- Kardinalitas: satu siswa dapat memiliki banyak link akun portal.
-- Ketika siswa dihapus: link portal ikut terhapus.
+- Saat data induk dihapus: `CASCADE`
+- Saat data induk diupdate: `CASCADE`
+- Makna bisnis: Satu siswa dapat terhubung ke akun siswa dan/atau orang tua.
 
-Makna bisnis:
+### 4.13 `akun_pengguna` ke `log_audit`
 
-Satu siswa bisa memiliki akun siswa sendiri dan akun orang tua yang terhubung.
+- Kardinalitas: `1:N`
+- Foreign key: `log_audit.pelaku_akun_pengguna_id`
+- Referensi: `akun_pengguna.id`
+- Saat data induk dihapus: `SET NULL`
+- Saat data induk diupdate: `CASCADE`
+- Makna bisnis: Satu akun dapat menghasilkan banyak log audit; log tetap ada jika akun pelaku dihapus.
 
-## 7. Alur Data Utama
+### 4.14 `akun_pengguna` ke `permintaan_reset_password`
 
-### 7.1 Alur Akun Guru
+- Kardinalitas: `1:N`
+- Foreign key: `permintaan_reset_password.akun_pengguna_terkait_id`
+- Referensi: `akun_pengguna.id`
+- Saat data induk dihapus: `SET NULL`
+- Saat data induk diupdate: `CASCADE`
+- Makna bisnis: Satu akun dapat cocok dengan banyak permintaan reset password.
 
-1. Data akun dibuat di `akun_pengguna` dengan `role = 'guru'`.
-2. Guru mengisi profil di `profil_guru`.
-3. Profil guru diverifikasi oleh admin melalui `disetujui_oleh_akun_pengguna_id`.
-4. Setelah disetujui, guru dapat memiliki jadwal di `jadwal_mengajar`.
-5. Guru dapat mencatat absensi siswa di `absensi_siswa`.
+### 4.15 `akun_pengguna` ke `permintaan_reset_password`
 
-### 7.2 Alur Data Siswa
+- Kardinalitas: `1:N`
+- Foreign key: `permintaan_reset_password.diproses_oleh_akun_pengguna_id`
+- Referensi: `akun_pengguna.id`
+- Saat data induk dihapus: `SET NULL`
+- Saat data induk diupdate: `CASCADE`
+- Makna bisnis: Satu admin/user dapat memproses banyak permintaan reset password.
+
+## 5. Alur Data yang Didukung Database
+
+### 5.1 Alur Akun Guru
+
+1. Akun dibuat di `akun_pengguna` dengan `peran = guru`.
+2. Detail guru portal disimpan di `profil_guru`.
+3. Admin memverifikasi profil lewat `disetujui_oleh_akun_pengguna_id` dan `disetujui_pada`.
+4. Guru mendapatkan jadwal di `jadwal_mengajar`.
+5. Guru mencatat kehadiran siswa di `absensi_siswa`.
+
+### 5.2 Alur Siswa dan Orang Tua
 
 1. Data siswa disimpan di `siswa`.
-2. Siswa ditempatkan pada kelas melalui `siswa.kelas_id`.
-3. Jika siswa/orang tua memiliki akun portal, relasi dibuat di `tautan_akun_portal`.
-4. Kehadiran siswa dicatat di `absensi_siswa`.
+2. Siswa ditempatkan ke kelas melalui `kelas_id`.
+3. Akun siswa/orang tua dibuat di `akun_pengguna`.
+4. Hubungan akun dan siswa disimpan di `tautan_akun_portal`.
+5. Riwayat kehadiran siswa tersimpan di `absensi_siswa`.
 
-### 7.3 Alur Jadwal dan Absensi
+### 5.3 Alur Absensi
 
-1. Administrator/guru membuat jadwal mengajar di `jadwal_mengajar`.
-2. Jadwal mengajar menghubungkan guru, kelas, mata pelajaran, hari, dan jam.
-3. Saat absensi dilakukan, sistem membuat data di `absensi_siswa`.
-4. Absensi dapat terhubung ke jadwal melalui `jadwal_mengajar_id`.
+1. Jadwal guru disimpan di `jadwal_mengajar`.
+2. Saat absensi dibuat, data mengacu ke `siswa`, `kelas`, dan akun guru pencatat.
+3. Jika absensi dibuat dari jadwal tertentu, `jadwal_mengajar_id` diisi.
+4. Jika jadwal dihapus, data absensi tetap tersimpan dan `jadwal_mengajar_id` menjadi `NULL`.
 
-### 7.4 Alur PPDB
+### 5.4 Alur Reset Password
+
+1. Pengguna mengajukan reset password ke `permintaan_reset_password`.
+2. Sistem/admin mencocokkan permintaan dengan `akun_pengguna_terkait_id`.
+3. Admin pemroses disimpan pada `diproses_oleh_akun_pengguna_id`.
+4. Status menjadi `pending`, `completed`, atau `rejected`.
+5. Jika ditolak, alasan disimpan di `alasan_penolakan`.
+
+### 5.5 Alur Audit Log
+
+1. Aktivitas penting sistem dicatat di `log_audit`.
+2. Jika aksi dilakukan oleh user login, `pelaku_akun_pengguna_id` mengarah ke `akun_pengguna`.
+3. Jika akun pelaku dihapus, audit log tetap disimpan dan kolom pelaku menjadi `NULL`.
+
+### 5.6 Alur PPDB
 
 1. Calon siswa mengisi formulir pendaftaran.
 2. Data masuk ke `pendaftaran_ppdb`.
-3. Administrator memproses status menjadi `pending`, `diterima`, atau `ditolak`.
-4. Jika diterima, data calon siswa dapat dibuat menjadi data siswa di `siswa`.
-5. Saat ini relasi PPDB ke siswa belum otomatis menggunakan FK.
+3. Admin mengubah `status` menjadi `pending`, `diterima`, atau `ditolak`.
+4. Jika diterima, data dapat dibuat menjadi `siswa`, tetapi saat ini belum ada FK langsung dari `pendaftaran_ppdb` ke `siswa`.
 
-### 7.5 Alur Konten Situs Web
+## 6. Ringkasan Kardinalitas
 
-1. Administrator mengelola profil sekolah di `profil_sekolah`.
-2. Administrator mengelola data guru publik di `guru`.
-3. Administrator mengelola kepala sekolah di `kepala_sekolah`.
-4. Administrator mengelola kegiatan di `kegiatan`.
-5. Administrator mengelola pengumuman di `pengumuman`.
-6. Administrator mengelola galeri di `galeri`.
-
-## 8. Tabel yang Berdiri Sendiri
-
-Beberapa tabel belum memiliki foreign key langsung ke tabel lain.
-
-| Tabel | Fungsi | Catatan |
+| Relasi | Kardinalitas | Makna Singkat |
 |---|---|---|
-| `guru` | Data guru untuk informasi sekolah | Belum terhubung ke akun guru |
-| `kepala_sekolah` | Data kepala sekolah | Belum terhubung ke user/admin |
-| `pendaftaran_ppdb` | Data pendaftaran PPDB | Belum terhubung ke `siswa` |
-| `profil_sekolah` | Profil umum sekolah | Biasanya satu data aktif |
-| `kegiatan` | Data kegiatan | Konten mandiri |
-| `pengumuman` | Data pengumuman | Konten mandiri |
-| `galeri` | Data galeri | Konten mandiri |
+| `kelas` → `siswa` | `1:N` | Satu kelas dapat memiliki banyak siswa; siswa boleh belum punya kelas. |
+| `akun_pengguna` → `profil_guru` | `1:1` | Satu akun guru hanya memiliki satu profil guru karena FK unique. |
+| `akun_pengguna` → `profil_guru` | `1:N` | Satu admin/user dapat menyetujui banyak profil guru. |
+| `kelas` → `profil_guru` | `1:N` | Satu kelas dapat terkait dengan banyak profil guru. |
+| `akun_pengguna` → `jadwal_mengajar` | `1:N` | Satu akun guru dapat memiliki banyak jadwal mengajar. |
+| `kelas` → `jadwal_mengajar` | `1:N` | Satu kelas dapat memiliki banyak jadwal mengajar. |
+| `siswa` → `absensi_siswa` | `1:N` | Satu siswa dapat memiliki banyak catatan absensi. |
+| `kelas` → `absensi_siswa` | `1:N` | Satu kelas dapat memiliki banyak catatan absensi. |
+| `akun_pengguna` → `absensi_siswa` | `1:N` | Satu guru dapat mencatat banyak absensi siswa. |
+| `jadwal_mengajar` → `absensi_siswa` | `1:N` | Satu jadwal dapat menjadi referensi banyak absensi; absensi tetap ada jika jadwal dihapus. |
+| `akun_pengguna` → `tautan_akun_portal` | `1:N` | Satu akun dapat memiliki banyak tautan portal ke siswa. |
+| `siswa` → `tautan_akun_portal` | `1:N` | Satu siswa dapat terhubung ke akun siswa dan/atau orang tua. |
+| `akun_pengguna` → `log_audit` | `1:N` | Satu akun dapat menghasilkan banyak log audit; log tetap ada jika akun pelaku dihapus. |
+| `akun_pengguna` → `permintaan_reset_password` | `1:N` | Satu akun dapat cocok dengan banyak permintaan reset password. |
+| `akun_pengguna` → `permintaan_reset_password` | `1:N` | Satu admin/user dapat memproses banyak permintaan reset password. |
 
-## 9. Ringkasan Kardinalitas
+## 7. Rekomendasi agar Lebih Rapi ke Depan
 
-| Relasi | Kardinalitas | Penjelasan Singkat |
-|---|---|---|
-| `kelas` ke `siswa` | 1:N | Satu kelas punya banyak siswa |
-| `akun_pengguna` ke `profil_guru` | 1:1 | Satu akun guru punya satu profil guru |
-| `akun_pengguna` ke `profil_guru` sebagai approver | 1:N | Satu admin menyetujui banyak profil guru |
-| `kelas` ke `profil_guru` | 1:N | Satu kelas bisa terkait banyak profil guru |
-| `akun_pengguna` ke `jadwal_mengajar` | 1:N | Satu guru punya banyak jadwal |
-| `kelas` ke `jadwal_mengajar` | 1:N | Satu kelas punya banyak jadwal |
-| `siswa` ke `absensi_siswa` | 1:N | Satu siswa punya banyak absensi |
-| `kelas` ke `absensi_siswa` | 1:N | Satu kelas punya banyak absensi |
-| `akun_pengguna` ke `absensi_siswa` | 1:N | Satu guru mencatat banyak absensi |
-| `jadwal_mengajar` ke `absensi_siswa` | 1:N | Satu jadwal punya banyak absensi |
-| `akun_pengguna` ke `tautan_akun_portal` | 1:N | Satu akun punya banyak link portal |
-| `siswa` ke `tautan_akun_portal` | 1:N | Satu siswa punya banyak akun portal terkait |
+- Tambahkan relasi eksplisit antara `pendaftaran_ppdb` dan `siswa` jika ingin melacak siswa yang berasal dari PPDB.
+- Pertimbangkan menghubungkan `guru` dengan `akun_pengguna` atau `profil_guru` agar data guru publik dan akun guru tidak terpisah.
+- Tambahkan unique composite pada `tautan_akun_portal` untuk mencegah duplikasi tautan akun ke siswa yang sama.
+- Jika `profil_sekolah` hanya boleh satu data aktif, tambahkan validasi singleton atau kolom `is_active`.
+- Untuk audit dan reset password, pastikan data sensitif tidak disimpan berlebihan pada `metadata`, `catatan`, atau `agen_pengguna`.
 
-## 10. Catatan Integritas Data
+## 8. Kesimpulan
 
-### 10.1 Hapus Berantai
-
-Beberapa relasi menggunakan `onDelete: CASCADE`. Artinya jika data induk dihapus, data anak ikut terhapus.
-
-Contoh:
-
-- Jika `siswa` dihapus, maka `absensi_siswa` siswa tersebut ikut terhapus.
-- Jika `akun_pengguna` guru dihapus, maka `jadwal_mengajar` guru tersebut ikut terhapus.
-- Jika `akun_pengguna` dihapus, maka `tautan_akun_portal` ikut terhapus.
-
-### 10.2 Set Null
-
-Beberapa relasi menggunakan `onDelete: SET NULL`. Artinya jika data induk dihapus, foreign key pada data anak diubah menjadi `NULL`.
-
-Contoh:
-
-- Jika `kelas` dihapus, `siswa.kelas_id` menjadi `NULL`.
-- Jika `jadwal_mengajar` dihapus, `absensi_siswa.jadwal_mengajar_id` menjadi `NULL`.
-- Jika approver dihapus, `profil_guru.disetujui_oleh_akun_pengguna_id` menjadi `NULL`.
-
-### 10.3 Unique Key
-
-Beberapa kolom dibuat unik agar tidak terjadi duplikasi data penting.
-
-| Tabel | Kolom Unique | Fungsi |
-|---|---|---|
-| `akun_pengguna` | `email` | Satu email hanya untuk satu akun |
-| `siswa` | `national_siswa_id` | Satu NISN hanya untuk satu siswa |
-| `profil_guru` | `akun_pengguna_id` | Satu akun hanya punya satu profil guru |
-| `guru` | `employee_number` | Satu NIP hanya untuk satu guru |
-| `kepala_sekolah` | `employee_number` | Satu NIP hanya untuk satu kepala sekolah |
-
-## 11. Catatan Perbaikan Desain Database
-
-Bagian ini bukan error, tetapi rekomendasi jika database ingin dibuat lebih konsisten dan production-ready.
-
-### 11.1 Hubungkan `guru` dengan `akun_pengguna`
-
-Saat ini tabel `guru` dan `profil_guru` terpisah. Jika data guru publik dan akun guru ingin disatukan, bisa tambahkan salah satu:
-
-- `guru.akun_pengguna_id`
-- atau `profil_guru.guru_id`
-
-Manfaat:
-
-- Menghindari data guru ganda.
-- Mempermudah sinkronisasi profil guru dan akun login.
-
-### 11.2 Hubungkan `pendaftaran_ppdb` dengan `siswa`
-
-Saat calon siswa diterima, data PPDB dapat dikonversi menjadi siswa. Agar riwayat tetap jelas, bisa ditambahkan:
-
-```text
-pendaftaran_ppdb.siswa_id -> siswa.id
-```
-
-Manfaat:
-
-- Riwayat asal siswa dari PPDB jelas.
-- Administrator bisa melacak pendaftaran mana yang menghasilkan data siswa.
-
-### 11.3 Batasi `profil_sekolah` Menjadi Satu Data Aktif
-
-Jika sistem hanya membutuhkan satu profil sekolah aktif, dapat ditambahkan mekanisme:
-
-- Kolom `is_active`
-- Validasi aplikasi agar hanya satu data aktif
-- Atau konfigurasi singleton di level service
-
-### 11.4 Tambahkan Constraint pada `tautan_akun_portal`
-
-Untuk menghindari link duplikat, bisa ditambahkan unique composite:
-
-```text
-UNIQUE(akun_pengguna_id, siswa_id, link_type)
-```
-
-Manfaat:
-
-- Akun yang sama tidak terhubung berkali-kali ke siswa yang sama dengan tipe link yang sama.
-
-## 12. Kesimpulan
-
-ERD Portal CNB terdiri dari 14 tabel utama. Pusat relasi sistem berada pada tabel `akun_pengguna`, `kelas`, dan `siswa`.
-
-- `akun_pengguna` menjadi pusat akun login, guru, approver, absensi, dan portal siswa/orang tua.
-- `kelas` menjadi pusat data akademik kelas, siswa, jadwal, dan absensi.
-- `siswa` menjadi pusat data siswa, absensi, dan akun portal terkait.
-- Tabel konten seperti `kegiatan`, `pengumuman`, dan `galeri` berdiri sendiri untuk kebutuhan website sekolah.
-- Tabel `pendaftaran_ppdb` menyimpan proses PPDB, tetapi belum memiliki relasi langsung ke tabel `siswa`.
-
-Dengan struktur ini, sistem sudah dapat mendukung fitur utama portal sekolah: manajemen akun, data siswa, kelas, jadwal mengajar, absensi, PPDB, dan konten website sekolah.
+ERD terbaru Portal CNB memiliki **16 tabel** dan **15 relasi eksplisit** pada model Sequelize. Perubahan penting dibanding schema lama adalah penggunaan nama tabel Indonesia, tambahan `log_audit`, tambahan `permintaan_reset_password`, dukungan role `kepala_sekolah`, serta kolom kontrol seperti `wajib_ganti_kata_sandi`, `jenjang`, `wali_kelas`, dan `status` pada kegiatan.

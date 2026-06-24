@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   getSiswaAbsensi,
@@ -16,8 +16,12 @@ const MENU_ITEMS = [
 
 const emptySummary = { hadir: 0, tidak_hadir: 0, izin: 0, sakit: 0, alpha: 0, total: 0 };
 
+function toDateInputValue(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+  return toDateInputValue();
 }
 
 function firstDayOfMonthISO() {
@@ -98,7 +102,7 @@ function DashboardSiswa() {
 
   const handleLogout = () => {
     logout();
-    navigate("/login-siswa");
+    navigate("/");
   };
 
   const handleProfileChange = (event) => {
@@ -150,7 +154,7 @@ function DashboardSiswa() {
     exportExcel({
       filename: `absensi-saya-${filter.dari}-${filter.sampai}.xls`,
       title: "Absensi Utama Saya",
-      subtitle: `${dashboard.siswa?.nama || dashboard.user?.name || "Siswa"} • Guru Wali Kelas • ${filter.dari} sampai ${filter.sampai}`,
+      subtitle: `${dashboard.siswa?.nama || dashboard.user?.name || "Siswa"} â€¢ Guru Wali Kelas â€¢ ${filter.dari} sampai ${filter.sampai}`,
       summary: [
         { label: "Hadir", value: absensi.summary.hadir || 0 },
         { label: "Izin", value: absensi.summary.izin || 0 },
@@ -200,7 +204,7 @@ function DashboardSiswa() {
             <strong>{dashboard.siswa?.kelas?.nama_kelas || "Kelas -"}</strong>
           </div>
           <h2>{dashboard.siswa?.nama || dashboard.user?.name}</h2>
-          <p>NISN: {dashboard.siswa?.nisn || "-"}</p>
+          <p>NIS: {dashboard.siswa?.nisn || "-"}</p>
         </article>
 
         <article className="teacher-card announcement-card">
@@ -313,7 +317,7 @@ function DashboardSiswa() {
         </div>
         <div className="attend-card keterangan">
           <span>KETERANGAN</span>
-          <strong>IZIN {absensi.summary.izin} • SAKIT {absensi.summary.sakit} • ALPHA {absensi.summary.alpha}</strong>
+          <strong>IZIN {absensi.summary.izin} â€¢ SAKIT {absensi.summary.sakit} â€¢ ALPHA {absensi.summary.alpha}</strong>
         </div>
       </div>
 
@@ -362,7 +366,7 @@ function DashboardSiswa() {
       {showReminder && (
         <div className="portal-modal" role="dialog" aria-modal="true">
           <div className="portal-modal-card">
-            <button type="button" className="portal-modal-close" onClick={() => setShowReminder(false)} aria-label="Tutup">×</button>
+            <button type="button" className="portal-modal-close" onClick={() => setShowReminder(false)} aria-label="Tutup">Ã—</button>
             <h3>INFORMASI PENTING</h3>
             <p>Lengkapi Profil Anda</p>
             <button type="button" className="teacher-primary" onClick={() => { setShowReminder(false); setActiveMenu("profil"); }}>

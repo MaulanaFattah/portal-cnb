@@ -355,7 +355,7 @@ exports.getDashboard = async (req, res) => {
     const classMap = await getClassMap();
     const context = await getAccessibleContext(profile, req.user.id, classMap);
     const informasiSekolah = await ProfilSekolah.findOne();
-    const pengumumanTerbaru = await Pengumuman.findAll({ order: [["createdAt", "DESC"]], limit: 4 });
+    const pengumumanTerbaru = await Pengumuman.findAll({ order: [["createdAt", "DESC"]], limit: 8 });
     const siswa = context.classIds.length
       ? await Siswa.findAll({
         where: { kelas_id: { [Op.in]: context.classIds }, status: "aktif" },

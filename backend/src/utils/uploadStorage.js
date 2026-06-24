@@ -11,6 +11,7 @@ const uploadFolders = {
   kegiatan: path.join(uploadRoot, "kegiatan"),
   siswa: path.join(uploadRoot, "siswa"),
   galeri: path.join(uploadRoot, "galeri"),
+  fasilitas: path.join(uploadRoot, "fasilitas"),
   kepala_sekolah: path.join(uploadRoot, "kepala-sekolah")
 };
 

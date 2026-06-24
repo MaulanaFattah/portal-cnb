@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { registerKepalaSekolah } from "../services/api";
+import PasswordField from "../components/PasswordField";
 
 const initialForm = {
   name: "",
@@ -68,7 +69,7 @@ function RegisterKepalaSekolah() {
 
           <form className="teacher-register-form" onSubmit={handleSubmit} autoComplete="off">
             <div className="form-group"><label>Nama Lengkap</label><input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Masukkan nama lengkap" autoComplete="off" required /></div>
-            <div className="form-group"><label>Email</label><input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Masukkan email kepala sekolah" autoComplete="off" required /></div>
+            <div className="form-group"><label>Email</label><input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="email@cnb.sch.id" autoComplete="off" required /></div>
 
             <div className="form-group"><label>Jenjang Sekolah</label>
               <select name="jenjang" value={formData.jenjang} onChange={handleChange} required>
@@ -80,8 +81,8 @@ function RegisterKepalaSekolah() {
             <div className="form-group"><label>NIP</label><input type="text" name="nip" value={formData.nip} onChange={handleChange} placeholder="Masukkan NIP" autoComplete="off" required /></div>
             <div className="form-group"><label>No. Telepon</label><input type="tel" name="no_telepon" value={formData.no_telepon} onChange={handleChange} placeholder="Contoh: 081234567890" autoComplete="off" /></div>
 
-            <div className="form-group"><label>Kata Sandi</label><input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="Masukkan kata sandi" autoComplete="new-password" minLength="6" required /></div>
-            <div className="form-group"><label>Konfirmasi Kata Sandi</label><input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="Ulangi kata sandi" autoComplete="new-password" minLength="6" required /></div>
+            <div className="form-group"><label>Kata Sandi</label><PasswordField name="password" value={formData.password} onChange={handleChange} placeholder="Masukkan kata sandi" autoComplete="new-password" minLength="6" required /></div>
+            <div className="form-group"><label>Konfirmasi Kata Sandi</label><PasswordField name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="Ulangi kata sandi" autoComplete="new-password" minLength="6" required /></div>
 
             <div className="form-group full ppdb-note-box">
               <strong>Catatan</strong>

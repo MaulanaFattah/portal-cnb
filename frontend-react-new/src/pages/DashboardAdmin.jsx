@@ -33,7 +33,7 @@ function DashboardAdmin() {
 
     const handleLogout = () => {
         logout();
-        navigate("/admin-login");
+        navigate("/");
     };
 
     return (
