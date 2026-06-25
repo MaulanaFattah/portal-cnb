@@ -148,10 +148,24 @@ function DashboardGuru() {
     return (dashboard.jadwal || []).find((item) => Number(item.id) === Number(jadwalId)) || null;
   }, [dashboard, jadwalId]);
 
+  // Opsi jadwal untuk REKAP mapel: gabungan jadwal milik sendiri + seluruh jadwal
+  // di kelas wali (lintas guru) supaya wali kelas bisa melihat rekap guru mapel lain.
+  const rekapJadwalOptions = useMemo(() => {
+    if (!dashboard) return [];
+    const map = new Map();
+    (dashboard.jadwalKelasWali || []).forEach((item) => {
+      if (item?.id) map.set(Number(item.id), item);
+    });
+    (dashboard.jadwal || []).forEach((item) => {
+      if (item?.id && !map.has(Number(item.id))) map.set(Number(item.id), { ...item, milik_sendiri: true });
+    });
+    return [...map.values()];
+  }, [dashboard]);
+
   const selectedRekapJadwal = useMemo(() => {
-    if (!dashboard || !rekapFilter.jadwal_id) return null;
-    return (dashboard.jadwal || []).find((item) => Number(item.id) === Number(rekapFilter.jadwal_id)) || null;
-  }, [dashboard, rekapFilter.jadwal_id]);
+    if (!rekapFilter.jadwal_id) return null;
+    return rekapJadwalOptions.find((item) => Number(item.id) === Number(rekapFilter.jadwal_id)) || null;
+  }, [rekapJadwalOptions, rekapFilter.jadwal_id]);
 
   const rekapIsHomeroom = isWali && rekapMode === "homeroom";
   const attendanceContextKey = attendanceIsHomeroom
@@ -351,7 +365,7 @@ function DashboardGuru() {
     setRekap({ summary: emptySummary, rows: [] });
     setRekapFilter((previous) => {
       if (name === "jadwal_id") {
-        const jadwal = (dashboard?.jadwal || []).find((item) => Number(item.id) === Number(value));
+        const jadwal = rekapJadwalOptions.find((item) => Number(item.id) === Number(value));
         return {
           ...previous,
           jadwal_id: value,
@@ -364,7 +378,7 @@ function DashboardGuru() {
   };
 
   const handleRekapModeChange = (mode) => {
-    const firstJadwal = dashboard?.jadwal?.[0] || null;
+    const firstJadwal = rekapJadwalOptions[0] || null;
     setRekapMode(mode);
     setRekap({ summary: emptySummary, rows: [] });
     setNotice(null);
@@ -737,7 +751,7 @@ function DashboardGuru() {
           <p>{rekapIsHomeroom ? "Data ini hanya mengambil absensi wali kelas, bukan absensi mata pelajaran." : "Data ini hanya mengambil absensi jadwal mapel yang dipilih, bukan absensi kelas wali."}</p>
         </div>
 
-        {isWali && hasSubjectRoster && (
+        {isWali && (hasSubjectRoster || rekapJadwalOptions.length > 0) && (
           <div className="teacher-actions-row attendance-mode-switch rekap-mode-switch">
             <button type="button" className={rekapMode === "homeroom" ? "teacher-primary" : "teacher-secondary"} onClick={() => handleRekapModeChange("homeroom")}>
               Rekap Absensi Kelas
@@ -759,8 +773,10 @@ function DashboardGuru() {
                 <label className="teacher-field">Jadwal Mengajar
                   <select name="jadwal_id" value={rekapFilter.jadwal_id} onChange={handleRekapFilter} required>
                     <option value="">Pilih jadwal mengajar</option>
-                    {(dashboard.jadwal || []).map((item) => (
-                      <option key={item.id} value={item.id}>{item.mapel} - {item.kelas?.nama_kelas} - {item.hari} - {formatTime(item.jam_mulai)}-{formatTime(item.jam_selesai)}</option>
+                    {rekapJadwalOptions.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.mapel} - {item.kelas?.nama_kelas} - {item.hari} - {formatTime(item.jam_mulai)}-{formatTime(item.jam_selesai)}{item.milik_sendiri ? " · Saya" : item.guru_nama ? ` · ${item.guru_nama}` : ""}
+                      </option>
                     ))}
                   </select>
                 </label>

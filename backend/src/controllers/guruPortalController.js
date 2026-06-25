@@ -363,6 +363,25 @@ exports.getDashboard = async (req, res) => {
       })
       : [];
 
+    // Semua jadwal mengajar di kelas wali (lintas guru) agar wali kelas dapat
+    // melihat rekap absensi mata pelajaran dari guru mapel lain di kelasnya.
+    let jadwalKelasWali = [];
+    if (isHomeroomProfile(profile) && profile.kelas_id) {
+      const rows = await JadwalMengajar.findAll({
+        where: { kelas_id: Number(profile.kelas_id), status: "aktif" },
+        order: [["mapel", "ASC"], ["hari", "ASC"], ["jam_mulai", "ASC"]]
+      });
+      const guruIds = [...new Set(rows.map((item) => Number(item.guru_user_id)).filter(Boolean))];
+      const gurus = guruIds.length ? await User.findAll({ where: { id: { [Op.in]: guruIds } } }) : [];
+      const guruNameMap = new Map(gurus.map((item) => [Number(item.id), item.name]));
+      jadwalKelasWali = rows.map((item) => ({
+        ...item.toJSON(),
+        kelas: classMap.get(item.kelas_id) || null,
+        guru_nama: guruNameMap.get(Number(item.guru_user_id)) || "Guru",
+        milik_sendiri: Number(item.guru_user_id) === Number(req.user.id)
+      }));
+    }
+
     return res.json({
       success: true,
       message: "Data dasbor guru berhasil diambil",
@@ -373,7 +392,8 @@ exports.getDashboard = async (req, res) => {
         pengumumanTerbaru,
         kelasAkses: context.classes,
         siswa,
-        jadwal: context.jadwal
+        jadwal: context.jadwal,
+        jadwalKelasWali
       }
     });
   } catch (error) {
@@ -482,13 +502,22 @@ exports.getRekapAbsensi = async (req, res) => {
     let classId = Number(kelas_id || 0);
 
     if (jadwal_id) {
-      if (!isSubjectTeacherProfile(profile)) {
+      const jadwal = await JadwalMengajar.findOne({ where: { id: jadwal_id, status: "aktif" } });
+      if (!jadwal) return res.status(404).json({ success: false, message: "Jadwal mengajar tidak ditemukan" });
+
+      const ownsJadwal = Number(jadwal.guru_user_id) === Number(req.user.id);
+      const isHomeroomOfClass = isHomeroomProfile(profile) && Number(profile.kelas_id) === Number(jadwal.kelas_id);
+
+      // Guru mapel boleh lihat jadwal sendiri; wali kelas boleh lihat jadwal
+      // guru mapel mana pun yang mengajar di kelas walinya.
+      if (!ownsJadwal && !isHomeroomOfClass) {
+        return res.status(403).json({ success: false, message: "Anda hanya dapat melihat jadwal milik sendiri atau jadwal di kelas wali Anda" });
+      }
+      if (ownsJadwal && !isHomeroomOfClass && !isSubjectTeacherProfile(profile)) {
         return res.status(403).json({ success: false, message: "Jadwal mapel hanya dapat digunakan guru mata pelajaran" });
       }
-      const jadwal = await JadwalMengajar.findOne({ where: { id: jadwal_id, guru_user_id: req.user.id, status: "aktif" } });
-      if (!jadwal) return res.status(404).json({ success: false, message: "Jadwal mengajar tidak ditemukan" });
+
       classId = jadwal.kelas_id;
-      where.guru_user_id = req.user.id;
       where.jadwal_id = jadwal.id;
       where.kelas_id = jadwal.kelas_id;
       where.tipe_guru = "mapel";
