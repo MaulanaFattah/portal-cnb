@@ -57,6 +57,36 @@ function getStudentClassName(student) {
   return student?.kelas?.nama_kelas || (student?.kelas_id ? `Kelas ${student.kelas_id}` : "Belum ada kelas");
 }
 
+function romanToInt(value) {
+  const map = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 };
+  const s = String(value || "").toUpperCase().replace(/[^IVXLCDM]/g, "");
+  if (!s) return null;
+  let total = 0;
+  for (let i = 0; i < s.length; i += 1) {
+    const current = map[s[i]];
+    const next = map[s[i + 1]];
+    if (next && current < next) total -= current;
+    else total += current;
+  }
+  return total || null;
+}
+
+// Urutan kelas harus berdasarkan nilai tingkat (1..9), bukan urutan alfabet
+// nama romawi (yang membuat IV muncul sebelum IX padahal 4 < 9 sudah benar,
+// tapi V/VI/VII jadi kacau saat dibandingkan sebagai teks).
+function getStudentClassRank(student) {
+  const kelas = student?.kelas || {};
+  const name = String(kelas.nama_kelas || "");
+  if (/\btk\b/i.test(name) || /\btk\b/i.test(String(kelas.tingkat || ""))) return 0;
+  const tingkat = parseInt(kelas.tingkat, 10);
+  if (!Number.isNaN(tingkat)) return tingkat;
+  const digit = name.match(/\d+/);
+  if (digit) return parseInt(digit[0], 10);
+  const roman = romanToInt(name);
+  if (roman) return roman;
+  return Number.MAX_SAFE_INTEGER;
+}
+
 function getStudentParentName(student) {
   return student?.nama_ayah || student?.nama_ibu || "Belum ada data orang tua";
 }
@@ -227,6 +257,8 @@ function AdminAkunSiswa() {
         return !keyword || values.some((value) => String(value || "").toLowerCase().includes(keyword));
       })
       .sort((first, second) => {
+        const rankCompare = getStudentClassRank(first) - getStudentClassRank(second);
+        if (rankCompare !== 0) return rankCompare;
         const classCompare = getStudentClassName(first).localeCompare(getStudentClassName(second), "id-ID");
         if (classCompare !== 0) return classCompare;
         return (first.nama || "").localeCompare(second.nama || "", "id-ID");
