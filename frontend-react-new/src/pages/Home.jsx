@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { getFasilitas, getGaleri, getProfilSekolah, resolveMediaUrl } from "../services/api";
+import { getFasilitas, getGaleri, getKegiatan, getProfilSekolah, resolveMediaUrl } from "../services/api";
 import { schoolFacilities } from "../data/facilities";
 
 const fallbackHomeProfile = {
@@ -12,10 +12,18 @@ const fallbackHomeProfile = {
   sejarah: "Cipta Nusa Bakti hadir sebagai lingkungan pendidikan yang mendampingi siswa tumbuh dengan karakter, disiplin, dan kemampuan akademik yang kuat."
 };
 
+function formatTanggal(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (isNaN(date)) return value;
+  return date.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+}
+
 function Home() {
   const [galeri, setGaleri] = useState([]);
   const [profile, setProfile] = useState(fallbackHomeProfile);
   const [facilities, setFacilities] = useState(schoolFacilities);
+  const [kegiatan, setKegiatan] = useState([]);
   const galleryRef = useRef(null);
 
   const scrollGallery = (direction) => {
@@ -28,10 +36,11 @@ function Home() {
 
   useEffect(() => {
     (async () => {
-      const [galleryResult, profileResult, facilityResult] = await Promise.allSettled([
+      const [galleryResult, profileResult, facilityResult, kegiatanResult] = await Promise.allSettled([
         getGaleri(),
         getProfilSekolah(),
-        getFasilitas()
+        getFasilitas(),
+        getKegiatan()
       ]);
 
       if (galleryResult.status === "fulfilled" && galleryResult.value.success) setGaleri(galleryResult.value.data || []);
@@ -40,6 +49,9 @@ function Home() {
       }
       if (facilityResult.status === "fulfilled" && facilityResult.value.success) {
         setFacilities(facilityResult.value.data || []);
+      }
+      if (kegiatanResult.status === "fulfilled" && kegiatanResult.value.success) {
+        setKegiatan(kegiatanResult.value.data || []);
       }
     })();
   }, []);
@@ -149,6 +161,40 @@ function Home() {
                 />
                 <div>
                   <h3>{item.name}</h3>
+                  <p>{item.description}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="section container home-activity-section">
+          <div className="section-header">
+            <div>
+              <span className="section-kicker">Kegiatan</span>
+              <h2>Kegiatan Sekolah</h2>
+            </div>
+            <Link to="/kegiatan">Lihat Semua</Link>
+          </div>
+
+          <p className="section-intro">
+            Kabar terbaru seputar aktivitas, program, dan agenda sekolah.
+          </p>
+
+          <div className="activity-grid">
+            {kegiatan.length === 0 ? (
+              <p className="empty-text">Belum ada kegiatan.</p>
+            ) : kegiatan.slice(0, 3).map((item) => (
+              <article className="activity-card" key={item.id}>
+                <img
+                  src={resolveMediaUrl(item.image, schoolPhoto)}
+                  alt={item.title}
+                  loading="lazy"
+                  onError={(event) => { event.currentTarget.src = schoolPhoto; }}
+                />
+                <div className="activity-content">
+                  <div className="activity-date">{formatTanggal(item.date)}</div>
+                  <h3>{item.title}</h3>
                   <p>{item.description}</p>
                 </div>
               </article>
