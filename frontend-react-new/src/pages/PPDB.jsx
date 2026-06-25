@@ -1,6 +1,71 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { checkPPDBStatus } from "../services/api";
+
+const STATUS_LABEL = { pending: "Menunggu Verifikasi", diterima: "Diterima", ditolak: "Ditolak" };
+const LEVEL_LABEL = { tk: "TK", sd: "SD", smp: "SMP" };
+
+function PPDBStatusCheck() {
+  const [form, setForm] = useState({ nama_lengkap: "", email: "" });
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setForm((previous) => ({ ...previous, [name]: value }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+    setResult(null);
+
+    const response = await checkPPDBStatus(form);
+    setLoading(false);
+
+    if (!response.success) {
+      setError(response.message || "Gagal mengambil status pendaftaran.");
+      return;
+    }
+    setResult(response.data);
+  };
+
+  return (
+    <div className="ppdb-card ppdb-status-card">
+      <h3>Cek Status Pendaftaran</h3>
+      <p>Masukkan nama lengkap dan email calon siswa sesuai formulir untuk melihat hasil verifikasi berkas.</p>
+
+      <form className="ppdb-status-form" onSubmit={handleSubmit}>
+        <label className="teacher-field">Nama Lengkap Calon Siswa
+          <input name="nama_lengkap" value={form.nama_lengkap} onChange={handleChange} placeholder="Nama sesuai formulir" required />
+        </label>
+        <label className="teacher-field">Email Pendaftaran
+          <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="Email yang diisi saat mendaftar" required />
+        </label>
+        <button type="submit" className="btn primary" disabled={loading}>
+          {loading ? "Memeriksa..." : "Cek Status"}
+        </button>
+      </form>
+
+      {error && <p className="ppdb-status-error">{error}</p>}
+
+      {result && (
+        <div className={`ppdb-status-result status-${result.status}`}>
+          <div className="ppdb-status-result-head">
+            <strong>{result.nama_lengkap}</strong>
+            <span className={`status-badge ${result.status}`}>{STATUS_LABEL[result.status] || result.status}</span>
+          </div>
+          <p className="ppdb-status-level">Jenjang tujuan: {LEVEL_LABEL[result.target_jenjang] || "-"}</p>
+          <p className="ppdb-status-note">{result.catatan}</p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function PPDB() {
   return (
@@ -51,6 +116,8 @@ function PPDB() {
               Daftar Sekarang
             </Link>
           </div>
+
+          <PPDBStatusCheck />
         </section>
       </main>
 

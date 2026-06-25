@@ -299,6 +299,17 @@ export async function createPPDB(data) {
   return response.json();
 }
 
+export async function checkPPDBStatus(data) {
+  const response = await fetch(`${API_URL}/ppdb/status`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
 export async function updatePPDB(id, data) {
   const token = localStorage.getItem("token");
   const response = await fetch(`${API_URL}/ppdb/${id}`, {

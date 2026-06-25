@@ -1,5 +1,6 @@
 ﻿import { BrowserRouter, Routes, Route } from "react-router-dom";
 
+import ScrollToTop from "./components/ScrollToTop";
 import Home from "./pages/Home";
 import Profil from "./pages/Profil";
 import Kegiatan from "./pages/Kegiatan";
@@ -39,6 +40,7 @@ import DashboardKepalaSekolah from "./pages/DashboardKepalaSekolah";
 function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/profil" element={<Profil />} />

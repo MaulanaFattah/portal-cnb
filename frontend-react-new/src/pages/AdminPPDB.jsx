@@ -157,17 +157,21 @@ function AdminPPDB() {
     }
 
     if (status === "ditolak") {
-      const reason = prompt("Tuliskan alasan penolakan agar admin punya catatan verifikasi:");
+      const reason = prompt("Tuliskan alasan penolakan. Catatan ini akan tampil ke pendaftar saat mengecek status PPDB:");
       if (reason === null) return;
       if (!reason.trim()) {
         alert("Alasan penolakan wajib diisi.");
         return;
       }
-      notification_note = `Ditolak. Alasan: ${reason.trim()}. Beri tahu orang tua/wali melalui email ${item.email || "-"} atau WhatsApp ${item.no_telepon || "-"}.`;
+      notification_note = `Berkas pendaftaran belum dapat diterima. Alasan: ${reason.trim()}`;
     }
 
     const result = await updatePPDB(item.id, { status, notification_note });
-    alert(status === "diterima" ? `${result.message}\n\nPengumuman PPDB otomatis diperbarui di Beranda. Semua nama siswa yang diterima akan tercantum dan diminta datang ke sekolah untuk pendaftaran ulang.` : result.message);
+    alert(status === "diterima"
+      ? `${result.message}\n\nPengumuman PPDB otomatis diperbarui di Beranda. Semua nama siswa yang diterima akan tercantum dan diminta datang ke sekolah untuk pendaftaran ulang.`
+      : status === "ditolak"
+        ? `${result.message}\n\nPendaftar dapat melihat status & alasan penolakan melalui menu "Cek Status Pendaftaran" di halaman PPDB.`
+        : result.message);
     setSelectedPPDB(null);
     loadPPDB();
   };

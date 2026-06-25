@@ -570,6 +570,7 @@ function AdminAkunSiswa() {
                           <tr>
                             <th>No</th>
                             <th>Siswa</th>
+                            <th>Akun Siswa</th>
                             <th>Nama Orang Tua</th>
                             <th>No. HP</th>
                             <th>Akun Orang Tua</th>
@@ -578,6 +579,7 @@ function AdminAkunSiswa() {
                         <tbody>
                           {cls.map((student, index) => {
                             const accounts = accountsByStudent.get(String(student.id)) || {};
+                            const studentAccount = accounts.siswa;
                             const parentAccount = accounts.orangtua;
                             const parentSiblings = parentAccount
                               ? getAccountPortalLinks(parentAccount).filter((link) => link.siswa_id).length
@@ -591,13 +593,24 @@ function AdminAkunSiswa() {
                                     <span>NIS: {student.nisn || "-"}</span>
                                   </div>
                                 </td>
+                                <td data-label="Akun Siswa">
+                                  {studentAccount ? (
+                                    <div className="management-table-cell">
+                                      <span className="management-status linked">Sudah ada akun</span>
+                                      <span>{studentAccount.email}</span>
+                                    </div>
+                                  ) : (
+                                    <span className="management-status missing">Belum ada akun</span>
+                                  )}
+                                </td>
                                 <td data-label="Nama Orang Tua">{getStudentParentName(student)}</td>
                                 <td data-label="No. HP">{student.no_telepon || "-"}</td>
                                 <td data-label="Akun Orang Tua">
                                   {!parentAccount && <span className="management-status missing">Belum ada akun</span>}
                                   {parentAccount && (
                                     <div className="management-table-cell">
-                                      <span className="management-status linked">{parentAccount.name}</span>
+                                      <span className="management-status linked">Sudah ada akun</span>
+                                      <span>{parentAccount.name}</span>
                                       <span>{parentAccount.email}</span>
                                       {parentSiblings > 1 && <span className="class-group-shared">Dipakai {parentSiblings} anak</span>}
                                     </div>

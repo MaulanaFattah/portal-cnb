@@ -62,6 +62,51 @@ async function syncAcceptedPPDBAnnouncement() {
   return Pengumuman.create(data);
 }
 
+exports.checkStatus = async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const nama = String(req.body.nama_lengkap || "").trim().toLowerCase();
+
+    if (!email || !nama) {
+      return res.status(400).json({ success: false, message: "Email dan nama lengkap calon siswa wajib diisi" });
+    }
+
+    const applicants = await PPDB.findAll({ order: [["createdAt", "DESC"]] });
+    const match = applicants.find((item) =>
+      String(item.email || "").trim().toLowerCase() === email &&
+      String(item.nama_lengkap || "").trim().toLowerCase() === nama
+    );
+
+    if (!match) {
+      return res.status(404).json({
+        success: false,
+        message: "Data pendaftaran tidak ditemukan. Pastikan email dan nama lengkap sesuai dengan yang diisi pada formulir."
+      });
+    }
+
+    const statusMessage = {
+      pending: "Pendaftaran Anda sedang diproses dan menunggu verifikasi admin.",
+      diterima: "Selamat! Calon siswa dinyatakan DITERIMA. Silakan datang ke sekolah untuk pendaftaran ulang sesuai arahan panitia PPDB.",
+      ditolak: match.notification_note && /alasan/i.test(match.notification_note)
+        ? match.notification_note
+        : "Mohon maaf, berkas pendaftaran belum dapat kami terima. Silakan hubungi panitia PPDB untuk informasi lebih lanjut."
+    };
+
+    return res.json({
+      success: true,
+      message: "Status pendaftaran ditemukan",
+      data: {
+        nama_lengkap: match.nama_lengkap,
+        target_jenjang: match.target_jenjang,
+        status: match.status,
+        catatan: statusMessage[match.status] || "Status pendaftaran belum tersedia."
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Gagal mengambil status pendaftaran", error: error.message });
+  }
+};
+
 exports.getAllPPDB = async (req, res) => {
   try {
     const ppdb = await PPDB.findAll({

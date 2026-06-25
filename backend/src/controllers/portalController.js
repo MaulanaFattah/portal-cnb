@@ -44,9 +44,8 @@ function summarizeAttendance(rows) {
   const summary = rows.reduce(
     (accumulator, row) => {
       accumulator.total += 1;
-      if (row.status === "hadir") accumulator.hadir += 1;
-      else accumulator.tidak_hadir += 1;
       if (accumulator[row.status] !== undefined) accumulator[row.status] += 1;
+      if (row.status !== "hadir") accumulator.tidak_hadir += 1;
       return accumulator;
     },
     { hadir: 0, izin: 0, sakit: 0, alpha: 0, tidak_hadir: 0, total: 0 }
@@ -341,7 +340,7 @@ exports.getKepalaSekolahDashboard = async (req, res) => {
     const classIds = scopedKelas.map((item) => Number(item.id)).filter(Boolean);
 
     const whereSiswa = scope.jenjang ? { kelas_id: { [Op.in]: classIds } } : {};
-    const whereAbsensi = {};
+    const whereAbsensi = { tipe_guru: "wali_kelas" };
 
     if (scope.jenjang) {
       if (!classIds.length) {

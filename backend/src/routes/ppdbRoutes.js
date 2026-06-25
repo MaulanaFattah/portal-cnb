@@ -5,6 +5,7 @@ const ppdbController = require("../controllers/ppdbController");
 const { verifyToken, onlyAdmin } = require("../middlewares/authMiddleware");
 
 router.get("/", verifyToken, onlyAdmin, ppdbController.getAllPPDB);
+router.post("/status", ppdbController.checkStatus);
 router.post("/", ppdbController.createPPDB);
 router.put("/:id", verifyToken, onlyAdmin, ppdbController.updatePPDB);
 router.delete("/:id", verifyToken, onlyAdmin, ppdbController.deletePPDB);
