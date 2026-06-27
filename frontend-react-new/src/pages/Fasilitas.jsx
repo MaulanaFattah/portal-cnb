@@ -5,11 +5,19 @@ import schoolPhoto from "../assets/school-photo.jpeg";
 import { schoolFacilities } from "../data/facilities";
 import { getFasilitas, resolveMediaUrl } from "../services/api";
 
+/**
+ * Halaman Fasilitas - halaman publik.
+ * Akses: umum (tidak perlu login).
+ * Fungsi halaman: menampilkan daftar fasilitas sekolah dari API publik, dengan fallback
+ * ke data statis dan pesan info bila server belum tersedia.
+ */
 function Fasilitas() {
   const [facilities, setFacilities] = useState(schoolFacilities);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
+  // Efek pemuatan awal: mengambil daftar fasilitas dari API saat mount. Bila gagal/error,
+  // menyetel pesan loadError dan tetap memakai data default; setIsLoading(false) di finally.
   useEffect(() => {
     (async () => {
       try {

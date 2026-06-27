@@ -22,6 +22,17 @@ const emptyForm = {
 const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const maxImageSize = 4 * 1024 * 1024;
 
+/**
+ * Halaman Admin Fasilitas.
+ *
+ * Halaman ini digunakan oleh admin sekolah untuk mengelola data fasilitas
+ * yang tampil di halaman Beranda dan menu "Fasilitas Sekolah" pada situs publik.
+ * Admin dapat menambah, mengubah, dan menghapus fasilitas, mengatur urutan
+ * tampil (sortOrder), status (tampil/sembunyi), serta mengunggah fotonya.
+ *
+ * Peran/akses: hanya admin (halaman berada di area dashboard admin dan
+ * memerlukan sesi login admin yang valid).
+ */
 function AdminFasilitas() {
   const navigate = useNavigate();
   const [fasilitas, setFasilitas] = useState([]);
@@ -32,6 +43,15 @@ function AdminFasilitas() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  /**
+   * Memuat ulang daftar fasilitas dari server (versi admin, termasuk yang
+   * berstatus sembunyi).
+   *
+   * Parameter: tidak ada.
+   * Efek: memanggil API getFasilitasAdmin(); mengubah state isLoading,
+   * error, dan fasilitas sesuai hasil. Dipakai setelah create/update/delete
+   * untuk menyegarkan tampilan.
+   */
   const loadFasilitas = async () => {
     setIsLoading(true);
     setError("");
@@ -50,6 +70,8 @@ function AdminFasilitas() {
     }
   };
 
+  // Memuat data fasilitas pertama kali saat komponen dipasang. Memakai flag
+  // isActive agar tidak mengubah state bila komponen sudah dilepas (unmount).
   useEffect(() => {
     let isActive = true;
 
@@ -76,15 +98,31 @@ function AdminFasilitas() {
     };
   }, []);
 
+  // Membersihkan URL object (blob) pratinjau foto saat berubah/unmount agar
+  // tidak terjadi kebocoran memori.
   useEffect(() => () => {
     if (imagePreview.startsWith("blob:")) URL.revokeObjectURL(imagePreview);
   }, [imagePreview]);
 
+  /**
+   * Menangani perubahan input teks/textarea/select pada form fasilitas.
+   *
+   * Parameter: event - event perubahan input (memakai name & value).
+   * Efek: memperbarui field terkait pada state formData.
+   */
   const handleChange = (event) => {
     const { name, value } = event.target;
     setFormData((current) => ({ ...current, [name]: value }));
   };
 
+  /**
+   * Menangani pemilihan berkas foto fasilitas dari input file.
+   *
+   * Parameter: event - event input file (mengambil file pertama).
+   * Efek: memvalidasi tipe (JPG/PNG/WebP) dan ukuran (maks 4 MB); bila valid
+   * menyimpan file ke formData.image dan membuat URL pratinjau (imagePreview).
+   * Bila tidak valid, menampilkan alert dan mengosongkan input.
+   */
   const handleImage = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -106,6 +144,12 @@ function AdminFasilitas() {
     setImagePreview(URL.createObjectURL(file));
   };
 
+  /**
+   * Mengembalikan form ke kondisi kosong (mode tambah).
+   *
+   * Parameter: tidak ada.
+   * Efek: melepas URL blob pratinjau, mereset editId, formData, dan imagePreview.
+   */
   const resetForm = () => {
     if (imagePreview.startsWith("blob:")) URL.revokeObjectURL(imagePreview);
     setEditId(null);
@@ -113,6 +157,15 @@ function AdminFasilitas() {
     setImagePreview("");
   };
 
+  /**
+   * Menyimpan data fasilitas (tambah baru atau perbarui).
+   *
+   * Parameter: event - event submit form (dicegah reload-nya).
+   * Efek: memvalidasi nama, deskripsi, dan foto (wajib saat tambah baru);
+   * memanggil API updateFasilitas (bila editId ada) atau createFasilitas;
+   * menampilkan alert hasil; bila sukses, mereset form dan memuat ulang data.
+   * Mengubah state isSubmitting selama proses.
+   */
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -147,6 +200,13 @@ function AdminFasilitas() {
     }
   };
 
+  /**
+   * Mengisi form dengan data fasilitas terpilih untuk diubah (mode edit).
+   *
+   * Parameter: item - objek fasilitas yang akan diedit.
+   * Efek: melepas URL blob lama, mengeset editId, mengisi formData dari item,
+   * dan menampilkan pratinjau foto yang sudah ada.
+   */
   const handleEdit = (item) => {
     if (imagePreview.startsWith("blob:")) URL.revokeObjectURL(imagePreview);
     setEditId(item.id);
@@ -160,6 +220,13 @@ function AdminFasilitas() {
     setImagePreview(resolveMediaUrl(item.image, schoolPhoto));
   };
 
+  /**
+   * Menghapus sebuah fasilitas setelah konfirmasi pengguna.
+   *
+   * Parameter: item - objek fasilitas yang akan dihapus.
+   * Efek: meminta konfirmasi; bila disetujui memanggil API deleteFasilitas,
+   * menampilkan alert hasil, dan memuat ulang data bila sukses.
+   */
   const handleDelete = async (item) => {
     if (!confirm(`Yakin ingin menghapus fasilitas "${item.name}"?`)) return;
 
@@ -168,6 +235,13 @@ function AdminFasilitas() {
     if (result.success) await loadFasilitas();
   };
 
+  /**
+   * Keluar dari sesi admin.
+   *
+   * Parameter: tidak ada.
+   * Efek: memanggil logout() (menghapus token sesi) lalu mengarahkan ke
+   * halaman login admin.
+   */
   const handleLogout = () => {
     logout();
     navigate("/admin-login");

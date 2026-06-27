@@ -6,10 +6,22 @@ const { notifyNewPPDB } = require("../services/ppdbNotifier");
 
 const ACCEPTED_PPDB_ANNOUNCEMENT_TITLE = "Pengumuman Siswa Diterima PPDB Sekolah Cipta Nusa Bakti";
 
+/**
+ * Menghasilkan tanggal hari ini dalam format "YYYY-MM-DD". Dipakai sebagai tanggal pengumuman PPDB.
+ *
+ * @returns {string} Tanggal hari ini dalam format "YYYY-MM-DD".
+ */
 function todayDateOnly() {
   return new Date().toISOString().slice(0, 10);
 }
 
+/**
+ * Menyusun isi (konten) teks pengumuman daftar calon siswa yang diterima PPDB. Mengambil nama-nama pendaftar
+ * yang valid, memberinya nomor urut, lalu menggabungkannya dengan kalimat pembuka dan instruksi daftar ulang.
+ *
+ * @param {Array<Object>} acceptedApplicants - Daftar record PPDB berstatus diterima (memakai field nama_lengkap).
+ * @returns {string} Teks konten pengumuman yang siap disimpan ke record Pengumuman.
+ */
 function buildAcceptedPPDBAnnouncementContent(acceptedApplicants) {
   const acceptedNames = acceptedApplicants
     .map((item) => String(item.nama_lengkap || "").trim())
@@ -26,6 +38,14 @@ function buildAcceptedPPDBAnnouncementContent(acceptedApplicants) {
   ].join("\n");
 }
 
+/**
+ * Menyinkronkan pengumuman otomatis berisi daftar calon siswa yang diterima PPDB. Logika bisnisnya: ambil semua
+ * pendaftar berstatus "diterima"; bila kosong, hapus pengumuman yang ada; bila ada, perbarui pengumuman lama atau
+ * buat yang baru dengan kategori "PPDB". Dipanggil setiap kali status PPDB berubah ke/dari "diterima".
+ *
+ * @returns {Promise<Object|null>} Record Pengumuman yang dibuat/diperbarui, atau null bila tidak ada pendaftar diterima
+ *   atau model Pengumuman tidak tersedia.
+ */
 async function syncAcceptedPPDBAnnouncement() {
   if (!Pengumuman) return null;
 
@@ -62,6 +82,16 @@ async function syncAcceptedPPDBAnnouncement() {
   return Pengumuman.create(data);
 }
 
+/**
+ * Endpoint publik untuk mengecek status pendaftaran PPDB seorang calon siswa. Mencocokkan email dan nama lengkap
+ * (case-insensitive) dengan data pendaftar, lalu mengembalikan status beserta catatan/penjelasan yang sesuai
+ * (pending/diterima/ditolak). Untuk status ditolak, memakai catatan khusus bila tersedia.
+ *
+ * @param {import('express').Request} req - Request Express. Memakai req.body.email dan req.body.nama_lengkap.
+ * @param {import('express').Response} res - Response Express.
+ * @returns {Promise<void>} Mengirim HTTP 200 berisi status pendaftaran; 400 bila email/nama kosong;
+ *   404 bila data tidak ditemukan; 500 bila terjadi kesalahan.
+ */
 exports.checkStatus = async (req, res) => {
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
@@ -107,6 +137,13 @@ exports.checkStatus = async (req, res) => {
   }
 };
 
+/**
+ * Mengambil seluruh data pendaftaran PPDB (untuk panel admin), diurutkan dari yang terbaru.
+ *
+ * @param {import('express').Request} req - Request Express (tidak ada parameter khusus yang dipakai).
+ * @param {import('express').Response} res - Response Express.
+ * @returns {Promise<void>} Mengirim HTTP 200 berisi daftar pendaftar PPDB; 500 bila terjadi kesalahan.
+ */
 exports.getAllPPDB = async (req, res) => {
   try {
     const ppdb = await PPDB.findAll({
@@ -127,6 +164,18 @@ exports.getAllPPDB = async (req, res) => {
   }
 };
 
+/**
+ * Endpoint publik untuk mengirim pendaftaran PPDB baru. Memvalidasi kelengkapan data utama dan berkas wajib
+ * (termasuk aturan khusus: raport wajib untuk SD/SMP, surat pindah wajib untuk siswa pindahan), menyimpan data,
+ * lalu mencoba mengirim notifikasi ke orang tua. Hasil notifikasi dicatat pada field notification_note.
+ *
+ * @param {import('express').Request} req - Request Express. Memakai banyak field req.body: jenis_pendaftaran,
+ *   target_jenjang, nama_lengkap, tanggal_lahir, jenis_kelamin, alamat, nama_orang_tua, no_telepon, email,
+ *   tahun_ajaran, berkas_kk, berkas_raport, foto_siswa, berkas_surat_pindah.
+ * @param {import('express').Response} res - Response Express.
+ * @returns {Promise<void>} Efek samping: membuat record PPDB, memicu pengiriman notifikasi, dan memperbarui
+ *   notification_note. Mengirim HTTP 201 dengan data & status notifikasi; 400 bila validasi gagal; 500 bila error.
+ */
 exports.createPPDB = async (req, res) => {
   try {
     const {
@@ -197,6 +246,17 @@ exports.createPPDB = async (req, res) => {
   }
 };
 
+/**
+ * Memperbarui data PPDB berdasarkan id (umumnya untuk mengubah status verifikasi oleh admin). Memvalidasi status
+ * yang diizinkan (pending/diterima/ditolak). Bila status berubah, pengumuman daftar siswa diterima ikut disinkronkan.
+ *
+ * @param {import('express').Request} req - Request Express. Memakai req.params.id (id pendaftar) dan req.body
+ *   (field yang diperbarui, termasuk status dan catatan).
+ * @param {import('express').Response} res - Response Express.
+ * @returns {Promise<void>} Efek samping: memperbarui record PPDB dan, bila status berubah, menyinkronkan
+ *   pengumuman PPDB. Mengirim HTTP 200 dengan data terbaru; 404 bila tidak ditemukan; 400 bila status tidak valid;
+ *   500 bila terjadi kesalahan.
+ */
 exports.updatePPDB = async (req, res) => {
   try {
     const { id } = req.params;
@@ -239,6 +299,15 @@ exports.updatePPDB = async (req, res) => {
   }
 };
 
+/**
+ * Menghapus data pendaftaran PPDB berdasarkan id. Bila pendaftar yang dihapus berstatus "diterima", pengumuman
+ * daftar siswa diterima ikut disinkronkan agar namanya hilang dari pengumuman.
+ *
+ * @param {import('express').Request} req - Request Express. Memakai req.params.id (id pendaftar yang dihapus).
+ * @param {import('express').Response} res - Response Express.
+ * @returns {Promise<void>} Efek samping: menghapus record PPDB dan, bila perlu, menyinkronkan pengumuman PPDB.
+ *   Mengirim HTTP 200 bila berhasil; 404 bila tidak ditemukan; 500 bila terjadi kesalahan.
+ */
 exports.deletePPDB = async (req, res) => {
   try {
     const { id } = req.params;

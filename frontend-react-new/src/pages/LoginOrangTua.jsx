@@ -4,12 +4,25 @@ import { Link, useNavigate } from "react-router-dom";
 import { loginUser, saveAuth } from "../services/api";
 import PasswordField from "../components/PasswordField";
 
+/**
+ * Halaman Login Orang Tua.
+ * Akses: umum (untuk pengguna yang akan masuk sebagai orang tua/wali).
+ * Fungsi halaman: form login email & kata sandi orang tua; bila berhasil menyimpan sesi
+ * dan mengarahkan ke dashboard orang tua (atau halaman ganti kata sandi bila wajib).
+ */
 function LoginOrangTua() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
+  /**
+   * Memproses login orang tua.
+   * @param {Event} e Event submit form (dicegah default-nya).
+   * Memanggil API: loginUser({ email, password, role: "orangtua" }).
+   * Efek: setError bila gagal; bila sukses saveAuth(token, user) lalu navigate ke
+   * "/change-password" (jika must_change_password) atau "/dashboard-orangtua".
+   */
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");

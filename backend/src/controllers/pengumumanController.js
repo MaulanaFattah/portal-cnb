@@ -2,6 +2,13 @@
 
 const Pengumuman = db.Pengumuman;
 
+/**
+ * Mengambil seluruh data pengumuman, diurutkan dari tanggal terbaru.
+ *
+ * @param {import('express').Request} req - Request Express (tidak ada parameter khusus yang dipakai).
+ * @param {import('express').Response} res - Response Express.
+ * @returns {Promise<void>} Mengirim HTTP 200 berisi daftar pengumuman; 500 bila terjadi kesalahan.
+ */
 exports.getAllPengumuman = async (req, res) => {
   try {
     const pengumuman = await Pengumuman.findAll({
@@ -22,6 +29,15 @@ exports.getAllPengumuman = async (req, res) => {
   }
 };
 
+/**
+ * Membuat pengumuman baru. Memvalidasi bahwa judul, tanggal, dan konten wajib diisi sebelum menyimpan.
+ *
+ * @param {import('express').Request} req - Request Express. Memakai req.body.title, req.body.date, req.body.content,
+ *   req.body.category, dan req.body.image.
+ * @param {import('express').Response} res - Response Express.
+ * @returns {Promise<void>} Efek samping: membuat record Pengumuman baru. Mengirim HTTP 201 dengan data pengumuman;
+ *   400 bila field wajib kosong; 500 bila terjadi kesalahan.
+ */
 exports.createPengumuman = async (req, res) => {
   try {
     const { title, date, content, category, image } = req.body;
@@ -55,6 +71,15 @@ exports.createPengumuman = async (req, res) => {
   }
 };
 
+/**
+ * Memperbarui pengumuman berdasarkan id menggunakan seluruh field yang dikirim pada body.
+ *
+ * @param {import('express').Request} req - Request Express. Memakai req.params.id (id pengumuman) dan req.body
+ *   (field yang ingin diperbarui, mis. title, date, content, category, image).
+ * @param {import('express').Response} res - Response Express.
+ * @returns {Promise<void>} Efek samping: memperbarui record Pengumuman. Mengirim HTTP 200 dengan data terbaru;
+ *   404 bila tidak ditemukan; 500 bila terjadi kesalahan.
+ */
 exports.updatePengumuman = async (req, res) => {
   try {
     const { id } = req.params;
@@ -84,6 +109,14 @@ exports.updatePengumuman = async (req, res) => {
   }
 };
 
+/**
+ * Menghapus pengumuman berdasarkan id.
+ *
+ * @param {import('express').Request} req - Request Express. Memakai req.params.id (id pengumuman yang dihapus).
+ * @param {import('express').Response} res - Response Express.
+ * @returns {Promise<void>} Efek samping: menghapus record Pengumuman dari database. Mengirim HTTP 200 bila berhasil;
+ *   404 bila tidak ditemukan; 500 bila terjadi kesalahan.
+ */
 exports.deletePengumuman = async (req, res) => {
   try {
     const { id } = req.params;

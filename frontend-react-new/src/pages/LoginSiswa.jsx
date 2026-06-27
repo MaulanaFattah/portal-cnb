@@ -4,12 +4,25 @@ import { Link, useNavigate } from "react-router-dom";
 import { loginUser, saveAuth } from "../services/api";
 import PasswordField from "../components/PasswordField";
 
+/**
+ * Halaman Login Siswa.
+ * Akses: umum (untuk pengguna yang akan masuk sebagai siswa).
+ * Fungsi halaman: form login email & kata sandi siswa; bila berhasil menyimpan sesi dan
+ * mengarahkan ke dashboard siswa (atau halaman ganti kata sandi bila wajib).
+ */
 function LoginSiswa() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
+  /**
+   * Memproses login siswa.
+   * @param {Event} e Event submit form (dicegah default-nya).
+   * Memanggil API: loginUser({ email, password, role: "siswa" }).
+   * Efek: setError bila gagal; bila sukses saveAuth(token, user) lalu navigate ke
+   * "/change-password" (jika must_change_password) atau "/dashboard-siswa".
+   */
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");

@@ -5,6 +5,13 @@ import Footer from "../components/Footer";
 import PasswordField from "../components/PasswordField";
 import { changePassword, logout } from "../services/api";
 
+/**
+ * Halaman Ganti Kata Sandi.
+ * Akses: pengguna yang sudah login (terutama akun dengan kata sandi sementara yang wajib
+ * menggantinya).
+ * Fungsi halaman: form mengisi kata sandi baru + konfirmasi; setelah berhasil, pengguna
+ * di-logout dan diarahkan ke halaman login.
+ */
 function ChangePassword() {
   const navigate = useNavigate();
   const [newPassword, setNewPassword] = useState("");
@@ -12,6 +19,14 @@ function ChangePassword() {
   const [message, setMessage] = useState(null);
   const [saving, setSaving] = useState(false);
 
+  /**
+   * Memproses penggantian kata sandi.
+   * @param {Event} event Event submit form (dicegah default-nya).
+   * Validasi: kata sandi baru dan konfirmasi harus sama.
+   * Memanggil API: changePassword({ newPassword }).
+   * Efek state/efek: setSaving, setMessage; bila sukses memanggil logout() lalu navigate
+   * ke "/login".
+   */
   const handleSubmit = async (event) => {
     event.preventDefault();
     setMessage(null);

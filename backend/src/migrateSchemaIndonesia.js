@@ -1,11 +1,50 @@
-﻿require("dotenv").config();
+﻿/**
+ * ============================================================================
+ * SKRIP MIGRASI UTAMA: Penyeragaman Skema ke Bahasa Indonesia
+ * ============================================================================
+ *
+ * TUJUAN:
+ * Skrip ini adalah migrasi besar yang menyeragamkan seluruh nama tabel dan
+ * kolom database dari berbagai bentuk lama (Bahasa Inggris tunggal/jamak)
+ * menjadi penamaan Bahasa Indonesia yang konsisten. Skrip menjalankan
+ * serangkaian langkah secara berurutan dan idempoten:
+ *   1) Menghapus foreign key lama (agar tabel/kolom bisa di-rename dengan aman).
+ *   2) Mengubah nama tabel sesuai rencana (tableRenamePlan).
+ *   3) Mengubah nama kolom sesuai rencana (columnRenamePlan).
+ *   4) Memastikan kolom-kolom wajib, ENUM, tabel audit, & kolom timestamp ada.
+ *   5) Memaksa engine tabel menjadi InnoDB (mendukung foreign key).
+ *   6) Memastikan tidak ada baris yatim (orphan) sebelum memasang foreign key.
+ *   7) Memasang ulang seluruh foreign key sesuai rencana (foreignKeyPlan).
+ *
+ * KENAPA PERLU:
+ * Aplikasi telah berpindah konvensi penamaan ke Bahasa Indonesia. Migrasi ini
+ * merapikan database lama (apa pun variannya) agar selaras dengan model
+ * Sequelize terbaru, sekaligus menjaga integritas relasi antar tabel.
+ *
+ * SIFAT IDEMPOTEN & PENGAMAN:
+ * - Setiap langkah memeriksa keberadaan tabel/kolom terlebih dahulu.
+ * - Bila tabel lama & baru sama-sama ada dan keduanya berisi data, migrasi
+ *   akan berhenti dengan error agar penggabungan dilakukan manual (mencegah
+ *   kehilangan data).
+ *
+ * PERINGATAN:
+ * Skrip ini SANGAT BERDAMPAK karena MENGUBAH SKEMA & DATA DATABASE secara luas
+ * (rename tabel/kolom, drop/add foreign key, alter engine, update data). WAJIB
+ * melakukan backup penuh sebelum menjalankannya.
+ * ============================================================================
+ */
+
+require("dotenv").config();
 
 const { DataTypes } = require("sequelize");
 const sequelize = require("./config/database");
 const { ensureUploadFolders } = require("./utils/uploadStorage");
 
+// QueryInterface Sequelize untuk operasi skema tingkat rendah (DDL).
 const queryInterface = sequelize.getQueryInterface();
 
+// Rencana ubah nama tabel: pasangan [namaLama, namaBaru]. Beberapa nama lama
+// (varian Inggris tunggal/jamak) dipetakan ke satu nama baru Bahasa Indonesia.
 const tableRenamePlan = [
   ["user_account", "akun_pengguna"],
   ["users", "akun_pengguna"],
@@ -37,6 +76,8 @@ const tableRenamePlan = [
   ["audit_log", "log_audit"]
 ];
 
+// Peta nama kolom timestamp lama (createdAt/created_at, dst) ke nama Bahasa
+// Indonesia (dibuat_pada/diperbarui_pada). Disisipkan ke tiap tabel via spread.
 const timestampColumnMap = {
   createdAt: "dibuat_pada",
   created_at: "dibuat_pada",
@@ -44,6 +85,8 @@ const timestampColumnMap = {
   updated_at: "diperbarui_pada"
 };
 
+// Rencana ubah nama kolom per tabel (setelah tabel di-rename). Kunci = nama
+// tabel final; nilai = peta { namaKolomLama: namaKolomBaru } termasuk timestamp.
 const columnRenamePlan = {
   akun_pengguna: {
     name: "nama",
@@ -219,9 +262,16 @@ const columnRenamePlan = {
   }
 };
 
+// Daftar nama tabel final (unik) hasil rencana rename — dipakai untuk langkah
+// yang berlaku menyeluruh (mis. memastikan timestamp & memaksa engine InnoDB).
 const finalTables = [...new Set(tableRenamePlan.map(([, finalName]) => finalName))];
+// Semua nama tabel yang dikenal (lama maupun baru) — dipakai saat menghapus
+// foreign key lama dari seluruh kemungkinan tabel.
 const allKnownTables = [...new Set(tableRenamePlan.flat())];
 
+// Rencana pemeriksaan baris yatim (orphan): tiap entri memeriksa apakah ada
+// baris yang mereferensikan id induk yang tidak ada. Migrasi menolak memasang
+// foreign key bila masih ada orphan agar pemasangan FK tidak gagal.
 const orphanCheckPlan = [
   {
     label: "siswa.kelas_id",
@@ -290,6 +340,8 @@ const orphanCheckPlan = [
   }
 ];
 
+// Rencana pemasangan foreign key: tiap entri mendefinisikan nama constraint,
+// tabel & kolom sumber, tabel & kolom referensi, serta aksi ON DELETE.
 const foreignKeyPlan = [
   { name: "fk_siswa_kelas", table: "siswa", column: "kelas_id", references: { table: "kelas", column: "id" }, onDelete: "SET NULL" },
   { name: "fk_profil_guru_akun_pengguna", table: "profil_guru", column: "akun_pengguna_id", references: { table: "akun_pengguna", column: "id" }, onDelete: "CASCADE" },
@@ -306,10 +358,25 @@ const foreignKeyPlan = [
   { name: "fk_log_audit_pelaku", table: "log_audit", column: "pelaku_akun_pengguna_id", references: { table: "akun_pengguna", column: "id" }, onDelete: "SET NULL" }
 ];
 
+/**
+ * Membungkus identifier (nama tabel/kolom) dengan backtick MySQL secara aman,
+ * sekaligus meng-escape backtick yang mungkin terdapat di dalam nama.
+ *
+ * @param {*} identifier Nama identifier yang akan di-quote.
+ * @returns {string} Identifier yang sudah dibungkus backtick, mis. "`tabel`".
+ * Efek samping: tidak ada (fungsi murni).
+ */
 function quoteIdentifier(identifier) {
   return `\`${String(identifier).replace(/`/g, "``")}\``;
 }
 
+/**
+ * Memeriksa apakah sebuah tabel ada di database yang sedang aktif.
+ *
+ * @param {string} tableName Nama tabel yang diperiksa.
+ * @returns {Promise<boolean>} true jika tabel ada, false jika tidak.
+ * Efek samping: hanya membaca information_schema.
+ */
 async function tableExists(tableName) {
   const [rows] = await sequelize.query(
     "SELECT COUNT(*) AS count FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?",
@@ -318,6 +385,14 @@ async function tableExists(tableName) {
   return Number(rows[0].count) > 0;
 }
 
+/**
+ * Memeriksa apakah sebuah kolom ada pada tabel tertentu.
+ *
+ * @param {string} tableName Nama tabel yang diperiksa.
+ * @param {string} columnName Nama kolom yang dicari.
+ * @returns {Promise<boolean>} true jika kolom ada, false jika tidak.
+ * Efek samping: hanya membaca information_schema.
+ */
 async function columnExists(tableName, columnName) {
   const [rows] = await sequelize.query(
     "SELECT COUNT(*) AS count FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?",
@@ -326,11 +401,25 @@ async function columnExists(tableName, columnName) {
   return Number(rows[0].count) > 0;
 }
 
+/**
+ * Menghitung jumlah baris pada sebuah tabel.
+ *
+ * @param {string} tableName Nama tabel yang dihitung.
+ * @returns {Promise<number>} Jumlah baris pada tabel tersebut.
+ * Efek samping: hanya membaca data (SELECT COUNT).
+ */
 async function rowCount(tableName) {
   const [rows] = await sequelize.query(`SELECT COUNT(*) AS count FROM ${quoteIdentifier(tableName)}`);
   return Number(rows[0].count);
 }
 
+/**
+ * Mengambil himpunan (Set) nama kolom milik sebuah tabel.
+ *
+ * @param {string} tableName Nama tabel yang diperiksa.
+ * @returns {Promise<Set<string>>} Set berisi nama-nama kolom tabel.
+ * Efek samping: hanya membaca information_schema.
+ */
 async function columnSet(tableName) {
   const [rows] = await sequelize.query(
     "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?",
@@ -339,6 +428,13 @@ async function columnSet(tableName) {
   return new Set(rows.map((row) => row.COLUMN_NAME));
 }
 
+/**
+ * Mengambil daftar nama constraint foreign key pada sebuah tabel.
+ *
+ * @param {string} tableName Nama tabel yang diperiksa.
+ * @returns {Promise<string[]>} Daftar nama constraint foreign key.
+ * Efek samping: hanya membaca information_schema.
+ */
 async function listForeignKeyNames(tableName) {
   const [rows] = await sequelize.query(
     `SELECT CONSTRAINT_NAME
@@ -351,6 +447,14 @@ async function listForeignKeyNames(tableName) {
   return rows.map((row) => row.CONSTRAINT_NAME);
 }
 
+/**
+ * Memeriksa apakah sudah ada indeks untuk kolom tertentu pada sebuah tabel.
+ *
+ * @param {string} tableName Nama tabel yang diperiksa.
+ * @param {string} columnName Nama kolom yang dicari indeksnya.
+ * @returns {Promise<boolean>} true jika ada indeks untuk kolom, false jika tidak.
+ * Efek samping: hanya membaca information_schema.
+ */
 async function indexExistsForColumn(tableName, columnName) {
   const [rows] = await sequelize.query(
     "SELECT COUNT(*) AS count FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?",
@@ -359,6 +463,14 @@ async function indexExistsForColumn(tableName, columnName) {
   return Number(rows[0].count) > 0;
 }
 
+/**
+ * Memeriksa apakah sebuah foreign key (sesuai definisi rencana) sudah terpasang.
+ *
+ * @param {object} item Entri foreignKeyPlan dengan properti table, column, dan
+ *   references {table, column}.
+ * @returns {Promise<boolean>} true jika FK dengan relasi tersebut sudah ada.
+ * Efek samping: hanya membaca information_schema.
+ */
 async function foreignKeyExists(item) {
   const [rows] = await sequelize.query(
     `SELECT COUNT(*) AS count
@@ -373,6 +485,14 @@ async function foreignKeyExists(item) {
   return Number(rows[0].count) > 0;
 }
 
+/**
+ * Menghapus seluruh foreign key dari semua tabel yang dikenal (lama & baru).
+ * Langkah ini diperlukan agar tabel/kolom dapat di-rename tanpa terhalang
+ * constraint relasi yang lama.
+ *
+ * @returns {Promise<void>}
+ * Efek samping: MENGUBAH SKEMA — menghapus constraint foreign key (DROP).
+ */
 async function dropForeignKeysForKnownTables() {
   for (const tableName of allKnownTables) {
     if (!(await tableExists(tableName))) continue;
@@ -384,30 +504,45 @@ async function dropForeignKeysForKnownTables() {
   }
 }
 
+/**
+ * Mengubah nama tabel sesuai tableRenamePlan dengan penanganan konflik.
+ * Bila tabel tujuan sudah ada: jika tabel lama kosong, tabel lama dihapus;
+ * jika tabel tujuan kosong, tabel tujuan dihapus lalu tabel lama di-rename;
+ * jika keduanya berisi data, migrasi dihentikan dengan error (harus manual).
+ *
+ * @returns {Promise<void>}
+ * Efek samping: MENGUBAH SKEMA — rename/drop tabel. Dapat melempar error bila
+ *   terjadi konflik data yang tidak bisa diselesaikan otomatis.
+ */
 async function renameTables() {
   for (const [oldName, newName] of tableRenamePlan) {
     const oldExists = await tableExists(oldName);
     const newExists = await tableExists(newName);
 
+    // Lewati bila nama sama atau tabel lama tidak ada (tidak ada yang di-rename).
     if (oldName === newName || !oldExists) {
       if (newExists) console.log(`Tabel ${newName} sudah ada`);
       continue;
     }
 
+    // Tangani konflik ketika tabel tujuan sudah ada.
     if (newExists) {
       const oldCount = await rowCount(oldName);
       const newCount = await rowCount(newName);
 
       if (oldCount === 0) {
+        // Tabel lama kosong -> cukup dibuang.
         console.log(`Menghapus tabel lama kosong ${oldName}`);
         await queryInterface.dropTable(oldName);
         continue;
       }
 
       if (newCount === 0) {
+        // Tabel tujuan kosong -> buang agar bisa diisi oleh hasil rename.
         console.log(`Menghapus tabel duplikat kosong ${newName}`);
         await queryInterface.dropTable(newName);
       } else {
+        // Keduanya berisi data -> tidak aman digabung otomatis.
         throw new Error(`Tabel ${oldName} dan ${newName} sama-sama berisi data. Gabungkan data secara manual sebelum migrasi.`);
       }
     }
@@ -417,6 +552,14 @@ async function renameTables() {
   }
 }
 
+/**
+ * Mengubah nama kolom pada tiap tabel sesuai columnRenamePlan.
+ * Bila kolom lama dan kolom baru sama-sama ada, migrasi dihentikan dengan error
+ * (harus digabung manual untuk mencegah kehilangan data).
+ *
+ * @returns {Promise<void>}
+ * Efek samping: MENGUBAH SKEMA — rename kolom. Dapat melempar error saat konflik.
+ */
 async function renameColumns() {
   for (const [tableName, columnMap] of Object.entries(columnRenamePlan)) {
     if (!(await tableExists(tableName))) continue;
@@ -426,10 +569,12 @@ async function renameColumns() {
       const hasOldColumn = columns.has(oldName);
       const hasNewColumn = columns.has(newName);
 
+      // Konflik: kolom lama & baru sama-sama ada -> harus diselesaikan manual.
       if (hasOldColumn && hasNewColumn) {
         throw new Error(`Kolom ${tableName}.${oldName} dan ${tableName}.${newName} sama-sama ada. Gabungkan data secara manual sebelum migrasi.`);
       }
 
+      // Hanya rename bila kolom lama yang ada (kolom baru belum ada).
       if (hasOldColumn) {
         console.log(`Mengubah nama kolom ${tableName}.${oldName} -> ${newName}`);
         await queryInterface.renameColumn(tableName, oldName, newName);
@@ -438,18 +583,44 @@ async function renameColumns() {
   }
 }
 
+/**
+ * Menambahkan kolom hanya bila tabel ada DAN kolom belum ada (idempoten).
+ *
+ * @param {string} tableName Nama tabel target.
+ * @param {string} columnName Nama kolom yang akan ditambahkan.
+ * @param {object} definition Definisi kolom Sequelize.
+ * @returns {Promise<void>}
+ * Efek samping: MENGUBAH SKEMA (ALTER TABLE ADD COLUMN) bila kondisi terpenuhi.
+ */
 async function addColumnIfMissing(tableName, columnName, definition) {
   if (!(await tableExists(tableName)) || await columnExists(tableName, columnName)) return;
   console.log(`Menambahkan kolom ${tableName}.${columnName}`);
   await queryInterface.addColumn(tableName, columnName, definition);
 }
 
+/**
+ * Mengubah definisi kolom hanya bila tabel dan kolom tersebut ada (idempoten).
+ *
+ * @param {string} tableName Nama tabel target.
+ * @param {string} columnName Nama kolom yang akan diubah.
+ * @param {object} definition Definisi kolom baru Sequelize.
+ * @returns {Promise<void>}
+ * Efek samping: MENGUBAH SKEMA (ALTER TABLE MODIFY) bila kondisi terpenuhi.
+ */
 async function changeColumnIfExists(tableName, columnName, definition) {
   if (!(await tableExists(tableName)) || !(await columnExists(tableName, columnName))) return;
   console.log(`Menyesuaikan kolom ${tableName}.${columnName}`);
   await queryInterface.changeColumn(tableName, columnName, definition);
 }
 
+/**
+ * Memastikan setiap tabel final memiliki kolom timestamp Bahasa Indonesia.
+ * Menambahkan "dibuat_pada" untuk semua tabel dan "diperbarui_pada" untuk
+ * semua tabel kecuali "log_audit" (yang hanya mencatat waktu pembuatan).
+ *
+ * @returns {Promise<void>}
+ * Efek samping: MENGUBAH SKEMA — menambah kolom timestamp bila belum ada.
+ */
 async function ensureTimestampColumns() {
   for (const tableName of finalTables) {
     if (!(await tableExists(tableName))) continue;
@@ -459,6 +630,7 @@ async function ensureTimestampColumns() {
       defaultValue: sequelize.literal("CURRENT_TIMESTAMP")
     });
 
+    // log_audit tidak memerlukan kolom diperbarui_pada (data audit tak diubah).
     if (tableName !== "log_audit") {
       await addColumnIfMissing(tableName, "diperbarui_pada", {
         type: DataTypes.DATE,
@@ -469,6 +641,12 @@ async function ensureTimestampColumns() {
   }
 }
 
+/**
+ * Membuat tabel "log_audit" bila belum ada untuk menyimpan jejak audit aksi.
+ *
+ * @returns {Promise<void>}
+ * Efek samping: MENGUBAH SKEMA (CREATE TABLE) bila tabel belum ada.
+ */
 async function createAuditLogIfMissing() {
   if (await tableExists("log_audit")) return;
 
@@ -496,7 +674,19 @@ async function createAuditLogIfMissing() {
   });
 }
 
+/**
+ * Memastikan keberadaan kolom-kolom & definisi wajib lintas tabel setelah
+ * proses rename. Mencakup: kolom wajib_ganti_kata_sandi & ENUM peran pada
+ * akun_pengguna; kolom status & gambar pada kegiatan; ENUM status absensi;
+ * kolom wali_kelas pada profil_guru (sekaligus mengisi dari tipe_guru lama);
+ * kolom-kolom pendaftaran_ppdb beserta pengisian default & pengetatan NOT NULL;
+ * kolom profil_sekolah & gambar galeri; tabel audit; dan kolom timestamp.
+ *
+ * @returns {Promise<void>}
+ * Efek samping: MENGUBAH SKEMA & DATA DATABASE secara luas (ALTER/ADD/UPDATE).
+ */
 async function ensureRequiredColumns() {
+  // akun_pengguna: tambah flag wajib ganti kata sandi & perluas ENUM peran.
   if (await tableExists("akun_pengguna")) {
     await addColumnIfMissing("akun_pengguna", "wajib_ganti_kata_sandi", {
       type: DataTypes.BOOLEAN,
@@ -506,6 +696,7 @@ async function ensureRequiredColumns() {
     await sequelize.query("ALTER TABLE `akun_pengguna` MODIFY `peran` ENUM('admin','guru','siswa','orangtua','kepala_sekolah') NOT NULL DEFAULT 'siswa'");
   }
 
+  // kegiatan: tambah kolom status tampil/sembunyi & perbesar kolom gambar.
   if (await tableExists("kegiatan")) {
     await addColumnIfMissing("kegiatan", "status", {
       type: DataTypes.ENUM("tampil", "tidak_tampil"),
@@ -515,10 +706,12 @@ async function ensureRequiredColumns() {
     await changeColumnIfExists("kegiatan", "gambar", { type: DataTypes.TEXT("long"), allowNull: true });
   }
 
+  // absensi_siswa: perluas pilihan ENUM status kehadiran.
   if (await tableExists("absensi_siswa")) {
     await sequelize.query("ALTER TABLE `absensi_siswa` MODIFY `status` ENUM('hadir','izin','sakit','alpha') NOT NULL");
   }
 
+  // profil_guru: tambah kolom wali_kelas lalu isi dari kolom tipe_guru lama.
   if (await tableExists("profil_guru")) {
     await addColumnIfMissing("profil_guru", "wali_kelas", {
       type: DataTypes.BOOLEAN,
@@ -529,6 +722,8 @@ async function ensureRequiredColumns() {
     await sequelize.query("UPDATE `profil_guru` SET `wali_kelas` = 0 WHERE `wali_kelas` IS NULL");
   }
 
+  // pendaftaran_ppdb: tambah kolom baru, isi default data lama, lalu perketat
+  // constraint NOT NULL pada kolom yang diperlukan.
   if (await tableExists("pendaftaran_ppdb")) {
     await addColumnIfMissing("pendaftaran_ppdb", "jenis_pendaftaran", {
       type: DataTypes.ENUM("pendaftaran_baru", "siswa_pindahan"),
@@ -556,14 +751,24 @@ async function ensureRequiredColumns() {
     await changeColumnIfExists("pendaftaran_ppdb", "email", { type: DataTypes.STRING, allowNull: false });
   }
 
+  // profil_sekolah & galeri: kolom tambahan dan penyesuaian tipe kolom gambar.
   await addColumnIfMissing("profil_sekolah", "fasilitas", { type: DataTypes.TEXT, allowNull: true });
   await addColumnIfMissing("profil_sekolah", "struktur_sekolah", { type: DataTypes.TEXT, allowNull: true });
   await changeColumnIfExists("galeri", "gambar", { type: DataTypes.TEXT("long"), allowNull: false });
 
+  // Pastikan tabel audit dan kolom timestamp tersedia.
   await createAuditLogIfMissing();
   await ensureTimestampColumns();
 }
 
+/**
+ * Memastikan tidak ada baris yatim (orphan) sebelum pemasangan foreign key.
+ * Menjalankan tiap query pada orphanCheckPlan; bila ditemukan baris yatim,
+ * migrasi dihentikan dengan error agar FK tidak gagal dipasang.
+ *
+ * @returns {Promise<void>}
+ * Efek samping: hanya membaca data; dapat melempar error bila ada orphan.
+ */
 async function assertNoOrphans() {
   for (const check of orphanCheckPlan) {
     if (!(await tableExists(check.table))) continue;
@@ -576,16 +781,26 @@ async function assertNoOrphans() {
   }
 }
 
+/**
+ * Memasang foreign key sesuai foreignKeyPlan secara idempoten. Untuk tiap entri:
+ * melewati bila tabel/kolom tidak ada atau FK sudah terpasang; menambahkan
+ * indeks pendukung bila belum ada; lalu memasang constraint foreign key.
+ *
+ * @returns {Promise<void>}
+ * Efek samping: MENGUBAH SKEMA — menambah indeks & constraint foreign key.
+ */
 async function ensureForeignKeys() {
   for (const item of foreignKeyPlan) {
     if (!(await tableExists(item.table)) || !(await tableExists(item.references.table))) continue;
     if (!(await columnExists(item.table, item.column))) continue;
 
+    // Lewati bila foreign key dengan relasi tersebut sudah ada.
     if (await foreignKeyExists(item)) {
       console.log(`Foreign key sudah ada untuk ${item.table}.${item.column}`);
       continue;
     }
 
+    // Pastikan ada indeks pada kolom sumber sebelum memasang FK.
     if (!(await indexExistsForColumn(item.table, item.column))) {
       const indexName = `idx_${item.table}_${item.column}`;
       console.log(`Menambahkan indeks ${indexName}`);
@@ -607,6 +822,13 @@ async function ensureForeignKeys() {
   }
 }
 
+/**
+ * Memaksa engine seluruh tabel final menjadi InnoDB agar mendukung transaksi
+ * dan foreign key.
+ *
+ * @returns {Promise<void>}
+ * Efek samping: MENGUBAH SKEMA (ALTER TABLE ... ENGINE=InnoDB) untuk tabel yang ada.
+ */
 async function forceInnoDb() {
   for (const tableName of finalTables) {
     if (await tableExists(tableName)) {
@@ -615,22 +837,32 @@ async function forceInnoDb() {
   }
 }
 
+/**
+ * Titik masuk utama migrasi. Menjalankan seluruh langkah migrasi skema Bahasa
+ * Indonesia secara berurutan: pastikan folder upload, hapus FK lama, rename
+ * tabel & kolom, pastikan kolom wajib, paksa InnoDB, cek orphan, pasang FK.
+ *
+ * @returns {Promise<void>}
+ * Efek samping: MENGUBAH SKEMA & DATA DATABASE secara menyeluruh. Urutan langkah
+ *   penting: orphan diperiksa sebelum FK dipasang agar pemasangan tidak gagal.
+ */
 async function migrate() {
   ensureUploadFolders();
   await sequelize.authenticate();
   console.log(`Terhubung ke database ${sequelize.config.database}`);
 
-  await dropForeignKeysForKnownTables();
-  await renameTables();
-  await renameColumns();
-  await ensureRequiredColumns();
-  await forceInnoDb();
-  await assertNoOrphans();
-  await ensureForeignKeys();
+  await dropForeignKeysForKnownTables(); // 1) lepas FK lama
+  await renameTables();                  // 2) rename tabel
+  await renameColumns();                 // 3) rename kolom
+  await ensureRequiredColumns();         // 4) pastikan kolom/ENUM/audit/timestamp
+  await forceInnoDb();                   // 5) paksa engine InnoDB
+  await assertNoOrphans();               // 6) pastikan tidak ada baris yatim
+  await ensureForeignKeys();             // 7) pasang ulang FK
 
   console.log("Migrasi skema Bahasa Indonesia selesai");
 }
 
+// Jalankan migrasi; cetak error (jika ada) lalu pastikan koneksi DB ditutup.
 migrate()
   .catch((error) => {
     console.error(error);

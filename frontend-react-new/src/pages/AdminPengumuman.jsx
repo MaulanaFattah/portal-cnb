@@ -5,22 +5,51 @@ import { getPengumuman, createPengumuman, updatePengumuman, deletePengumuman, lo
 
 const emptyForm = { title: "", date: "", content: "" };
 
+/**
+ * Halaman Admin Pengumuman.
+ *
+ * Halaman ini dipakai admin untuk mengelola pengumuman sekolah (judul, tanggal,
+ * dan isi). Admin dapat menambah, mengubah, dan menghapus pengumuman yang
+ * tampil di halaman pengumuman publik.
+ *
+ * Peran/akses: hanya admin (area dashboard admin, butuh sesi login admin).
+ */
 function AdminPengumuman() {
   const navigate = useNavigate();
   const [pengumuman, setPengumuman] = useState([]);
   const [editId, setEditId] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
 
+  /**
+   * Memuat daftar pengumuman dari server.
+   * Efek: memanggil API getPengumuman(); mengisi state pengumuman bila sukses.
+   */
   const loadPengumuman = async () => {
     const result = await getPengumuman();
     if (result.success) setPengumuman(result.data || []);
   };
 
+  // Memuat data pengumuman sekali saat komponen dipasang.
   useEffect(() => { (async () => { await loadPengumuman(); })(); }, []);
 
+  /**
+   * Menangani perubahan input pada form pengumuman.
+   * Parameter: e - event input (memakai name & value).
+   * Efek: memperbarui field terkait pada formData.
+   */
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  /**
+   * Mengembalikan form ke kondisi kosong (mode tambah).
+   * Efek: mereset editId dan formData.
+   */
   const resetForm = () => { setEditId(null); setFormData(emptyForm); };
 
+  /**
+   * Menyimpan pengumuman (tambah baru atau perbarui).
+   * Parameter: e - event submit form (dicegah reload-nya).
+   * Efek: memanggil API updatePengumuman (bila editId) atau createPengumuman;
+   * alert; bila sukses mereset form dan memuat ulang daftar.
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     const result = editId ? await updatePengumuman(editId, formData) : await createPengumuman(formData);
@@ -28,11 +57,21 @@ function AdminPengumuman() {
     if (result.success) { resetForm(); loadPengumuman(); }
   };
 
+  /**
+   * Mengisi form dengan pengumuman terpilih untuk diubah (mode edit).
+   * Parameter: item - objek pengumuman.
+   * Efek: mengeset editId dan mengisi formData dari item.
+   */
   const handleEdit = (item) => {
     setEditId(item.id);
     setFormData({ title: item.title || "", date: item.date || "", content: item.content || "" });
   };
 
+  /**
+   * Menghapus pengumuman setelah konfirmasi.
+   * Parameter: id - id pengumuman.
+   * Efek: konfirmasi; memanggil API deletePengumuman; alert; memuat ulang daftar.
+   */
   const handleDelete = async (id) => {
     if (!confirm("Yakin ingin menghapus pengumuman ini?")) return;
     const result = await deletePengumuman(id);
@@ -40,6 +79,10 @@ function AdminPengumuman() {
     loadPengumuman();
   };
 
+  /**
+   * Keluar dari sesi admin.
+   * Efek: memanggil logout() lalu mengarahkan ke halaman login admin.
+   */
   const handleLogout = () => { logout(); navigate("/admin-login"); };
 
   return (

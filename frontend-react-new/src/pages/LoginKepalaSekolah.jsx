@@ -4,12 +4,25 @@ import { Link, useNavigate } from "react-router-dom";
 import { loginUser, saveAuth } from "../services/api";
 import PasswordField from "../components/PasswordField";
 
+/**
+ * Halaman Login Kepala Sekolah.
+ * Akses: umum (untuk pengguna yang akan masuk sebagai kepala sekolah).
+ * Fungsi halaman: form login email & kata sandi kepala sekolah; bila berhasil menyimpan
+ * sesi dan mengarahkan ke dashboard kepala sekolah (atau halaman ganti kata sandi bila wajib).
+ */
 function LoginKepalaSekolah() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
+  /**
+   * Memproses login kepala sekolah.
+   * @param {Event} event Event submit form (dicegah default-nya).
+   * Memanggil API: loginUser({ email, password, role: "kepala_sekolah" }).
+   * Efek: setError bila gagal; bila sukses saveAuth(token, user) lalu navigate ke
+   * "/change-password" (jika must_change_password) atau "/dashboard-kepala-sekolah".
+   */
   const handleLogin = async (event) => {
     event.preventDefault();
     setError("");

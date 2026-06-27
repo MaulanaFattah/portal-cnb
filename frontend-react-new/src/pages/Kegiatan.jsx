@@ -4,6 +4,12 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { getKegiatan, resolveMediaUrl } from "../services/api";
 
+/**
+ * Memformat nilai tanggal menjadi teks lokal Indonesia (contoh: "5 Januari 2024").
+ * @param {string|Date} value Nilai tanggal yang akan diformat.
+ * @returns {string} Teks tanggal terformat; string kosong bila value kosong; nilai asli
+ *   bila tidak dapat di-parse menjadi tanggal valid. Efek: murni.
+ */
 function formatTanggal(value) {
   if (!value) return "";
   const date = new Date(value);
@@ -15,10 +21,17 @@ function formatTanggal(value) {
   });
 }
 
+/**
+ * Halaman Kegiatan Sekolah - halaman publik.
+ * Akses: umum (tidak perlu login).
+ * Fungsi halaman: menampilkan daftar kegiatan/agenda sekolah dari API publik.
+ */
 function Kegiatan() {
   const [kegiatan, setKegiatan] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Efek pemuatan awal: mengambil daftar kegiatan dari API saat mount; setLoading(false)
+  // dijalankan di blok finally agar status memuat selalu berakhir.
   useEffect(() => {
     (async () => {
       try {

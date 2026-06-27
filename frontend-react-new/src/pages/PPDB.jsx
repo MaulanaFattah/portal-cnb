@@ -7,17 +7,34 @@ import { checkPPDBStatus } from "../services/api";
 const STATUS_LABEL = { pending: "Menunggu Verifikasi", diterima: "Diterima", ditolak: "Ditolak" };
 const LEVEL_LABEL = { tk: "TK", sd: "SD", smp: "SMP" };
 
+/**
+ * Komponen kartu "Cek Status Pendaftaran" PPDB (dipakai di dalam halaman PPDB).
+ * Akses: umum (tidak perlu login).
+ * Fungsi: menerima nama lengkap & email calon siswa, lalu menampilkan hasil verifikasi
+ * berkas pendaftaran.
+ */
 function PPDBStatusCheck() {
   const [form, setForm] = useState({ nama_lengkap: "", email: "" });
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
 
+  /**
+   * Menangani perubahan input form cek status.
+   * @param {Event} event Event perubahan input (membawa name & value).
+   * Efek state: memperbarui field terkait pada form.
+   */
   const handleChange = (event) => {
     const { name, value } = event.target;
     setForm((previous) => ({ ...previous, [name]: value }));
   };
 
+  /**
+   * Mengirim permintaan cek status pendaftaran PPDB ke server.
+   * @param {Event} event Event submit form (dicegah default-nya).
+   * Memanggil API: checkPPDBStatus(form).
+   * Efek state: setLoading, setError, dan setResult sesuai respons server.
+   */
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
@@ -67,6 +84,12 @@ function PPDBStatusCheck() {
   );
 }
 
+/**
+ * Halaman PPDB (Penerimaan Peserta Didik Baru) - halaman publik.
+ * Akses: umum (tidak perlu login).
+ * Fungsi halaman: menampilkan informasi PPDB (persyaratan, jadwal), kartu cek status
+ * pendaftaran, dan tautan menuju formulir pendaftaran (/form-ppdb).
+ */
 function PPDB() {
   return (
     <>
@@ -85,6 +108,10 @@ function PPDB() {
         </section>
 
         <section className="container">
+          <div className="ppdb-top-row">
+            <PPDBStatusCheck />
+          </div>
+
           <div className="ppdb-grid">
 
             <div className="ppdb-card">
@@ -116,8 +143,6 @@ function PPDB() {
               Daftar Sekarang
             </Link>
           </div>
-
-          <PPDBStatusCheck />
         </section>
       </main>
 

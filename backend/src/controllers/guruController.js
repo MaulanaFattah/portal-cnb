@@ -2,6 +2,14 @@
 
 const Guru = db.Guru;
 
+/**
+ * Controller Express: mengambil seluruh data guru (master data), diurutkan menurut nama.
+ *
+ * @param {import('express').Request} req - Tidak memakai parameter khusus.
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 200 berisi daftar guru, atau 500 bila gagal. Efek
+ *   samping: query baca ke tabel Guru.
+ */
 exports.getAllGuru = async (req, res) => {
   try {
     const guru = await Guru.findAll({
@@ -22,6 +30,16 @@ exports.getAllGuru = async (req, res) => {
   }
 };
 
+/**
+ * Controller Express: menambah data guru baru ke master data. Memvalidasi bahwa NIP dan nama
+ * wajib diisi, lalu menyimpan seluruh field dari body.
+ *
+ * @param {import('express').Request} req - req.body memuat data guru, minimal nip dan nama
+ *   (field lain disimpan apa adanya sesuai model Guru).
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 201 berisi data guru baru bila sukses; 400 bila NIP/nama
+ *   kosong; 500 untuk error server. Efek samping: membuat record Guru.
+ */
 exports.createGuru = async (req, res) => {
   try {
     const { nip, nama } = req.body;
@@ -49,6 +67,15 @@ exports.createGuru = async (req, res) => {
   }
 };
 
+/**
+ * Controller Express: memperbarui data guru berdasarkan id dengan field dari body.
+ *
+ * @param {import('express').Request} req - req.params.id ID guru; req.body memuat field yang
+ *   akan diperbarui.
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 200 berisi data terbaru bila sukses; 404 bila guru tak
+ *   ada; 500 untuk error server. Efek samping: update record Guru.
+ */
 exports.updateGuru = async (req, res) => {
   try {
     const { id } = req.params;
@@ -78,6 +105,14 @@ exports.updateGuru = async (req, res) => {
   }
 };
 
+/**
+ * Controller Express: menghapus data guru berdasarkan id.
+ *
+ * @param {import('express').Request} req - req.params.id ID guru yang dihapus.
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 200 bila sukses; 404 bila guru tak ada; 500 untuk error
+ *   server. Efek samping: menghapus record Guru.
+ */
 exports.deleteGuru = async (req, res) => {
   try {
     const { id } = req.params;

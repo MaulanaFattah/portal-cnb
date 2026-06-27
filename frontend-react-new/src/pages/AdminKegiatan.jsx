@@ -11,6 +11,15 @@ import {
   resolveMediaUrl
 } from "../services/api";
 
+/**
+ * Halaman Admin Kegiatan.
+ *
+ * Halaman ini dipakai admin untuk mengelola data kegiatan sekolah (judul,
+ * tanggal, deskripsi, foto, dan status tampil/sembunyi). Admin dapat menambah,
+ * mengubah, dan menghapus kegiatan yang ditampilkan di situs publik.
+ *
+ * Peran/akses: hanya admin (area dashboard admin, butuh sesi login admin).
+ */
 function AdminKegiatan() {
   const navigate = useNavigate();
   const [kegiatan, setKegiatan] = useState([]);
@@ -25,21 +34,36 @@ function AdminKegiatan() {
     status: "tampil"
   });
 
+  /**
+   * Memuat daftar kegiatan dari server (versi admin, termasuk yang sembunyi).
+   * Efek: memanggil API getKegiatanAdmin(); mengisi state kegiatan bila sukses.
+   */
   const loadKegiatan = async () => {
     const result = await getKegiatanAdmin();
     if (result.success) setKegiatan(result.data);
   };
 
+  // Memuat data kegiatan sekali saat komponen dipasang.
   useEffect(() => {
     (async () => {
       await loadKegiatan();
     })();
   }, []);
 
+  /**
+   * Menangani perubahan input teks/tanggal/textarea/select pada form kegiatan.
+   * Parameter: e - event input (memakai name & value).
+   * Efek: memperbarui field terkait pada formData.
+   */
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  /**
+   * Menangani pemilihan foto kegiatan dari input file.
+   * Parameter: e - event input file.
+   * Efek: menyimpan file ke formData.image dan membuat URL pratinjau.
+   */
   const handleImage = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -48,12 +72,22 @@ function AdminKegiatan() {
     setImagePreview(URL.createObjectURL(file));
   };
 
+  /**
+   * Mengembalikan form ke kondisi kosong (mode tambah).
+   * Efek: mereset editId, pratinjau, dan seluruh field formData.
+   */
   const resetForm = () => {
     setEditId(null);
     setImagePreview("");
     setFormData({ title: "", date: "", description: "", image: "", status: "tampil" });
   };
 
+  /**
+   * Menyimpan data kegiatan (tambah baru atau perbarui).
+   * Parameter: e - event submit form (dicegah reload-nya).
+   * Efek: memanggil API updateKegiatan (bila editId) atau createKegiatan;
+   * alert; bila sukses mereset form dan memuat ulang daftar kegiatan.
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -71,6 +105,11 @@ function AdminKegiatan() {
     loadKegiatan();
   };
 
+  /**
+   * Mengisi form dengan data kegiatan terpilih untuk diubah (mode edit).
+   * Parameter: item - objek kegiatan.
+   * Efek: mengeset editId, mengisi formData dari item, dan menampilkan pratinjau.
+   */
   const handleEdit = (item) => {
     setEditId(item.id);
     setFormData({
@@ -83,6 +122,11 @@ function AdminKegiatan() {
     setImagePreview(resolveMediaUrl(item.image, schoolLogo));
   };
 
+  /**
+   * Menghapus data kegiatan setelah konfirmasi.
+   * Parameter: id - id kegiatan.
+   * Efek: konfirmasi; memanggil API deleteKegiatan; alert; memuat ulang daftar.
+   */
   const handleDelete = async (id) => {
     if (!confirm("Yakin ingin menghapus kegiatan ini?")) return;
     const result = await deleteKegiatan(id);
@@ -90,6 +134,10 @@ function AdminKegiatan() {
     loadKegiatan();
   };
 
+  /**
+   * Keluar dari sesi admin.
+   * Efek: memanggil logout() lalu mengarahkan ke halaman login admin.
+   */
   const handleLogout = () => {
     logout();
     navigate("/admin-login");

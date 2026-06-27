@@ -18,40 +18,81 @@ const ABSENSI_OPTIONS = [
 
 const MENU_ITEMS = [
   { id: "dashboard", label: "Dasbor" },
+  { id: "profil", label: "Profil Guru" },
   { id: "jadwal", label: "Jadwal Mengajar" },
   { id: "absensi", label: "Absensi" },
-  { id: "rekap", label: "Rekapitulasi Absensi" },
-  { id: "profil", label: "Edit Profil" }
+  { id: "rekap", label: "Rekapitulasi Absensi" }
 ];
 
 const emptySummary = { hadir: 0, izin: 0, sakit: 0, alpha: 0, total: 0 };
 
+/**
+ * Mengubah objek Date menjadi string format "YYYY-MM-DD" yang dipakai oleh input bertipe date.
+ * @param {Date} [date=new Date()] Tanggal yang akan dikonversi (default: tanggal hari ini).
+ * @returns {string} Tanggal dalam format ISO singkat "YYYY-MM-DD".
+ * Efek: murni (tidak memanggil API maupun mengubah state).
+ */
 function toDateInputValue(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
+/**
+ * Mengembalikan tanggal hari ini dalam format "YYYY-MM-DD".
+ * @returns {string} Tanggal hari ini.
+ * Efek: murni (tidak memanggil API maupun mengubah state).
+ */
 function todayISO() {
   return toDateInputValue();
 }
 
+/**
+ * Mengembalikan tanggal 1 (awal) bulan berjalan dalam format "YYYY-MM-DD".
+ * Dipakai sebagai nilai default awal periode filter rekap absensi.
+ * @returns {string} Tanggal awal bulan ini.
+ * Efek: murni (tidak memanggil API maupun mengubah state).
+ */
 function firstDayOfMonthISO() {
   const date = new Date();
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
+/**
+ * Memformat nilai tanggal menjadi teks lokal Indonesia (contoh: "05 Jan 2024").
+ * @param {string|Date} value Nilai tanggal yang akan diformat.
+ * @returns {string} Teks tanggal terformat, atau "-" jika nilai kosong.
+ * Efek: murni (tidak memanggil API maupun mengubah state).
+ */
 function formatDate(value) {
   if (!value) return "-";
   return new Date(value).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+/**
+ * Memformat nilai waktu menjadi format jam "HH:MM" (mengambil 5 karakter pertama).
+ * @param {string} value Nilai waktu (mis. "07:30:00").
+ * @returns {string} Waktu format "HH:MM", atau "-" jika nilai kosong.
+ * Efek: murni (tidak memanggil API maupun mengubah state).
+ */
 function formatTime(value) {
   return value ? String(value).slice(0, 5) : "-";
 }
 
+/**
+ * Mengubah kode status absensi menjadi label yang mudah dibaca.
+ * @param {string} value Kode status (mis. "hadir", "izin", "sakit", "alpha").
+ * @returns {string} Label status dari ABSENSI_OPTIONS, atau nilai aslinya bila tidak ditemukan.
+ * Efek: murni (tidak memanggil API maupun mengubah state).
+ */
 function getStatusLabel(value) {
   return ABSENSI_OPTIONS.find((item) => item.value === value)?.label || value;
 }
 
+/**
+ * Menghitung ringkasan (jumlah per status dan total) dari daftar baris absensi.
+ * @param {Array<{status?: string}>} [rows=[]] Daftar baris absensi yang akan diringkas.
+ * @returns {{hadir:number,izin:number,sakit:number,alpha:number,total:number}} Objek ringkasan.
+ * Efek: murni (tidak memanggil API maupun mengubah state); hanya status valid yang dihitung.
+ */
 function summarizeAttendanceRows(rows = []) {
   return rows.reduce((summary, row) => {
     const status = row?.status;
@@ -62,10 +103,24 @@ function summarizeAttendanceRows(rows = []) {
   }, { ...emptySummary });
 }
 
+/**
+ * Memeriksa apakah label mata pelajaran sebenarnya menandakan peran "wali kelas".
+ * Dipakai agar label "Wali Kelas" tidak ditampilkan sebagai mata pelajaran biasa.
+ * @param {string} value Teks label mata pelajaran yang akan dicek.
+ * @returns {boolean} true jika nilai termasuk label wali kelas.
+ * Efek: murni (tidak memanggil API maupun mengubah state).
+ */
 function isHomeroomSubjectLabel(value) {
   return ["wali kelas", "guru wali kelas"].includes(String(value || "").trim().toLowerCase());
 }
 
+/**
+ * Halaman Dashboard Guru (portal guru).
+ * Akses: pengguna dengan peran Guru (guru mata pelajaran dan/atau wali kelas) yang sudah login.
+ * Fungsi halaman: menampilkan ringkasan profil & pengumuman, jadwal mengajar, pengisian
+ * absensi (mode wali kelas atau mode mata pelajaran), serta rekapitulasi absensi yang
+ * dapat diekspor ke Excel. Bila sesi tidak valid, pengguna diarahkan ke "/login-guru".
+ */
 function DashboardGuru() {
   const navigate = useNavigate();
   const [activeMenu, setActiveMenu] = useState("dashboard");
@@ -94,7 +149,16 @@ function DashboardGuru() {
     dari: firstDayOfMonthISO(),
     sampai: todayISO()
   });
+  // Efek pemuatan awal: mengambil data dashboard guru dari API saat komponen mount,
+  // lalu menyiapkan nilai default jadwal, mode absensi/rekap, filter, dan form profil.
   useEffect(() => {
+    /**
+     * Memuat data dashboard guru dari server dan menginisialisasi state halaman.
+     * Memanggil API: getGuruDashboard().
+     * Efek state: bila gagal -> alert + navigate ke "/login-guru"; bila sukses ->
+     * setJadwalId, setAttendanceMode, setRekapMode, setRekapFilter, setProfileForm,
+     * setDashboard, dan setLoading(false).
+     */
     const loadDashboard = async () => {
       const result = await getGuruDashboard();
 
@@ -137,12 +201,14 @@ function DashboardGuru() {
   const roleLabel = isWali && hasSubjectRoster ? "Guru Wali Kelas + Mata Pelajaran" : isWali ? "Guru Wali Kelas" : "Guru Mata Pelajaran";
   const teacherInitial = (dashboard?.user?.name || "G").trim().charAt(0) || "G";
 
+  // Daftar kelas yang dapat diakses guru: dari kelasAkses bila ada, jika tidak dari kelas wali.
   const classOptions = useMemo(() => {
     if (!dashboard) return [];
     if (dashboard.kelasAkses?.length) return dashboard.kelasAkses.filter(Boolean);
     return dashboard.guruProfile?.kelas ? [dashboard.guruProfile.kelas] : [];
   }, [dashboard]);
 
+  // Objek jadwal mengajar yang sedang dipilih untuk pengisian absensi mapel.
   const selectedJadwal = useMemo(() => {
     if (!dashboard || !jadwalId) return null;
     return (dashboard.jadwal || []).find((item) => Number(item.id) === Number(jadwalId)) || null;
@@ -162,6 +228,7 @@ function DashboardGuru() {
     return [...map.values()];
   }, [dashboard]);
 
+  // Objek jadwal yang sedang dipilih khusus pada filter REKAP mapel.
   const selectedRekapJadwal = useMemo(() => {
     if (!rekapFilter.jadwal_id) return null;
     return rekapJadwalOptions.find((item) => Number(item.id) === Number(rekapFilter.jadwal_id)) || null;
@@ -171,6 +238,7 @@ function DashboardGuru() {
   const attendanceContextKey = attendanceIsHomeroom
     ? `wali-${profile?.kelas_id || "none"}-${tanggal || "no-date"}`
     : `mapel-${jadwalId || "none"}-${tanggal || "no-date"}`;
+  // Entri absensi (status & keterangan per siswa) untuk konteks absensi yang sedang aktif.
   const entries = useMemo(() => attendanceEntryBuckets[attendanceContextKey] || {}, [attendanceEntryBuckets, attendanceContextKey]);
   const savedAttendanceSummary = savedAttendanceSummaries[attendanceContextKey] || emptySummary;
   const currentSavedAttendanceRows = savedAttendanceRows[attendanceContextKey] || [];
@@ -178,11 +246,13 @@ function DashboardGuru() {
 
   const attendanceClassId = attendanceIsHomeroom ? profile?.kelas_id : selectedJadwal?.kelas_id;
 
+  // Daftar siswa yang termasuk dalam kelas absensi yang sedang aktif.
   const siswaList = useMemo(() => {
     if (!dashboard || !attendanceClassId) return [];
     return (dashboard.siswa || []).filter((siswa) => Number(siswa.kelas_id) === Number(attendanceClassId));
   }, [dashboard, attendanceClassId]);
 
+  // Ringkasan absensi yang sedang diisi (dihitung dari entri yang punya status valid).
   const attendanceSummary = useMemo(() => {
     const currentStudentIds = new Set(siswaList.map((siswa) => Number(siswa.id)));
     return Object.values(entries).reduce((summary, entry) => {
@@ -195,6 +265,14 @@ function DashboardGuru() {
     }, { ...emptySummary });
   }, [entries, siswaList]);
 
+  /**
+   * Menerapkan baris absensi tersimpan (hasil dari server) ke state lokal halaman.
+   * @param {string} contextKey Kunci konteks absensi (gabungan mode/kelas/jadwal/tanggal).
+   * @param {Array} rows Baris absensi mentah dari server.
+   * Efek state: menormalkan baris (hanya siswa pada kelas aktif), lalu memperbarui
+   * attendanceEntryBuckets (entri form), savedAttendanceRows (baris tersimpan), dan
+   * savedAttendanceSummaries (ringkasan) untuk contextKey terkait.
+   */
   const applySavedAttendanceRows = useCallback((contextKey, rows) => {
     const currentStudentIds = new Set(siswaList.map((siswa) => Number(siswa.id)));
     const studentMap = new Map(siswaList.map((siswa) => [Number(siswa.id), siswa]));
@@ -230,12 +308,21 @@ function DashboardGuru() {
     }));
   }, [siswaList]);
 
+  // Efek: setiap kali tanggal/kelas/jadwal absensi berubah, muat data absensi yang
+  // sudah tersimpan dari server agar form menampilkan kondisi terkini.
   useEffect(() => {
     if (!dashboard || !tanggal || !attendanceClassId || siswaList.length === 0 || (!attendanceIsHomeroom && !jadwalId)) {
       return undefined;
     }
 
     let active = true;
+    /**
+     * Mengambil data absensi tersimpan untuk konteks (tanggal + kelas/jadwal) aktif.
+     * Memanggil API: getRekapAbsensiGuru(params) dengan rentang tanggal sehari.
+     * Efek state: setLoadingSavedAttendance, setSavedAttendanceErrors, dan menerapkan
+     * hasil lewat applySavedAttendanceRows. Memakai flag "active" untuk mencegah update
+     * state setelah komponen/efek dibersihkan.
+     */
     const loadSavedAttendance = async () => {
       await Promise.resolve();
       if (!active) return;
@@ -275,11 +362,23 @@ function DashboardGuru() {
     };
   }, [applySavedAttendanceRows, attendanceClassId, attendanceContextKey, attendanceIsHomeroom, dashboard, jadwalId, siswaList.length, tanggal]);
 
+  /**
+   * Menangani perubahan input pada form profil guru.
+   * @param {Event} event Event perubahan input (membawa name & value).
+   * Efek state: memperbarui field terkait pada profileForm.
+   */
   const handleProfileChange = (event) => {
     const { name, value } = event.target;
     setProfileForm((current) => ({ ...current, [name]: value }));
   };
 
+  /**
+   * Menyimpan perubahan nama profil guru ke server.
+   * @param {Event} event Event submit form profil (dicegah default-nya).
+   * Memanggil API: updateGuruProfile({ name }).
+   * Efek state: setSavingProfile, setNotice (sukses/gagal); bila sukses memperbarui
+   * nama user pada state dashboard.
+   */
   const handleSaveProfile = async (event) => {
     event.preventDefault();
     setSavingProfile(true);
@@ -292,17 +391,33 @@ function DashboardGuru() {
     }
   };
 
+  /**
+   * Membuka/menutup (toggle) tampilan isi pengumuman pada daftar pengumuman.
+   * @param {number|string} id ID pengumuman yang di-toggle.
+   * Efek state: menambah/menghapus id dari expandedAnnouncements.
+   */
   const toggleAnnouncement = (id) => {
     setExpandedAnnouncements((current) =>
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
     );
   };
 
+  /**
+   * Melakukan logout guru dan kembali ke beranda.
+   * Memanggil: logout() (menghapus sesi/token), lalu navigate ke "/".
+   */
   const handleLogout = () => {
     logout();
     navigate("/");
   };
 
+  /**
+   * Memperbarui satu field entri absensi untuk seorang siswa.
+   * @param {number|string} id ID siswa.
+   * @param {string} field Nama field yang diubah ("status" atau "keterangan").
+   * @param {string} value Nilai baru field.
+   * Efek state: memperbarui attendanceEntryBuckets pada konteks absensi aktif.
+   */
   const handleEntry = (id, field, value) => {
     setAttendanceEntryBuckets((previous) => {
       const currentEntries = previous[attendanceContextKey] || {};
@@ -316,6 +431,14 @@ function DashboardGuru() {
     });
   };
 
+  /**
+   * Mengirim (menyimpan) data absensi siswa ke server.
+   * @param {Event} event Event submit form absensi (dicegah default-nya).
+   * Validasi: minimal satu siswa harus dipilih statusnya, jika tidak menampilkan notice error.
+   * Memanggil API: submitAbsensiGuru({ tanggal, kelas_id, jadwal_id, entries }).
+   * Efek state: setSavingAbsensi, setNotice; bila sukses menyusun savedRows lalu
+   * memanggil applySavedAttendanceRows untuk menyegarkan data tersimpan.
+   */
   const handleSubmitAbsensi = async (event) => {
     event.preventDefault();
     setSavingAbsensi(true);
@@ -360,6 +483,12 @@ function DashboardGuru() {
     applySavedAttendanceRows(attendanceContextKey, savedRows);
   };
 
+  /**
+   * Menangani perubahan field pada filter rekap absensi.
+   * @param {Event} event Event perubahan input/select (membawa name & value).
+   * Efek state: mengosongkan rekap saat ini, lalu memperbarui rekapFilter. Khusus saat
+   * field "jadwal_id" berubah, ikut menyetel kelas_id dan mapel dari jadwal terpilih.
+   */
   const handleRekapFilter = (event) => {
     const { name, value } = event.target;
     setRekap({ summary: emptySummary, rows: [] });
@@ -377,6 +506,12 @@ function DashboardGuru() {
     });
   };
 
+  /**
+   * Mengganti mode rekap absensi antara "homeroom" (kelas wali) dan "subject" (mapel).
+   * @param {"homeroom"|"subject"} mode Mode rekap yang dipilih.
+   * Efek state: setRekapMode, mengosongkan rekap & notice, dan menyesuaikan rekapFilter
+   * (kelas_id/jadwal_id/mapel) sesuai mode terpilih.
+   */
   const handleRekapModeChange = (mode) => {
     const firstJadwal = rekapJadwalOptions[0] || null;
     setRekapMode(mode);
@@ -392,6 +527,13 @@ function DashboardGuru() {
     }));
   };
 
+  /**
+   * Memuat data rekapitulasi absensi dari server sesuai filter aktif.
+   * Validasi: mode kelas wali butuh kelas_id wali; mode mapel butuh jadwal_id terpilih.
+   * Memanggil API: getRekapAbsensiGuru(params) dengan parameter rentang tanggal dan
+   * kelas_id/jadwal_id/mapel sesuai mode.
+   * Efek state: setRekapLoading, setNotice (bila error), dan setRekap dengan hasil.
+   */
   const loadRekap = async () => {
     const params = {
       dari: rekapFilter.dari,
@@ -430,6 +572,12 @@ function DashboardGuru() {
     setRekap(result.data || { summary: emptySummary, rows: [] });
   };
 
+  /**
+   * Mengekspor data rekap absensi yang sedang ditampilkan ke berkas Excel (.xls).
+   * Tidak melakukan apa-apa bila rekap.rows kosong.
+   * Memanggil: exportExcel({...}) dengan judul, ringkasan, kolom, dan baris sesuai mode.
+   * Efek: memicu unduhan berkas; tidak mengubah state.
+   */
   const exportRekap = () => {
     if (!rekap.rows.length) return;
 
@@ -457,6 +605,11 @@ function DashboardGuru() {
     });
   };
 
+  /**
+   * Merender kartu-kartu ringkasan absensi (Hadir/Izin/Sakit/Alpha + Total).
+   * @param {{hadir:number,izin:number,sakit:number,alpha:number,total:number}} summary Ringkasan yang ditampilkan.
+   * @returns {JSX.Element} Elemen kartu ringkasan.
+   */
   const renderSummaryCards = (summary) => (
     <div className="teacher-stats">
       {ABSENSI_OPTIONS.map((item) => (
@@ -472,6 +625,10 @@ function DashboardGuru() {
     </div>
   );
 
+  /**
+   * Merender panel Dasbor: ringkasan profil guru dan daftar pengumuman terbaru.
+   * @returns {JSX.Element} Panel dasbor.
+   */
   const renderDashboard = () => {
     const announcements = dashboard.pengumumanTerbaru || [];
 
@@ -540,6 +697,10 @@ function DashboardGuru() {
     );
   };
 
+  /**
+   * Merender panel Jadwal Mengajar: tabel jadwal (termasuk baris absensi kelas untuk wali).
+   * @returns {JSX.Element} Panel jadwal mengajar.
+   */
   const renderJadwal = () => (
     <section className="teacher-panel">
       <div className="teacher-panel-header compact">
@@ -586,6 +747,11 @@ function DashboardGuru() {
     </section>
   );
 
+  /**
+   * Merender panel Absensi: form pemilihan tanggal/jadwal, pengalihan mode (kelas/mapel),
+   * tabel pengisian status siswa, tombol simpan, dan daftar absensi tersimpan.
+   * @returns {JSX.Element} Panel absensi.
+   */
   const renderAbsensi = () => {
     const selectedClassName = attendanceIsHomeroom
       ? profile?.kelas?.nama_kelas || "Kelas belum diset admin"
@@ -736,6 +902,11 @@ function DashboardGuru() {
     );
   };
 
+  /**
+   * Merender panel Rekapitulasi Absensi: pengalihan mode rekap, kartu filter periode,
+   * kartu ringkasan, tabel hasil rekap, dan tombol ekspor Excel.
+   * @returns {JSX.Element} Panel rekapitulasi absensi.
+   */
   const renderRekap = () => {
     const rekapClassName = rekapIsHomeroom
       ? profile?.kelas?.nama_kelas || "Kelas wali belum diset"
@@ -846,39 +1017,57 @@ function DashboardGuru() {
     );
   };
 
-  const renderProfil = () => (
-    <section className="teacher-panel">
-      <div className="teacher-panel-header compact">
-        <span>Edit Profil</span>
-        <h1>Edit Profil Guru</h1>
-        <p>Perbarui nama tampilan akun. Email akun tidak dapat diubah dan hanya bisa diganti oleh admin.</p>
-      </div>
+  /**
+   * Merender panel Profil Guru (hanya tampilan/baca data; perubahan data utama oleh admin).
+   * @returns {JSX.Element} Panel profil guru.
+   */
+  const renderProfil = () => {
+    const statusAkun = profile?.verification_status === "approved" ? "Aktif" : (profile?.verification_status || "-");
+    const jkLabel = profile?.jenis_kelamin === "P" ? "Perempuan" : profile?.jenis_kelamin === "L" ? "Laki-laki" : "-";
+    const waliLabel = isWali ? (profile?.kelas?.nama_kelas || "Ya") : "Bukan wali kelas";
+    const details = [
+      ["Nama", dashboard.user?.name || "-"],
+      ["NIP / NUPTK", profile?.nip || profile?.nuptk || "-"],
+      ["Email", dashboard.user?.email || "-"],
+      ["No. HP", profile?.no_telepon || "-"],
+      ["Alamat", profile?.alamat || "-"],
+      ["Jenis Kelamin", jkLabel],
+      ["Mata Pelajaran", displaySubject || "-"],
+      ["Wali Kelas", waliLabel],
+      ["Status Akun", statusAkun]
+    ];
 
-      <form className="teacher-form-stack teacher-profile-form" onSubmit={handleSaveProfile}>
-        <div className="teacher-form-grid">
-          <label className="teacher-field">Nama Lengkap
-            <input name="name" value={profileForm.name} onChange={handleProfileChange} required />
-          </label>
-          <label className="teacher-field">Email (tidak dapat diubah)
-            <input type="email" name="email" value={profileForm.email} readOnly disabled />
-          </label>
-          <label className="teacher-field">Peran
-            <input value={roleLabel} readOnly disabled />
-          </label>
-          <label className="teacher-field">Kelas Akses
-            <input value={classOptions.map((item) => item.nama_kelas).join(", ") || "Belum diset"} readOnly disabled />
-          </label>
+    return (
+      <section className="teacher-panel">
+        <div className="teacher-panel-header compact">
+          <span>Profil</span>
+          <h1>Profil Guru</h1>
+          <p>Data pribadi guru. Halaman ini hanya untuk melihat data, perubahan data utama dilakukan oleh admin.</p>
         </div>
 
-        <div className="teacher-actions-row">
-          <button className="teacher-primary" type="submit" disabled={savingProfile}>
-            {savingProfile ? "Menyimpan..." : "Simpan Profil"}
-          </button>
-        </div>
-      </form>
-    </section>
-  );
+        <div className="profile-layout">
+          <div className="profile-photo-card">
+            <div className="profile-photo"><span>{teacherInitial}</span></div>
+            <span className="teacher-role-pill">{roleLabel}</span>
+          </div>
 
+          <div className="profile-readonly">
+            {details.map(([label, value]) => (
+              <div className={label === "Alamat" ? "wide" : ""} key={label}>
+                <span>{label}</span>
+                <strong>{value}</strong>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  };
+
+  /**
+   * Menentukan panel mana yang dirender berdasarkan menu aktif (activeMenu).
+   * @returns {JSX.Element} Panel sesuai menu: jadwal/absensi/rekap/profil, default dasbor.
+   */
   const renderActivePanel = () => {
     if (activeMenu === "jadwal") return renderJadwal();
     if (activeMenu === "absensi") return renderAbsensi();

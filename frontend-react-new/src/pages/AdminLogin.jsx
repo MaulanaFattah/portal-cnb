@@ -4,6 +4,17 @@ import { Link, useNavigate } from "react-router-dom";
 import { loginUser, saveAuth } from "../services/api";
 import PasswordField from "../components/PasswordField";
 
+/**
+ * Halaman Login Administrator.
+ *
+ * Halaman ini menampilkan form masuk khusus administrator (email + kata sandi).
+ * Setelah login berhasil, sesi disimpan dan pengguna diarahkan ke dashboard
+ * admin, atau ke halaman ganti kata sandi bila akun masih wajib mengganti
+ * sandi (must_change_password).
+ *
+ * Peran/akses: publik (hanya untuk calon admin yang ingin masuk). Hanya
+ * kredensial dengan peran "admin" yang diterima oleh proses login ini.
+ */
 function AdminLogin() {
   const navigate = useNavigate();
 
@@ -11,6 +22,15 @@ function AdminLogin() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
+  /**
+   * Memproses pengiriman form login admin.
+   *
+   * Parameter: e - event submit form (reload halaman dicegah).
+   * Efek: mengosongkan pesan error, memanggil API loginUser dengan peran
+   * "admin". Bila gagal, mengisi state error dengan pesan dari server. Bila
+   * sukses, menyimpan token & data user (saveAuth) lalu mengarahkan ke
+   * "/change-password" (jika wajib ganti sandi) atau "/dashboard-admin".
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");

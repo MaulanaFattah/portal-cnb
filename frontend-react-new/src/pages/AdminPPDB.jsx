@@ -3,6 +3,13 @@ import { Link, useNavigate } from "react-router-dom";
 import AdminSidebar from "../components/AdminSidebar";
 import { getPPDB, updatePPDB, deletePPDB, logout, resolveMediaUrl } from "../services/api";
 
+/**
+ * Memformat tanggal ke format lokal Indonesia (mis. "5 Juni 2025").
+ *
+ * Parameter: value - tanggal (string/Date).
+ * Mengembalikan: teks tanggal panjang, "-" bila kosong, atau nilai asli bila
+ * tidak bisa diparse.
+ */
 function formatTanggal(value) {
   if (!value) return "-";
   const date = new Date(value);
@@ -14,6 +21,14 @@ const STATUS_LABEL = { pending: "Menunggu Verifikasi", diterima: "Diterima", dit
 const TYPE_LABEL = { pendaftaran_baru: "Pendaftaran Baru", siswa_pindahan: "Siswa Pindahan" };
 const LEVEL_LABEL = { tk: "TK", sd: "SD", smp: "SMP" };
 
+/**
+ * Membangun daftar berkas wajib/opsional untuk satu pendaftar PPDB.
+ *
+ * Parameter: item - objek pendaftar PPDB.
+ * Mengembalikan: array dokumen { key, label, value (URL media), required }.
+ * Kewajiban tiap berkas menyesuaikan jenjang dan jenis pendaftaran (mis.
+ * raport wajib untuk SD/SMP, surat pindah wajib untuk siswa pindahan).
+ */
 function getRequiredDocuments(item) {
   return [
     { key: "berkas_kk", label: "Fotokopi KK", value: resolveMediaUrl(item.berkas_kk), required: true },
@@ -23,6 +38,12 @@ function getRequiredDocuments(item) {
   ];
 }
 
+/**
+ * Menentukan jenis berkas berdasarkan nilai/URL-nya.
+ *
+ * Parameter: value - data URL atau path berkas.
+ * Mengembalikan: "missing" (kosong), "image", "pdf", atau "file" (lainnya).
+ */
 function getFileType(value) {
   if (!value) return "missing";
   const fileValue = String(value).toLowerCase();
@@ -31,6 +52,12 @@ function getFileType(value) {
   return "file";
 }
 
+/**
+ * Komponen kecil untuk menampilkan satu pasang label dan nilai detail.
+ *
+ * Parameter (props): label - judul field; value - nilai (default "-" bila kosong).
+ * Mengembalikan: elemen tampilan label + nilai.
+ */
 function DetailField({ label, value }) {
   return (
     <div>
@@ -40,6 +67,13 @@ function DetailField({ label, value }) {
   );
 }
 
+/**
+ * Komponen pratinjau satu berkas pendaftaran PPDB.
+ *
+ * Parameter (props): document - objek dokumen ({ label, value, required }).
+ * Mengembalikan: kartu yang menampilkan pratinjau (gambar/iframe PDF/placeholder)
+ * dan tautan buka berkas bila tersedia, atau pesan "belum diunggah" bila tidak.
+ */
 function DocumentPreview({ document }) {
   const fileType = getFileType(document.value);
   const available = fileType !== "missing";
@@ -70,6 +104,17 @@ function DocumentPreview({ document }) {
   );
 }
 
+/**
+ * Modal detail satu pendaftar PPDB beserta tombol aksi verifikasi.
+ *
+ * Parameter (props):
+ *  - item: data pendaftar (null = modal tidak dirender).
+ *  - onClose: callback menutup modal.
+ *  - onVerify: callback verifikasi (menerima item & status target).
+ *  - onDelete: callback hapus (menerima id pendaftar).
+ * Mengembalikan: tampilan detail biodata, ringkasan kelengkapan berkas, daftar
+ * pratinjau dokumen, dan tombol Terima/Tolak/Set Pending/Hapus.
+ */
 function PPDBDetailModal({ item, onClose, onVerify, onDelete }) {
   if (!item) return null;
 
@@ -136,19 +181,44 @@ function PPDBDetailModal({ item, onClose, onVerify, onDelete }) {
   );
 }
 
+/**
+ * Halaman Admin Verifikasi PPDB.
+ *
+ * Halaman ini dipakai admin untuk memverifikasi data pendaftar PPDB yang masuk
+ * dari form pendaftaran publik. Admin dapat memfilter berdasarkan status,
+ * melihat detail & berkas tiap pendaftar, lalu menerima/menolak/mengembalikan
+ * ke pending, atau menghapus data. Pendaftar yang diterima otomatis tercantum
+ * di Pengumuman PPDB pada Beranda.
+ *
+ * Peran/akses: hanya admin (area dashboard admin, butuh sesi login admin).
+ */
 function AdminPPDB() {
   const navigate = useNavigate();
   const [ppdb, setPPDB] = useState([]);
   const [filter, setFilter] = useState("all");
   const [selectedPPDB, setSelectedPPDB] = useState(null);
 
+  /**
+   * Memuat daftar pendaftar PPDB dari server.
+   * Efek: memanggil API getPPDB(); mengisi state ppdb bila sukses.
+   */
   const loadPPDB = async () => {
     const result = await getPPDB();
     if (result.success) setPPDB(result.data || []);
   };
 
+  // Memuat data PPDB sekali saat komponen dipasang.
   useEffect(() => { (async () => { await loadPPDB(); })(); }, []);
 
+  /**
+   * Memverifikasi (mengubah status) seorang pendaftar PPDB.
+   * Parameter:
+   *  - item: objek pendaftar.
+   *  - status: status target ("diterima", "ditolak", atau "pending").
+   * Efek: menyusun catatan notifikasi sesuai status (untuk "ditolak" meminta
+   * alasan via prompt dan wajib diisi); memanggil API updatePPDB; menampilkan
+   * alert; menutup modal detail dan memuat ulang data.
+   */
   const handleVerify = async (item, status) => {
     let notification_note = "Menunggu verifikasi admin.";
 
@@ -176,6 +246,11 @@ function AdminPPDB() {
     loadPPDB();
   };
 
+  /**
+   * Menghapus data pendaftar PPDB secara permanen setelah konfirmasi.
+   * Parameter: id - id pendaftar.
+   * Efek: konfirmasi; memanggil API deletePPDB; alert; menutup modal & memuat ulang.
+   */
   const handleDelete = async (id) => {
     if (!confirm("Hapus data pendaftar ini secara permanen?")) return;
     const result = await deletePPDB(id);
@@ -184,14 +259,20 @@ function AdminPPDB() {
     loadPPDB();
   };
 
+  /**
+   * Keluar dari sesi admin.
+   * Efek: memanggil logout() lalu mengarahkan ke halaman login admin.
+   */
   const handleLogout = () => { logout(); navigate("/admin-login"); };
 
+  // Jumlah pendaftar per status untuk label tombol filter.
   const counts = {
     all: ppdb.length,
     pending: ppdb.filter((p) => p.status === "pending").length,
     diterima: ppdb.filter((p) => p.status === "diterima").length,
     ditolak: ppdb.filter((p) => p.status === "ditolak").length
   };
+  // Daftar pendaftar sesuai filter status aktif.
   const filtered = filter === "all" ? ppdb : ppdb.filter((p) => p.status === filter);
 
   return (

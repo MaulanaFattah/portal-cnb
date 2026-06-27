@@ -1,5 +1,16 @@
 import { useState } from "react";
 
+/**
+ * Komponen EyeIcon.
+ *
+ * Peran: menampilkan ikon mata (SVG) untuk tombol toggle visibilitas kata sandi.
+ * Bentuk ikon berubah sesuai status `visible`: ikon mata terbuka saat kata sandi
+ * ditampilkan, dan ikon mata tercoret saat kata sandi disembunyikan.
+ *
+ * @param {Object} props - Properti komponen.
+ * @param {boolean} props.visible - Status apakah kata sandi sedang ditampilkan.
+ * @returns {JSX.Element} Elemen SVG ikon mata.
+ */
 function EyeIcon({ visible }) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -20,6 +31,19 @@ function EyeIcon({ visible }) {
   );
 }
 
+/**
+ * Komponen PasswordField.
+ *
+ * Peran: input kata sandi dengan tombol untuk menampilkan/menyembunyikan teks.
+ * Menyimpan status visibilitas pada state lokal `visible`; saat true tipe input
+ * menjadi "text", saat false menjadi "password". Seluruh props lain diteruskan
+ * (spread) ke elemen <input> sehingga komponen ini fleksibel dipakai di mana saja.
+ *
+ * @param {Object} props - Properti komponen.
+ * @param {string} [props.className=""] - Kelas CSS tambahan untuk wrapper.
+ * @param {...*} props - Properti lain yang diteruskan langsung ke elemen <input>.
+ * @returns {JSX.Element} Elemen input kata sandi beserta tombol toggle.
+ */
 function PasswordField({ className = "", ...props }) {
   const [visible, setVisible] = useState(false);
 

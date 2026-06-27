@@ -11,11 +11,25 @@ const emptyProfile = {
   struktur_sekolah: ""
 };
 
+/**
+ * Halaman Admin Profil Sekolah.
+ *
+ * Halaman ini dipakai admin untuk mengelola konten profil sekolah (nama
+ * sekolah, visi, misi, sejarah, dan struktur sekolah) yang tampil di halaman
+ * publik. Bila profil sudah ada akan masuk mode ubah, jika belum maka mode buat.
+ *
+ * Peran/akses: hanya admin (area dashboard admin, butuh sesi login admin).
+ */
 function AdminProfilSekolah() {
   const navigate = useNavigate();
   const [isEdit, setIsEdit] = useState(false);
   const [formData, setFormData] = useState(emptyProfile);
 
+  /**
+   * Memuat data profil sekolah dari server.
+   * Efek: memanggil API getProfilSekolah(); bila ada data, mengisi formData
+   * dan mengaktifkan mode ubah (isEdit = true).
+   */
   const loadProfil = async () => {
     const result = await getProfilSekolah();
     if (result.success && result.data) {
@@ -30,10 +44,22 @@ function AdminProfilSekolah() {
     }
   };
 
+  // Memuat profil sekolah sekali saat komponen dipasang.
   useEffect(() => { (async () => { await loadProfil(); })(); }, []);
 
+  /**
+   * Menangani perubahan input pada form profil sekolah.
+   * Parameter: e - event input (memakai name & value).
+   * Efek: memperbarui field terkait pada formData.
+   */
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
+  /**
+   * Menyimpan profil sekolah (buat baru atau perbarui).
+   * Parameter: e - event submit form (dicegah reload-nya).
+   * Efek: memanggil API updateProfilSekolah (bila isEdit) atau
+   * createProfilSekolah; alert; bila sukses memuat ulang profil.
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     const result = isEdit ? await updateProfilSekolah(formData) : await createProfilSekolah(formData);
@@ -41,6 +67,10 @@ function AdminProfilSekolah() {
     if (result.success) loadProfil();
   };
 
+  /**
+   * Keluar dari sesi admin.
+   * Efek: memanggil logout() lalu mengarahkan ke halaman login admin.
+   */
   const handleLogout = () => { logout(); navigate("/admin-login"); };
 
   return (

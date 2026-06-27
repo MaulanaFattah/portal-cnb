@@ -185,6 +185,30 @@ body {
   max-width: 420px;
 }
 
+.footer-social {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.footer-social a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: #FFFDF2;
+  transition: background 0.25s ease, transform 0.25s ease, color 0.25s ease;
+}
+
+.footer-social a:hover {
+  background: #FFFDF2;
+  color: #132817;
+  transform: translateY(-3px);
+}
+
 .footer-bottom {
   margin-top: 42px;
   padding-top: 20px;
@@ -883,6 +907,11 @@ body {
   padding: 30px 26px;
   height: fit-content;
   box-shadow: 0 18px 40px rgba(19, 40, 23, 0.12);
+  position: sticky;
+  top: 24px;
+  align-self: start;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
 }
 
 .sidebar-title {
@@ -3003,6 +3032,9 @@ button:focus-visible {
   text-align: center;
   position: sticky;
   top: 112px;
+  align-self: start;
+  max-height: calc(100vh - 130px);
+  overflow-y: auto;
 }
 
 .teacher-avatar {
@@ -9037,6 +9069,9 @@ a,
 
 .facility-card p {
   color: #1F3A24;
+  text-align: justify;
+  text-justify: inter-word;
+  hyphens: auto;
 }
 
 .facility-page-section {
@@ -9690,7 +9725,7 @@ textarea {
 
 .principal-stat-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 14px;
   margin-bottom: 20px;
 }
@@ -9857,9 +9892,9 @@ textarea {
 
 .principal-filter-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 18px;
-  align-items: end;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  align-items: stretch;
   margin-bottom: 18px;
   border: 1px solid rgba(31, 58, 36, 0.16);
   border-radius: 26px;
@@ -9875,8 +9910,8 @@ textarea {
 }
 
 .principal-filter-actions {
-  display: grid;
-  grid-template-columns: repeat(3, max-content);
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   align-items: end;
 }
@@ -10342,7 +10377,8 @@ main,
 }
 
 .teacher-sidebar {
-  top: 106px;
+  top: 96px;
+  align-self: start;
 }
 
 .password-input-wrap {
@@ -10747,4 +10783,71 @@ main,
   .ppdb-status-form {
     grid-template-columns: 1fr;
   }
+}
+
+/* ============================================================
+   PPDB status reposition + Naik Kelas / Arsip Kelas modals
+   ============================================================ */
+.ppdb-top-row {
+  margin-bottom: 26px;
+}
+
+.ppdb-top-row .ppdb-status-card {
+  margin: 0;
+}
+
+.promote-modal-card {
+  width: min(100%, 860px);
+}
+
+.promote-list-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin: 14px 0 12px;
+}
+
+.promote-list-controls select,
+.promote-list-controls input {
+  flex: 1 1 180px;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid rgba(31, 58, 36, 0.24);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.promote-selected-count {
+  flex: 0 0 auto;
+  font-weight: 900;
+  color: var(--cnb-deep, #132817);
+  background: rgba(239, 238, 220, 0.7);
+  border-radius: 999px;
+  padding: 8px 14px;
+}
+
+.promote-student-table-wrap {
+  max-height: 46vh;
+  overflow-y: auto;
+  border: 1px solid rgba(31, 58, 36, 0.18);
+  border-radius: 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.promote-student-table-wrap table {
+  margin: 0;
+}
+
+.promote-student-table-wrap thead th {
+  position: sticky;
+  top: 0;
+  background: #EFEEDC;
+  z-index: 1;
+}
+
+.promote-student-table-wrap input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
 }

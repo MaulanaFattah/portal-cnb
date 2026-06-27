@@ -8,6 +8,13 @@ const emptyForm = { image: "" };
 const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const maxImageSize = 4 * 1024 * 1024;
 
+/**
+ * Memformat tanggal foto galeri ke format lokal Indonesia.
+ *
+ * Parameter: value - tanggal (string/Date).
+ * Mengembalikan: teks tanggal lokal; "Tanggal belum tersedia" bila kosong
+ * atau tidak valid.
+ */
 function formatGalleryDate(value) {
   if (!value) return "Tanggal belum tersedia";
   const date = new Date(value);
@@ -15,6 +22,15 @@ function formatGalleryDate(value) {
   return date.toLocaleDateString("id-ID");
 }
 
+/**
+ * Halaman Admin Galeri Foto.
+ *
+ * Halaman ini dipakai admin untuk mengunggah, mengubah, dan menghapus foto
+ * galeri sekolah. Foto yang tersimpan akan tampil di slider Beranda dan
+ * halaman Galeri publik (galeri hanya berupa foto, tanpa judul/deskripsi).
+ *
+ * Peran/akses: hanya admin (area dashboard admin, butuh sesi login admin).
+ */
 function AdminGaleri() {
   const navigate = useNavigate();
   const [galeri, setGaleri] = useState([]);
@@ -22,17 +38,29 @@ function AdminGaleri() {
   const [formData, setFormData] = useState(emptyForm);
   const [imagePreview, setImagePreview] = useState("");
 
+  /**
+   * Memuat daftar foto galeri dari server.
+   * Efek: memanggil API getGaleri(); mengisi state galeri bila sukses.
+   */
   const loadGaleri = async () => {
     const result = await getGaleri();
     if (result.success) setGaleri(result.data || []);
   };
 
+  // Memuat data galeri sekali saat komponen dipasang.
   useEffect(() => { (async () => { await loadGaleri(); })(); }, []);
 
+  // Membersihkan URL blob pratinjau saat berubah/unmount agar tidak bocor memori.
   useEffect(() => () => {
     if (imagePreview.startsWith("blob:")) URL.revokeObjectURL(imagePreview);
   }, [imagePreview]);
 
+  /**
+   * Menangani pemilihan berkas foto dari input file.
+   * Parameter: e - event input file.
+   * Efek: memvalidasi tipe (JPG/PNG/WebP) dan ukuran (maks 4 MB); bila valid
+   * menyimpan file ke formData.image dan membuat URL pratinjau.
+   */
   const handleImage = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -53,12 +81,22 @@ function AdminGaleri() {
     setImagePreview(URL.createObjectURL(file));
   };
 
+  /**
+   * Mengembalikan form ke kondisi kosong (mode tambah).
+   * Efek: mereset editId, formData, dan imagePreview.
+   */
   const resetForm = () => {
     setEditId(null);
     setFormData(emptyForm);
     setImagePreview("");
   };
 
+  /**
+   * Menyimpan foto galeri (tambah baru atau perbarui).
+   * Parameter: e - event submit form (dicegah reload-nya).
+   * Efek: validasi foto wajib ada; memanggil API updateGaleri (bila editId)
+   * atau createGaleri; menampilkan alert; bila sukses mereset form & memuat ulang.
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.image) {
@@ -74,12 +112,22 @@ function AdminGaleri() {
     }
   };
 
+  /**
+   * Mengisi form dengan foto terpilih untuk diubah (mode edit).
+   * Parameter: item - objek foto galeri.
+   * Efek: mengeset editId, mengisi formData.image, dan menampilkan pratinjau.
+   */
   const handleEdit = (item) => {
     setEditId(item.id);
     setFormData({ image: item.image || "" });
     setImagePreview(resolveMediaUrl(item.image, schoolLogo));
   };
 
+  /**
+   * Menghapus sebuah foto galeri setelah konfirmasi.
+   * Parameter: id - id foto galeri.
+   * Efek: konfirmasi; memanggil API deleteGaleri; alert; memuat ulang daftar.
+   */
   const handleDelete = async (id) => {
     if (!confirm("Yakin ingin menghapus foto galeri ini?")) return;
     const result = await deleteGaleri(id);
@@ -87,6 +135,10 @@ function AdminGaleri() {
     loadGaleri();
   };
 
+  /**
+   * Keluar dari sesi admin.
+   * Efek: memanggil logout() lalu mengarahkan ke halaman login admin.
+   */
   const handleLogout = () => { logout(); navigate("/admin-login"); };
 
   return (

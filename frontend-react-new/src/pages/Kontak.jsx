@@ -2,6 +2,12 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { schoolContact } from "../data/schoolContact";
 
+/**
+ * Halaman Kontak - halaman publik.
+ * Akses: umum (tidak perlu login).
+ * Fungsi halaman: menampilkan informasi kontak sekolah (alamat, telepon, email, jam
+ * operasional) dari data statis schoolContact.
+ */
 function Kontak() {
   return (
     <>

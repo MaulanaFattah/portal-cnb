@@ -18,6 +18,14 @@ const VALID_JADWAL_STATUS = ["aktif", "non-aktif"];
 const DAY_NAMES = ["minggu", "senin", "selasa", "rabu", "kamis", "jumat", "sabtu"];
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/**
+ * Menyaring objek user agar hanya field aman yang dikirim ke klien, menghindari
+ * bocornya data sensitif seperti hash kata sandi.
+ *
+ * @param {object|null} user - Instance/objek user mentah.
+ * @returns {object|null} Objek user berisi field aman, atau null bila input kosong.
+ *   Tanpa efek samping.
+ */
 function safeUser(user) {
   if (!user) return null;
 
@@ -32,56 +40,137 @@ function safeUser(user) {
   };
 }
 
+/**
+ * Menentukan nama hari (bahasa Indonesia, huruf kecil) dari sebuah tanggal berformat
+ * "YYYY-MM-DD". Dipakai untuk mencocokkan tanggal absensi dengan hari jadwal mengajar.
+ *
+ * @param {string} tanggal - Tanggal format "YYYY-MM-DD".
+ * @returns {string} Nama hari (mis. "senin"). Tanpa efek samping.
+ */
 function getHari(tanggal) {
   const [year, month, day] = String(tanggal).split("-").map(Number);
   const date = new Date(year, month - 1, day);
   return DAY_NAMES[date.getDay()];
 }
 
+/**
+ * Mengubah array nilai menjadi daftar angka unik yang truthy (membuang nol/NaN/duplikat).
+ *
+ * @param {Array<*>} values - Daftar nilai yang akan dikonversi.
+ * @returns {Array<number>} Array angka unik. Tanpa efek samping.
+ */
 function uniqueNumbers(values) {
   return [...new Set(values.map((value) => Number(value)).filter(Boolean))];
 }
 
+/**
+ * Menormalkan alamat email: memangkas spasi dan mengubah ke huruf kecil.
+ *
+ * @param {*} email - Nilai email mentah.
+ * @returns {string} Email yang sudah dinormalisasi. Tanpa efek samping.
+ */
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
 }
 
+/**
+ * Menormalkan input mata pelajaran menjadi array string bersih (menerima array atau
+ * string dipisah koma).
+ *
+ * @param {string|Array<*>} value - Daftar mapel mentah.
+ * @returns {Array<string>} Array nama mapel yang sudah dirapikan. Tanpa efek samping.
+ */
 function normalizeSubjects(value) {
   if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
   return String(value || "").split(",").map((item) => item.trim()).filter(Boolean);
 }
 
+/**
+ * Mengonversi berbagai representasi nilai menjadi boolean (true untuk true, "true", "1", 1).
+ *
+ * @param {*} value - Nilai yang akan diinterpretasikan.
+ * @returns {boolean} Hasil interpretasi boolean. Tanpa efek samping.
+ */
 function toBoolean(value) {
   return value === true || value === "true" || value === "1" || value === 1;
 }
 
+/**
+ * Memeriksa apakah objek memiliki properti tertentu sebagai milik sendiri, aman terhadap null.
+ *
+ * @param {object} object - Objek yang diperiksa.
+ * @param {string} key - Nama properti yang dicari.
+ * @returns {boolean} true bila properti dimiliki langsung. Tanpa efek samping.
+ */
 function hasOwn(object, key) {
   return Object.prototype.hasOwnProperty.call(object || {}, key);
 }
 
+/**
+ * Memeriksa apakah objek memiliki minimal satu dari sekumpulan properti tertentu.
+ *
+ * @param {object} object - Objek yang diperiksa.
+ * @param {Array<string>} keys - Daftar nama properti yang dicari.
+ * @returns {boolean} true bila salah satu properti ada. Tanpa efek samping.
+ */
 function hasAnyOwn(object, keys) {
   return keys.some((key) => hasOwn(object, key));
 }
 
+/**
+ * Menentukan apakah sebuah label sebenarnya menandakan peran wali kelas/guru, bukan
+ * nama mata pelajaran sungguhan.
+ *
+ * @param {*} value - Label yang diperiksa.
+ * @returns {boolean} true bila label menandai wali kelas/guru. Tanpa efek samping.
+ */
 function isHomeroomSubjectLabel(value) {
   const text = String(value || "").trim().toLowerCase();
   return ["wali kelas", "guru wali kelas", "guru"].includes(text);
 }
 
+/**
+ * Menormalkan input mapel secara agresif: memecah tiap entri pada ";" atau "+", merapikan,
+ * dan membuang label yang menandai wali kelas. Menghasilkan daftar mapel murni.
+ *
+ * @param {string|Array<*>} value - Daftar mapel mentah.
+ * @returns {Array<string>} Array nama mapel bersih. Tanpa efek samping.
+ */
 function normalizeSubjectInput(value) {
   return normalizeSubjects(value)
     .flatMap((item) => String(item).split(/[;+]/).map((part) => part.trim()).filter(Boolean))
     .filter((item) => !isHomeroomSubjectLabel(item));
 }
 
+/**
+ * Menentukan apakah sebuah profil guru berperan sebagai wali kelas (berdasarkan flag
+ * is_homeroom atau teacher_type "wali_kelas").
+ *
+ * @param {object} profile - Objek GuruProfile.
+ * @returns {boolean} true bila profil adalah wali kelas. Tanpa efek samping.
+ */
 function isHomeroomProfile(profile) {
   return Boolean(profile?.is_homeroom) || profile?.teacher_type === "wali_kelas";
 }
 
+/**
+ * Menentukan apakah sebuah profil guru berperan sebagai guru mata pelajaran (teacher_type
+ * "mapel" dan memiliki minimal satu mapel valid).
+ *
+ * @param {object} profile - Objek GuruProfile.
+ * @returns {boolean} true bila profil adalah guru mapel. Tanpa efek samping.
+ */
 function isSubjectTeacherProfile(profile) {
   return profile?.teacher_type === "mapel" && normalizeSubjectInput(profile?.subject).length > 0;
 }
 
+/**
+ * Menebak jenjang (sd/smp) sebuah kelas dari teks tingkat dan nama kelasnya menggunakan
+ * pola angka/romawi. Dipakai untuk memvalidasi kecocokan jenjang guru dengan kelas wali.
+ *
+ * @param {object} kelas - Objek kelas dengan properti tingkat dan/atau nama_kelas.
+ * @returns {string|null} "sd", "smp", atau null bila tak dapat ditentukan. Tanpa efek samping.
+ */
 function inferClassJenjang(kelas) {
   const text = `${kelas?.tingkat || ""} ${kelas?.nama_kelas || ""}`.toLowerCase();
   if (/(smp|vii|viii|ix|\b7\b|\b8\b|\b9\b)/.test(text)) return "smp";
@@ -89,6 +178,14 @@ function inferClassJenjang(kelas) {
   return null;
 }
 
+/**
+ * Merangkum baris-baris absensi menjadi total per status (hadir, izin, sakit, alpha) dan
+ * jumlah keseluruhan. Dipakai untuk menampilkan ringkasan rekap absensi.
+ *
+ * @param {Array<{status: string}>} rows - Daftar baris absensi.
+ * @returns {{hadir:number, izin:number, sakit:number, alpha:number, total:number}} Objek
+ *   ringkasan jumlah. Tanpa efek samping.
+ */
 function summarizeAbsensi(rows) {
   return rows.reduce(
     (summary, row) => {
@@ -100,17 +197,40 @@ function summarizeAbsensi(rows) {
   );
 }
 
+/**
+ * Mengambil seluruh kelas dan menyusunnya menjadi Map untuk pencarian cepat berdasarkan id.
+ *
+ * @returns {Promise<Map<number, object>>} Map id kelas → objek kelas (JSON). Efek samping:
+ *   query baca ke tabel Kelas.
+ */
 async function getClassMap() {
   const kelas = await Kelas.findAll();
   return new Map(kelas.map((item) => [item.id, item.toJSON()]));
 }
 
+/**
+ * Mengambil profil guru milik seorang user hanya bila berstatus "approved". Dipakai sebagai
+ * gerbang akses fitur portal guru.
+ *
+ * @param {number} userId - ID akun guru.
+ * @returns {Promise<object|null>} Instance GuruProfile yang sudah disetujui, atau null bila
+ *   tidak ada/belum disetujui. Efek samping: query baca ke GuruProfile.
+ */
 async function getApprovedProfile(userId) {
   const profile = await GuruProfile.findOne({ where: { user_id: userId } });
   if (!profile || profile.verification_status !== "approved") return null;
   return profile;
 }
 
+/**
+ * Mengambil daftar jadwal mengajar aktif milik seorang guru, terurut menurut hari lalu jam
+ * mulai, dengan data kelas yang sudah dilekatkan.
+ *
+ * @param {number} userId - ID akun guru pemilik jadwal.
+ * @param {Map<number, object>} classMap - Map kelas hasil getClassMap().
+ * @returns {Promise<Array<object>>} Daftar jadwal dengan properti kelas terisi. Efek samping:
+ *   query baca ke JadwalMengajar.
+ */
 async function getTeacherSchedules(userId, classMap) {
   const rows = await JadwalMengajar.findAll({
     where: { guru_user_id: userId, status: "aktif" },
@@ -123,6 +243,16 @@ async function getTeacherSchedules(userId, classMap) {
   }));
 }
 
+/**
+ * Menyusun konteks kelas yang dapat diakses seorang guru: gabungan kelas wali (bila wali kelas)
+ * dan kelas dari jadwal mengajar aktif (bila guru mapel), beserta daftar id, objek kelas, dan jadwal.
+ *
+ * @param {object} profile - GuruProfile guru yang bersangkutan.
+ * @param {number} userId - ID akun guru.
+ * @param {Map<number, object>} classMap - Map kelas hasil getClassMap().
+ * @returns {Promise<{classIds: Array<number>, classes: Array<object>, jadwal: Array<object>}>}
+ *   Konteks akses kelas. Efek samping: dapat melakukan query baca jadwal (via getTeacherSchedules).
+ */
 async function getAccessibleContext(profile, userId, classMap) {
   const jadwal = isSubjectTeacherProfile(profile) ? await getTeacherSchedules(userId, classMap) : [];
   const classIds = uniqueNumbers([
@@ -137,6 +267,17 @@ async function getAccessibleContext(profile, userId, classMap) {
   };
 }
 
+/**
+ * Memastikan seorang guru berhak mengakses sebuah kelas: diizinkan bila ia wali kelas dari
+ * kelas itu, atau guru mapel yang memiliki jadwal aktif di kelas tersebut.
+ *
+ * @param {object} profile - GuruProfile guru.
+ * @param {number} userId - ID akun guru.
+ * @param {number|string} classId - ID kelas yang ingin diakses.
+ * @returns {Promise<{allowed: boolean, homeroom?: boolean, jadwal?: object, message?: string}>}
+ *   Hasil pemeriksaan akses; allowed=true bila berhak (dengan info homeroom/jadwal), atau
+ *   allowed=false beserta pesan alasan. Efek samping: dapat melakukan query baca JadwalMengajar.
+ */
 async function ensureClassAccess(profile, userId, classId) {
   const normalizedClassId = Number(classId);
 
@@ -159,6 +300,15 @@ async function ensureClassAccess(profile, userId, classId) {
     : { allowed: false, message: "Guru hanya dapat mengakses kelas sesuai wali kelas atau roster aktif" };
 }
 
+/**
+ * Controller Express (admin): mengambil daftar registrasi guru beserta profil masing-masing
+ * (status verifikasi, daftar mapel, dan kelas wali). Dipakai admin untuk meninjau pendaftaran guru.
+ *
+ * @param {import('express').Request} req - Tidak memakai parameter khusus.
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 200 berisi daftar guru + guruProfile, atau 500 bila gagal.
+ *   Efek samping: query baca ke User, GuruProfile, dan Kelas.
+ */
 exports.getGuruRegistrations = async (req, res) => {
   try {
     const users = await User.findAll({ where: { role: "guru" }, order: [["createdAt", "DESC"]] });
@@ -180,6 +330,21 @@ exports.getGuruRegistrations = async (req, res) => {
   }
 };
 
+/**
+ * Controller Express (admin): memverifikasi/memperbarui status registrasi seorang guru
+ * (pending/approved/rejected) sekaligus menetapkan peran (wali kelas dan/atau guru mapel),
+ * daftar mapel, dan kelas wali. Saat menyetujui, melakukan validasi peran, kelas, kecocokan
+ * jenjang, dan kelengkapan mapel. Memperbarui GuruProfile dan profession user, lalu menulis audit log.
+ *
+ * @param {import('express').Request} req - req.params.userId ID akun guru; req.body memuat
+ *   (alias ganda): verification_status/status_verifikasi, subject/subjects/mata_pelajaran,
+ *   kelas_id/kelas_wali_id/homeroom_classroom_id, note/catatan, tipe_guru/teacher_type, dan flag
+ *   wali_kelas/is_homeroom serta guru_mata_pelajaran/is_subject_teacher. req.user.id sebagai penyetuju.
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 200 berisi profil terbaru bila sukses; 400 untuk status/
+ *   validasi tidak valid; 404 bila akun guru tak ada; 500 untuk error server. Efek samping:
+ *   update GuruProfile & User dan menulis audit log.
+ */
 exports.verifyGuruRegistration = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -262,6 +427,15 @@ exports.verifyGuruRegistration = async (req, res) => {
   }
 };
 
+/**
+ * Controller Express (admin): mengambil seluruh jadwal mengajar lengkap dengan data guru dan
+ * kelas, terurut menurut hari lalu jam mulai.
+ *
+ * @param {import('express').Request} req - Tidak memakai parameter khusus.
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 200 berisi daftar jadwal + relasi guru/kelas, atau 500
+ *   bila gagal. Efek samping: query baca ke JadwalMengajar, User, dan Kelas.
+ */
 exports.getJadwalAdmin = async (req, res) => {
   try {
     const jadwal = await JadwalMengajar.findAll({ order: [["hari", "ASC"], ["jam_mulai", "ASC"]] });
@@ -281,6 +455,18 @@ exports.getJadwalAdmin = async (req, res) => {
   }
 };
 
+/**
+ * Controller Express (admin): menambah jadwal mengajar baru. Memvalidasi kelengkapan field,
+ * validitas hari dan status, serta memastikan jadwal hanya untuk guru mapel yang sudah disetujui.
+ * Aksi dicatat ke audit log.
+ *
+ * @param {import('express').Request} req - req.body memuat guru_user_id, kelas_id, mapel, hari,
+ *   jam_mulai, jam_selesai, dan status (default "aktif").
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 201 berisi jadwal baru bila sukses; 400 bila field kurang/
+ *   hari/status tidak valid atau guru bukan guru mapel yang disetujui; 500 untuk error server.
+ *   Efek samping: membuat record JadwalMengajar dan menulis audit log.
+ */
 exports.createJadwal = async (req, res) => {
   try {
     const { guru_user_id, kelas_id, mapel, hari, jam_mulai, jam_selesai, status = "aktif" } = req.body;
@@ -306,6 +492,18 @@ exports.createJadwal = async (req, res) => {
   }
 };
 
+/**
+ * Controller Express (admin): memperbarui jadwal mengajar berdasarkan id. Memvalidasi
+ * kelengkapan field, validitas hari/status, dan memastikan guru target adalah guru mapel
+ * yang sudah disetujui. Aksi dicatat ke audit log.
+ *
+ * @param {import('express').Request} req - req.params.id ID jadwal; req.body memuat guru_user_id,
+ *   kelas_id, mapel, hari, jam_mulai, jam_selesai, dan status (opsional, default "aktif").
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 200 berisi jadwal terbaru bila sukses; 404 bila jadwal tak
+ *   ada; 400 untuk validasi gagal; 500 untuk error server. Efek samping: update JadwalMengajar
+ *   dan menulis audit log.
+ */
 exports.updateJadwal = async (req, res) => {
   try {
     const jadwal = await JadwalMengajar.findByPk(req.params.id);
@@ -333,6 +531,14 @@ exports.updateJadwal = async (req, res) => {
   }
 };
 
+/**
+ * Controller Express (admin): menghapus jadwal mengajar berdasarkan id. Aksi dicatat ke audit log.
+ *
+ * @param {import('express').Request} req - req.params.id ID jadwal yang dihapus.
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 200 bila sukses; 404 bila jadwal tak ada; 500 untuk error
+ *   server. Efek samping: menghapus record JadwalMengajar dan menulis audit log.
+ */
 exports.deleteJadwal = async (req, res) => {
   try {
     const jadwal = await JadwalMengajar.findByPk(req.params.id);
@@ -345,6 +551,19 @@ exports.deleteJadwal = async (req, res) => {
   }
 };
 
+/**
+ * Controller Express (portal guru): menyusun data dasbor untuk guru yang login, meliputi profil,
+ * informasi sekolah, pengumuman terbaru, kelas yang dapat diakses, daftar siswa di kelas tersebut,
+ * jadwal mengajar, dan (khusus wali kelas) seluruh jadwal lintas guru di kelas walinya untuk rekap
+ * absensi mapel.
+ *
+ * @param {import('express').Request} req - req.user (akun guru yang login) dipakai untuk
+ *   menentukan profil dan konteks akses.
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 200 berisi data dasbor lengkap; 403 bila akun guru belum
+ *   aktif/disetujui; 500 untuk error server. Efek samping: banyak query baca (Kelas, ProfilSekolah,
+ *   Pengumuman, Siswa, JadwalMengajar, User); tidak mengubah data.
+ */
 exports.getDashboard = async (req, res) => {
   try {
     const profile = await getApprovedProfile(req.user.id);
@@ -401,6 +620,20 @@ exports.getDashboard = async (req, res) => {
   }
 };
 
+/**
+ * Controller Express (portal guru): menyimpan data absensi siswa untuk suatu tanggal. Mendukung
+ * dua mode: absensi wali kelas (tanpa jadwal_id, untuk kelas walinya) dan absensi guru mapel
+ * (dengan jadwal_id aktif, harinya harus cocok dengan tanggal). Memvalidasi hak akses, kecocokan
+ * siswa-kelas, dan status absensi, lalu melakukan upsert tiap entri. Aksi dicatat ke audit log.
+ *
+ * @param {import('express').Request} req - req.body memuat tanggal ("YYYY-MM-DD"), kelas_id
+ *   (untuk mode wali kelas), jadwal_id (untuk mode guru mapel), dan entries (array {siswa_id,
+ *   status, keterangan?}). req.user.id menunjuk guru yang mengabsen.
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 200 berisi jumlah data tersimpan bila sukses; 400 untuk
+ *   validasi gagal; 403 bila tidak berhak; 404 bila jadwal tak ada; 500 untuk error server.
+ *   Efek samping: membuat/memperbarui record AbsensiSiswa dan menulis audit log.
+ */
 exports.submitAbsensi = async (req, res) => {
   try {
     const { tanggal, kelas_id, jadwal_id, entries } = req.body;
@@ -488,6 +721,19 @@ exports.submitAbsensi = async (req, res) => {
   }
 };
 
+/**
+ * Controller Express (portal guru): mengambil rekap absensi sesuai filter dan hak akses guru.
+ * Mendukung beberapa cara penentuan cakupan: berdasarkan jadwal_id (jadwal sendiri atau jadwal di
+ * kelas wali), kelas_id tertentu (dengan pemeriksaan akses), kelas wali default, atau seluruh kelas
+ * pada roster guru mapel. Hasil dilengkapi data siswa, kelas, dan ringkasan jumlah per status.
+ *
+ * @param {import('express').Request} req - req.query memuat kelas_id, jadwal_id, mapel, dari,
+ *   dan sampai (rentang tanggal). req.user.id menunjuk guru yang meminta rekap.
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 200 berisi { summary, rows }; 403 bila akun belum aktif atau
+ *   melebihi hak akses; 404 bila jadwal tak ada; 500 untuk error server. Efek samping: query baca
+ *   ke AbsensiSiswa, JadwalMengajar, Siswa, Kelas; tidak mengubah data.
+ */
 exports.getRekapAbsensi = async (req, res) => {
   try {
     const { kelas_id, jadwal_id, mapel, dari, sampai } = req.query;
@@ -577,6 +823,17 @@ exports.getRekapAbsensi = async (req, res) => {
   }
 };
 
+/**
+ * Controller Express (admin): menghapus registrasi guru beserta profilnya dalam satu transaksi.
+ * Memberi pengaman: bila guru sudah disetujui dan masih dipakai oleh jadwal atau absensi, penghapusan
+ * ditolak agar data terkait tidak yatim. Aksi dicatat ke audit log.
+ *
+ * @param {import('express').Request} req - req.params.userId ID akun guru yang dihapus.
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 200 bila sukses; 404 bila akun guru tak ada; 400 bila masih
+ *   terpakai jadwal/absensi; 500 untuk error server. Efek samping: menghapus GuruProfile & User
+ *   dalam transaksi dan menulis audit log.
+ */
 exports.deleteGuruRegistration = async (req, res) => {
   const transaction = await db.sequelize.transaction();
 
@@ -619,6 +876,22 @@ exports.deleteGuruRegistration = async (req, res) => {
   }
 };
 
+/**
+ * Controller Express (portal guru): membuat akun portal untuk seorang siswa (dan opsional akun
+ * orang tua) oleh guru yang berhak atas kelas siswa tersebut. Memvalidasi hak akses, format dan
+ * keunikan email, panjang kata sandi, serta keunikan email siswa vs orang tua. Membuat akun
+ * (kata sandi di-hash, wajib ganti saat login pertama), menautkannya via PortalAccountLink, dan
+ * memperbarui data siswa terkait. Seluruh proses dalam satu transaksi dan dicatat ke audit log.
+ *
+ * @param {import('express').Request} req - req.body memuat siswa_id, siswa_email, siswa_password,
+ *   serta (opsional) orangtua_name, orangtua_email, orangtua_password, orangtua_phone. req.user
+ *   menunjuk guru pembuat akun.
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 201 berisi data akun siswa (dan orang tua) bila sukses; 400
+ *   untuk validasi gagal; 403 bila guru tak berhak/akun belum aktif; 404 bila siswa aktif tak ada;
+ *   409 bila email sudah terdaftar; 500 untuk error server. Efek samping: membuat User (siswa &
+ *   opsional orang tua), PortalAccountLink, update Siswa, dan menulis audit log dalam transaksi.
+ */
 exports.createStudentAccounts = async (req, res) => {
   const transaction = await db.sequelize.transaction();
 
@@ -762,6 +1035,16 @@ exports.createStudentAccounts = async (req, res) => {
   }
 };
 
+/**
+ * Controller Express (portal guru): memperbarui profil guru yang sedang login. Saat ini hanya
+ * memperbarui nama. Aksi dicatat ke audit log.
+ *
+ * @param {import('express').Request} req - req.body memuat name/nama (wajib). req.user adalah
+ *   akun guru yang login.
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 200 berisi data user dan profil guru bila sukses; 400 bila
+ *   nama kosong; 500 untuk error server. Efek samping: update nama User dan menulis audit log.
+ */
 exports.updateProfile = async (req, res) => {
   try {
     const name = String(req.body.name || req.body.nama || "").trim();

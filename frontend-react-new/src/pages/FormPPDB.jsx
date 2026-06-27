@@ -25,6 +25,12 @@ const initialForm = {
 const levelLabel = { tk: "TK", sd: "SD", smp: "SMP" };
 const typeLabel = { pendaftaran_baru: "Pendaftaran Baru", siswa_pindahan: "Siswa Pindahan" };
 
+/**
+ * Membaca berkas (File) dan mengubahnya menjadi data URL (base64) secara asinkron.
+ * @param {File} file Berkas yang akan dibaca.
+ * @returns {Promise<string>} Promise berisi data URL hasil pembacaan; reject bila error.
+ * Efek: tidak mengubah state (utilitas murni berbasis FileReader).
+ */
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -34,6 +40,19 @@ function readFileAsDataUrl(file) {
   });
 }
 
+/**
+ * Komponen input berkas dengan tampilan "chip": menampilkan tombol pilih berkas atau
+ * nama berkas terpilih beserta tombol hapus.
+ * @param {object} props
+ * @param {string} props.label Label field.
+ * @param {string} props.name Nama field (dipakai sebagai kunci pada form).
+ * @param {string} props.value Nilai berkas saat ini (data URL); kosong jika belum dipilih.
+ * @param {string} props.fileName Nama berkas terpilih untuk ditampilkan.
+ * @param {(name:string, file:File)=>void} props.onFile Callback saat berkas dipilih.
+ * @param {(name:string)=>void} props.onClear Callback saat berkas dihapus.
+ * @param {boolean} props.required Menandai field wajib diisi.
+ * @returns {JSX.Element} Elemen input berkas.
+ */
 function FileInput({ label, name, value, fileName, onFile, onClear, required }) {
   return (
     <div className="form-group">
@@ -54,19 +73,38 @@ function FileInput({ label, name, value, fileName, onFile, onClear, required }) 
   );
 }
 
+/**
+ * Halaman Formulir PPDB - halaman publik.
+ * Akses: umum (tidak perlu login).
+ * Fungsi halaman: menyediakan formulir pendaftaran peserta didik baru/pindahan, termasuk
+ * unggah berkas (KK, raport, foto, surat pindah), lalu mengirim data ke server.
+ */
 function FormPPDB() {
   const [form, setForm] = useState(initialForm);
   const [fileNames, setFileNames] = useState({});
   const [status, setStatus] = useState({ type: "", message: "" });
   const [loading, setLoading] = useState(false);
 
+  // Apakah jenjang membutuhkan berkas raport (SD/SMP).
   const needsReport = useMemo(() => ["sd", "smp"].includes(form.target_jenjang), [form.target_jenjang]);
   const needsTransferLetter = form.jenis_pendaftaran === "siswa_pindahan";
 
+  /**
+   * Menangani perubahan input teks/select pada form.
+   * @param {Event} e Event perubahan input (membawa name & value).
+   * Efek state: memperbarui field terkait pada form.
+   */
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  /**
+   * Menangani pemilihan berkas: membaca berkas menjadi data URL lalu menyimpannya.
+   * @param {string} name Nama field berkas.
+   * @param {File} file Berkas yang dipilih.
+   * Memanggil: readFileAsDataUrl(file).
+   * Efek state: menyimpan data URL ke form[name] dan nama berkas ke fileNames[name].
+   */
   const handleFile = async (name, file) => {
     if (!file) return;
     const value = await readFileAsDataUrl(file);
@@ -74,6 +112,11 @@ function FormPPDB() {
     setFileNames((current) => ({ ...current, [name]: file.name }));
   };
 
+  /**
+   * Menghapus berkas yang sebelumnya dipilih pada field tertentu.
+   * @param {string} name Nama field berkas.
+   * Efek state: mengosongkan form[name] dan menghapus entri fileNames[name].
+   */
   const handleClearFile = (name) => {
     setForm((current) => ({ ...current, [name]: "" }));
     setFileNames((current) => {
@@ -83,6 +126,12 @@ function FormPPDB() {
     });
   };
 
+  /**
+   * Mengirim data pendaftaran PPDB ke server.
+   * @param {Event} e Event submit form (dicegah default-nya).
+   * Memanggil API: createPPDB(payload) (payload menambahkan nama_ayah/nama_ibu/agama/tempat_lahir).
+   * Efek state: setLoading, setStatus (sukses/gagal); bila sukses mereset form ke initialForm.
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);

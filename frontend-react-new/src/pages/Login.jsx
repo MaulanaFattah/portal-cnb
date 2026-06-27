@@ -37,6 +37,12 @@ const loginRoles = [
   }
 ];
 
+/**
+ * Halaman Pilihan Login (portal masuk) - halaman publik.
+ * Akses: umum (tidak perlu login).
+ * Fungsi halaman: menampilkan pilihan portal masuk sesuai peran (siswa, guru, orang tua,
+ * administrator, kepala sekolah) dan menautkan ke halaman login masing-masing.
+ */
 function Login() {
   return (
     <>

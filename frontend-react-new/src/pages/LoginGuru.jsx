@@ -4,12 +4,25 @@ import { Link, useNavigate } from "react-router-dom";
 import { loginUser, saveAuth } from "../services/api";
 import PasswordField from "../components/PasswordField";
 
+/**
+ * Halaman Login Guru.
+ * Akses: umum (untuk pengguna yang akan masuk sebagai guru).
+ * Fungsi halaman: form login email & kata sandi guru; bila berhasil menyimpan sesi dan
+ * mengarahkan ke dashboard guru (atau halaman ganti kata sandi bila wajib).
+ */
 function LoginGuru() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
+  /**
+   * Memproses login guru.
+   * @param {Event} e Event submit form (dicegah default-nya).
+   * Memanggil API: loginUser({ email, password, role: "guru" }).
+   * Efek: setError bila gagal; bila sukses saveAuth(token, user) lalu navigate ke
+   * "/change-password" (jika must_change_password) atau "/dashboard-guru".
+   */
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");

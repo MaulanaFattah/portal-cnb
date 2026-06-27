@@ -1,5 +1,6 @@
 ﻿import schoolLogo from "../assets/logo-transparent.png";
 import schoolPhoto from "../assets/school-photo.jpeg";
+import foundationPhoto from "../assets/kepala-yayasan.jpeg";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
@@ -12,6 +13,12 @@ const fallbackHomeProfile = {
   sejarah: "Cipta Nusa Bakti hadir sebagai lingkungan pendidikan yang mendampingi siswa tumbuh dengan karakter, disiplin, dan kemampuan akademik yang kuat."
 };
 
+/**
+ * Memformat nilai tanggal menjadi teks lokal Indonesia (contoh: "5 Januari 2024").
+ * @param {string|Date} value Nilai tanggal yang akan diformat.
+ * @returns {string} Teks tanggal terformat; string kosong bila value kosong; nilai asli
+ *   bila tidak dapat di-parse menjadi tanggal valid. Efek: murni.
+ */
 function formatTanggal(value) {
   if (!value) return "";
   const date = new Date(value);
@@ -19,6 +26,12 @@ function formatTanggal(value) {
   return date.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
 }
 
+/**
+ * Halaman Beranda (Home) - halaman publik.
+ * Akses: umum (tidak perlu login).
+ * Fungsi halaman: menampilkan hero, ajakan PPDB, ringkasan profil sekolah, fasilitas,
+ * kegiatan terbaru, dan slider galeri. Data diambil dari API publik dengan fallback statis.
+ */
 function Home() {
   const [galeri, setGaleri] = useState([]);
   const [profile, setProfile] = useState(fallbackHomeProfile);
@@ -26,6 +39,11 @@ function Home() {
   const [kegiatan, setKegiatan] = useState([]);
   const galleryRef = useRef(null);
 
+  /**
+   * Menggeser (scroll) carousel galeri ke kiri/kanan secara halus.
+   * @param {number} direction Arah geser: -1 untuk mundur, 1 untuk maju.
+   * Efek: memanggil scrollBy pada elemen galeri (galleryRef); tidak mengubah state.
+   */
   const scrollGallery = (direction) => {
     const node = galleryRef.current;
     if (!node) return;
@@ -34,6 +52,8 @@ function Home() {
   };
 
 
+  // Efek pemuatan awal: mengambil data galeri, profil, fasilitas, dan kegiatan secara
+  // paralel saat komponen mount, lalu memperbarui state masing-masing bila berhasil.
   useEffect(() => {
     (async () => {
       const [galleryResult, profileResult, facilityResult, kegiatanResult] = await Promise.allSettled([
@@ -117,7 +137,7 @@ function Home() {
 
           <div className="home-profile-showcase">
             <figure className="home-foundation-photo">
-              <img src={schoolPhoto} alt="Kepala Yayasan Cipta Nusa Bakti" />
+              <img src={foundationPhoto} alt="Kepala Yayasan Cipta Nusa Bakti" />
               <figcaption>Kepala Yayasan Cipta Nusa Bakti</figcaption>
             </figure>
             <div className="profile-card home-profile-card">

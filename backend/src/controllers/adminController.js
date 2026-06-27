@@ -15,16 +15,41 @@ const VALID_ROLES = ["admin", "guru", "siswa", "orangtua", "kepala_sekolah"];
 const LINKED_ROLES = ["siswa", "orangtua"];
 const RESET_REQUEST_STATUSES = ["pending", "completed", "rejected"];
 
+/**
+ * Menyaring objek user agar hanya field aman (SAFE_ATTRS) yang ikut dikirim ke
+ * klien, sehingga data sensitif seperti hash kata sandi tidak pernah bocor.
+ *
+ * @param {object|null} user - Instance/objek user mentah dari database.
+ * @returns {object|null} Objek baru berisi hanya field di SAFE_ATTRS, atau null
+ *   bila input kosong. Tidak ada efek samping (murni transformasi data).
+ */
 function safeUser(user) {
   if (!user) return null;
   return SAFE_ATTRS.reduce((payload, key) => ({ ...payload, [key]: user[key] }), {});
 }
 
+/**
+ * Membersihkan dan membatasi panjang teks bebas (mis. alasan penolakan) agar
+ * konsisten: memangkas spasi berlebih dan memotong sesuai batas maksimum.
+ *
+ * @param {*} value - Nilai teks mentah yang akan dinormalisasi.
+ * @param {number} [maxLength=500] - Panjang maksimum karakter hasil.
+ * @returns {string} Teks yang sudah dirapikan dan dipotong. Tanpa efek samping.
+ */
 function normalizeText(value, maxLength = 500) {
   const text = String(value || "").trim().replace(/\s+/g, " ");
   return text.slice(0, maxLength);
 }
 
+/**
+ * Mengubah entitas permintaan reset kata sandi menjadi bentuk JSON yang aman
+ * untuk dikirim ke admin, termasuk menyaring relasi user (matchedUser/processedBy)
+ * lewat safeUser agar tidak membocorkan data sensitif.
+ *
+ * @param {object|null} request - Instance Sequelize PasswordResetRequest atau objek polos.
+ * @returns {object|null} Objek permintaan reset yang sudah dirapikan, atau null
+ *   bila input kosong. Tanpa efek samping.
+ */
 function safePasswordResetRequest(request) {
   const data = request?.toJSON ? request.toJSON() : request;
   if (!data) return null;
@@ -49,17 +74,43 @@ function safePasswordResetRequest(request) {
   };
 }
 
+/**
+ * Mengambil seluruh data kelas dari database dan menyusunnya menjadi Map untuk
+ * pencarian cepat berdasarkan id kelas (dipakai saat melekatkan data kelas ke siswa).
+ *
+ * @returns {Promise<Map<number, object>>} Map dengan kunci id kelas (number) dan
+ *   nilai objek kelas (JSON). Efek samping: melakukan query baca ke tabel Kelas.
+ */
 async function getClassMap() {
   const kelas = await Kelas.findAll();
   return new Map(kelas.map((item) => [Number(item.id), item.toJSON()]));
 }
 
+/**
+ * Melekatkan objek kelas ke data siswa berdasarkan kelas_id, sehingga konsumen
+ * mendapat informasi kelas lengkap tanpa query tambahan.
+ *
+ * @param {object|null} siswa - Instance/objek siswa.
+ * @param {Map<number, object>} classMap - Map kelas hasil getClassMap().
+ * @returns {object|null} Objek siswa dengan properti `kelas` terisi (atau null
+ *   bila kelas tidak ditemukan), atau null bila siswa kosong. Tanpa efek samping.
+ */
 function attachClass(siswa, classMap) {
   if (!siswa) return null;
   const data = siswa.toJSON ? siswa.toJSON() : siswa;
   return { ...data, kelas: classMap.get(Number(data.kelas_id)) || null };
 }
 
+/**
+ * Menyusun payload lengkap daftar pengguna dengan menggabungkan data akun, tautan
+ * portal (PortalAccountLink), dan data siswa yang terkait beserta kelasnya. Dipakai
+ * agar respons daftar/detail user menampilkan relasi siswa/orang tua secara utuh.
+ *
+ * @param {Array<object>} users - Daftar instance user yang akan diperkaya.
+ * @returns {Promise<Array<object>>} Daftar objek user aman (safeUser) yang
+ *   dilengkapi portalLink, portalLinks, dan data siswa. Efek samping: melakukan
+ *   beberapa query baca ke PortalAccountLink, Siswa, dan Kelas.
+ */
 async function buildUsersPayload(users) {
   const userIds = users.map((user) => Number(user.id));
   const links = userIds.length && PortalAccountLink
@@ -90,6 +141,21 @@ async function buildUsersPayload(users) {
   });
 }
 
+/**
+ * Membuat atau memperbarui tautan akun portal (PortalAccountLink) antara akun user
+ * dengan data siswa, sesuai peran akun. Untuk peran "orangtua" memastikan satu siswa
+ * tidak terhubung ke orang tua lain dan membersihkan tautan tipe "siswa" yang lama;
+ * untuk peran "siswa" menghapus semua tautan lama lalu membuat tautan baru.
+ *
+ * @param {number} userId - ID akun user yang akan ditautkan.
+ * @param {number} siswaId - ID siswa target tautan (wajib untuk peran siswa/orangtua).
+ * @param {string} role - Peran akun; hanya diproses bila termasuk LINKED_ROLES.
+ * @param {object} transaction - Transaksi Sequelize agar operasi bersifat atomik.
+ * @returns {Promise<object|null>} Instance PortalAccountLink yang dibuat/ditemukan,
+ *   atau null bila peran bukan siswa/orangtua. Melempar Error bila siswa tidak
+ *   dipilih, siswa tidak ditemukan, atau siswa sudah terhubung ke orang tua lain.
+ *   Efek samping: menghapus dan/atau membuat baris PortalAccountLink dalam transaksi.
+ */
 async function upsertPortalLink(userId, siswaId, role, transaction) {
   if (!PortalAccountLink || !LINKED_ROLES.includes(role)) return null;
   if (!siswaId) throw new Error("Data siswa wajib dipilih untuk akun siswa/orang tua");
@@ -117,6 +183,15 @@ async function upsertPortalLink(userId, siswaId, role, transaction) {
   return PortalAccountLink.create({ user_id: userId, siswa_id: siswa.id, link_type: role }, { transaction });
 }
 
+/**
+ * Controller Express: menampilkan ringkasan dasbor administrator berupa jumlah
+ * pengguna per peran (guru, siswa, admin, kepala sekolah) dan nama admin yang login.
+ *
+ * @param {import('express').Request} req - Memakai req.user.name (nama admin yang sedang login).
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim respons JSON 200 berisi statistik dasbor, atau
+ *   500 bila terjadi kesalahan server. Efek samping: query count ke tabel User.
+ */
 exports.dashboard = async (req, res) => {
   try {
     const totalGuru = await User.count({ where: { role: "guru" } });
@@ -145,6 +220,15 @@ exports.dashboard = async (req, res) => {
   }
 };
 
+/**
+ * Controller Express: mengambil daftar pengguna, opsional difilter berdasarkan peran,
+ * lengkap dengan tautan portal dan data siswa terkait (via buildUsersPayload).
+ *
+ * @param {import('express').Request} req - Memakai req.query.role untuk memfilter peran (opsional).
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim respons JSON 200 berisi daftar pengguna terurut
+ *   menurut nama, atau 500 bila gagal. Efek samping: query baca ke User dan relasinya.
+ */
 exports.getUsers = async (req, res) => {
   try {
     const { role } = req.query;
@@ -172,6 +256,18 @@ exports.getUsers = async (req, res) => {
   }
 };
 
+/**
+ * Controller Express: membuat pengguna baru beserta tautan portalnya bila peran
+ * berupa siswa/orang tua. Memvalidasi field wajib, peran, keunikan email, lalu
+ * menyimpan akun (kata sandi di-hash) dalam satu transaksi.
+ *
+ * @param {import('express').Request} req - req.body memuat: name, email, password,
+ *   role (default "siswa"), profession, dan siswa_id (wajib untuk siswa/orangtua).
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 201 dengan data pengguna baru bila sukses;
+ *   400 untuk validasi gagal, 409 bila email duplikat, atau 500 untuk error server.
+ *   Efek samping: membuat baris User dan (opsional) PortalAccountLink dalam transaksi.
+ */
 exports.createUser = async (req, res) => {
   try {
     const { name, email, password, role = "siswa", profession, siswa_id } = req.body;
@@ -222,6 +318,19 @@ exports.createUser = async (req, res) => {
   }
 };
 
+/**
+ * Controller Express: memperbarui data pengguna yang sudah ada dan menyesuaikan
+ * tautan portalnya. Hanya field yang dikirim yang diubah; bila peran baru bukan
+ * siswa/orang tua maka tautan portal dihapus. Seluruh perubahan dijalankan dalam transaksi.
+ *
+ * @param {import('express').Request} req - req.params.id ID pengguna; req.body memuat
+ *   name, email, password, role, profession, siswa_id (semuanya opsional).
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 200 dengan data terbaru bila sukses; 404 bila
+ *   pengguna tak ada, 409 bila email bentrok, 400 untuk validasi/transaksi gagal,
+ *   atau 500 untuk error server. Efek samping: update User dan sinkronisasi
+ *   PortalAccountLink dalam transaksi (kata sandi di-hash bila diganti).
+ */
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
@@ -289,6 +398,17 @@ exports.updateUser = async (req, res) => {
   }
 };
 
+/**
+ * Controller Express: menghapus pengguna berdasarkan id, dengan pengaman agar admin
+ * tidak dapat menghapus akunnya sendiri.
+ *
+ * @param {import('express').Request} req - req.params.id ID pengguna yang dihapus;
+ *   req.user.id dipakai untuk mencegah penghapusan akun sendiri.
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 200 bila berhasil; 404 bila pengguna tak ada,
+ *   400 bila mencoba menghapus akun sendiri, atau 500 untuk error server.
+ *   Efek samping: menghapus baris User dari database.
+ */
 exports.deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
@@ -324,10 +444,29 @@ exports.deleteUser = async (req, res) => {
 };
 
 
+/**
+ * Menghasilkan kata sandi acak berformat "CNB-XXXXXXXX" (8 karakter hex huruf besar)
+ * untuk dipakai saat admin mereset kata sandi tanpa menentukan sandi sendiri.
+ *
+ * @returns {string} String kata sandi acak. Efek samping: menggunakan crypto untuk
+ *   menghasilkan byte acak (tidak menyentuh database).
+ */
 function generatePassword() {
   return `CNB-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 }
 
+/**
+ * Controller Express: mengatur ulang (reset paksa) kata sandi seorang pengguna oleh
+ * admin. Bila admin tidak mengirim kata sandi, sistem membuatkan sandi acak. Pengguna
+ * diwajibkan mengganti kata sandi pada login berikutnya, dan aksi dicatat ke audit log.
+ *
+ * @param {import('express').Request} req - req.params.id ID pengguna; req.body.password
+ *   kata sandi baru opsional (minimal 6 karakter); req dipakai oleh logAudit (identitas admin).
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 200 berisi data user dan generated_password (bila
+ *   dibuat otomatis); 400 bila sandi terlalu pendek, 404 bila user tak ada, atau 500.
+ *   Efek samping: update kata sandi (di-hash) & must_change_password, serta menulis audit log.
+ */
 exports.resetUserPassword = async (req, res) => {
   try {
     const { id } = req.params;
@@ -367,6 +506,17 @@ exports.resetUserPassword = async (req, res) => {
   }
 };
 
+/**
+ * Controller Express: mengambil daftar permintaan reset kata sandi (dari pengguna),
+ * difilter berdasarkan status. Disajikan untuk admin agar dapat memproses/menolak.
+ *
+ * @param {import('express').Request} req - req.query.status status filter (default
+ *   "pending"); bila status tidak valid maka tidak difilter (semua status diambil).
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 200 berisi daftar permintaan reset (lengkap relasi
+ *   matchedUser & processedBy yang sudah disaring), atau 500 bila gagal. Efek samping:
+ *   query baca ke PasswordResetRequest beserta relasi User.
+ */
 exports.getPasswordResetRequests = async (req, res) => {
   try {
     const status = String(req.query.status || "pending").trim().toLowerCase();
@@ -386,6 +536,21 @@ exports.getPasswordResetRequests = async (req, res) => {
   }
 };
 
+/**
+ * Controller Express: memproses (menyetujui) permintaan reset kata sandi yang masih
+ * "pending". Memvalidasi bahwa akun cocok otomatis dan perannya sesuai, lalu mengganti
+ * kata sandi user (di-hash) sambil menandai must_change_password. Permintaan ditandai
+ * "completed". Seluruh langkah berjalan dalam satu transaksi dan dicatat ke audit log.
+ *
+ * @param {import('express').Request} req - req.params.id ID permintaan reset; req.body.password
+ *   kata sandi baru opsional (minimal 6 karakter; bila kosong dibuat otomatis);
+ *   req.user.id dipakai sebagai pemroses.
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 200 berisi request, user, dan generated_password
+ *   (bila otomatis); 404 bila permintaan tak ada; 400 bila sudah diproses, sandi pendek,
+ *   atau akun tidak cocok/valid; 500 untuk error server. Efek samping: update User &
+ *   PasswordResetRequest dalam transaksi, menulis audit log.
+ */
 exports.processPasswordResetRequest = async (req, res) => {
   const transaction = await db.sequelize.transaction();
 
@@ -461,6 +626,18 @@ exports.processPasswordResetRequest = async (req, res) => {
   }
 };
 
+/**
+ * Controller Express: menolak permintaan reset kata sandi yang masih "pending" dengan
+ * alasan penolakan. Aksi dicatat ke audit log.
+ *
+ * @param {import('express').Request} req - req.params.id ID permintaan; req.body.reason
+ *   atau req.body.alasan_penolakan sebagai alasan (default "Ditolak administrator");
+ *   req.user.id dipakai sebagai pemroses.
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 200 berisi data request yang ditolak; 404 bila
+ *   permintaan tak ada; 400 bila sudah diproses; 500 untuk error server. Efek samping:
+ *   update PasswordResetRequest menjadi "rejected" dan menulis audit log.
+ */
 exports.rejectPasswordResetRequest = async (req, res) => {
   try {
     const request = await PasswordResetRequest.findByPk(req.params.id);

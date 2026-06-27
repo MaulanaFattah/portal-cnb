@@ -21,33 +21,66 @@ const emptyForm = {
   foto: ""
 };
 
+/**
+ * Mengubah kode status akun menjadi label yang mudah dibaca.
+ *
+ * Parameter: status - kode status (mis. "aktif").
+ * Mengembalikan: "Terverifikasi" bila status "aktif", selain itu
+ * "Menunggu verifikasi".
+ */
 function getStatusLabel(status) {
   return status === "aktif" ? "Terverifikasi" : "Menunggu verifikasi";
 }
 
+/**
+ * Halaman Admin Kepala Sekolah.
+ *
+ * Halaman ini dipakai admin untuk mengelola data dan akun kepala sekolah per
+ * jenjang (SD/SMP), termasuk memverifikasi registrasi kepala sekolah yang
+ * masuk. Admin dapat menambah (langsung aktif), mengubah, memverifikasi, dan
+ * menghapus data kepala sekolah.
+ *
+ * Peran/akses: hanya admin (area dashboard admin, butuh sesi login admin).
+ */
 function AdminKepalaSekolah() {
   const navigate = useNavigate();
   const [kepalaSekolah, setKepalaSekolah] = useState([]);
   const [editId, setEditId] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
 
+  // Daftar kepala sekolah yang masih menunggu verifikasi (status bukan "aktif").
   const pendingKepalaSekolah = kepalaSekolah.filter((item) => item.status !== "aktif");
 
+  /**
+   * Memuat daftar kepala sekolah dari server.
+   * Efek: memanggil API getKepalaSekolah(); mengisi state kepalaSekolah bila sukses.
+   */
   const loadKepalaSekolah = async () => {
     const result = await getKepalaSekolah();
     if (result.success) setKepalaSekolah(result.data || []);
   };
 
+  // Memuat data kepala sekolah sekali saat komponen dipasang.
   useEffect(() => {
     (async () => {
       await loadKepalaSekolah();
     })();
   }, []);
 
+  /**
+   * Menangani perubahan input teks/select pada form kepala sekolah.
+   * Parameter: e - event input (memakai name & value).
+   * Efek: memperbarui field terkait pada formData.
+   */
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  /**
+   * Menangani pemilihan foto dan mengonversinya ke data URL (base64).
+   * Parameter: e - event input file.
+   * Efek: membaca file dengan FileReader lalu menyimpan hasilnya ke formData.foto.
+   */
   const handleImage = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -59,11 +92,22 @@ function AdminKepalaSekolah() {
     reader.readAsDataURL(file);
   };
 
+  /**
+   * Mengembalikan form ke kondisi kosong (mode tambah).
+   * Efek: mereset editId dan formData ke nilai default.
+   */
   const resetForm = () => {
     setEditId(null);
     setFormData(emptyForm);
   };
 
+  /**
+   * Menyimpan data kepala sekolah (tambah baru atau perbarui).
+   * Parameter: e - event submit form (dicegah reload-nya).
+   * Efek: menyusun payload (data baru otomatis berstatus "aktif"); memanggil
+   * API updateKepalaSekolah (bila editId) atau createKepalaSekolah; alert;
+   * bila sukses mereset form dan memuat ulang daftar.
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -92,11 +136,23 @@ function AdminKepalaSekolah() {
     loadKepalaSekolah();
   };
 
+  /**
+   * Mengisi form dengan data kepala sekolah terpilih untuk diubah (mode edit).
+   * Parameter: item - objek kepala sekolah.
+   * Efek: mengeset editId dan menyalin data item ke formData (password
+   * dikosongkan, jenjang default "sd").
+   */
   const handleEdit = (item) => {
     setEditId(item.id);
     setFormData({ ...emptyForm, ...item, foto: item.foto || "", password: "", jenjang: item.jenjang || "sd" });
   };
 
+  /**
+   * Memverifikasi (mengaktifkan) akun kepala sekolah setelah konfirmasi.
+   * Parameter: item - objek kepala sekolah yang diverifikasi.
+   * Efek: konfirmasi; memanggil API updateKepalaSekolah dengan status "aktif";
+   * alert; bila sukses memuat ulang daftar.
+   */
   const handleVerify = async (item) => {
     if (!confirm(`Verifikasi akun kepala sekolah ${item.nama}?`)) return;
 
@@ -108,6 +164,11 @@ function AdminKepalaSekolah() {
     }
   };
 
+  /**
+   * Menghapus data kepala sekolah setelah konfirmasi.
+   * Parameter: id - id kepala sekolah.
+   * Efek: konfirmasi; memanggil API deleteKepalaSekolah; alert; memuat ulang daftar.
+   */
   const handleDelete = async (id) => {
     if (!confirm("Yakin ingin menghapus data kepala sekolah ini?")) return;
     const result = await deleteKepalaSekolah(id);
@@ -115,6 +176,10 @@ function AdminKepalaSekolah() {
     loadKepalaSekolah();
   };
 
+  /**
+   * Keluar dari sesi admin.
+   * Efek: memanggil logout() lalu mengarahkan ke halaman login admin.
+   */
   const handleLogout = () => {
     logout();
     navigate("/admin-login");

@@ -16,6 +16,12 @@ const initialForm = {
   subject: ""
 };
 
+/**
+ * Menebak jenjang kelas (SD/SMP) berdasarkan tingkat dan nama kelas.
+ * @param {{tingkat?:string, nama_kelas?:string}} kelas Objek kelas.
+ * @returns {"smp"|"sd"|""} "smp" atau "sd" bila terdeteksi, "" bila tidak diketahui.
+ * Efek: murni (tidak memanggil API maupun mengubah state).
+ */
 function inferKelasJenjang(kelas) {
   const text = `${kelas?.tingkat || ""} ${kelas?.nama_kelas || ""}`.toLowerCase();
   if (/(smp|vii|viii|ix|\b7\b|\b8\b|\b9\b)/.test(text)) return "smp";
@@ -23,6 +29,13 @@ function inferKelasJenjang(kelas) {
   return "";
 }
 
+/**
+ * Halaman Registrasi Guru - halaman publik.
+ * Akses: umum (calon guru yang mendaftar; akun menunggu verifikasi admin).
+ * Fungsi halaman: form registrasi guru dengan pilihan jenjang (SD/SMP), kelas absensi
+ * (SD), status guru SMP (mapel/wali+mapel), mata pelajaran, dan kata sandi. Mengirim data
+ * registrasi ke server lalu mengarahkan ke halaman login guru.
+ */
 function RegisterGuru() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState(initialForm);
@@ -30,16 +43,19 @@ function RegisterGuru() {
 
   const isSmp = formData.jenjang === "smp";
   const isSd = formData.jenjang === "sd";
+  // Apakah pengisi adalah wali kelas SMP (status wali_mapel).
   const isHomeroom = useMemo(
     () => isSmp && formData.smpRole === "wali_mapel",
     [isSmp, formData.smpRole]
   );
   const subjectRequired = isSmp;
+  // Opsi kelas khusus jenjang SD (menyaring kelas yang terdeteksi sebagai SMP).
   const sdKelasOptions = useMemo(
     () => kelasOptions.filter((kelas) => inferKelasJenjang(kelas) !== "smp"),
     [kelasOptions]
   );
 
+  // Efek pemuatan awal: mengambil daftar kelas dari API untuk opsi kelas absensi.
   useEffect(() => {
     (async () => {
       const result = await getKelas();
@@ -47,6 +63,12 @@ function RegisterGuru() {
     })();
   }, []);
 
+  /**
+   * Menangani perubahan input/select pada form registrasi.
+   * @param {Event} event Event perubahan (membawa name & value).
+   * Efek state: memperbarui field terkait; bila field "jenjang" berubah, mereset
+   * kelas_id, subject, dan smpRole ke nilai awal.
+   */
   const handleChange = (event) => {
     const { name, value } = event.target;
     setFormData((current) => ({
@@ -56,6 +78,13 @@ function RegisterGuru() {
     }));
   };
 
+  /**
+   * Memproses registrasi guru.
+   * @param {Event} event Event submit form (dicegah default-nya).
+   * Validasi: konfirmasi kata sandi cocok, mata pelajaran wajib untuk SMP, kelas wajib untuk SD.
+   * Memanggil API: registerGuru({...}) dengan payload peran/jenjang/kelas/mapel.
+   * Efek: alert bila gagal/validasi; bila sukses mereset form dan navigate ke "/login-guru".
+   */
   const handleRegister = async (event) => {
     event.preventDefault();
 

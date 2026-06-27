@@ -4,17 +4,41 @@ const { logAudit } = require("../services/auditLogService");
 
 const Galeri = db.Galeri;
 
+/**
+ * Menentukan nilai field gambar yang akan disimpan: bila ada file upload baru maka memakai
+ * path relatifnya; bila klien mengirim field image (boleh kosong) maka memakai nilai itu atau
+ * fallback ke gambar saat ini; selain itu mempertahankan gambar saat ini.
+ *
+ * @param {import('express').Request} req - Memakai req.file (hasil upload) dan req.body.image.
+ * @param {string|null} [currentImage=null] - Path gambar yang sudah ada (untuk update).
+ * @returns {string|null} Path gambar yang akan dipakai. Tanpa efek samping ke database.
+ */
 function getImageValue(req, currentImage = null) {
   if (req.file) return toRelativeUploadPath(req.file);
   if (req.body.image !== undefined) return req.body.image || currentImage;
   return currentImage;
 }
 
+/**
+ * Membentuk judul foto galeri: memakai judul yang diberikan bila ada, atau membuat judul
+ * default berisi tanggal lokal Indonesia bila kosong.
+ *
+ * @param {*} value - Judul yang dimasukkan pengguna.
+ * @returns {string} Judul foto final. Tanpa efek samping.
+ */
 function buildPhotoTitle(value) {
   const title = String(value || "").trim();
   return title || `Foto Galeri ${new Date().toLocaleDateString("id-ID")}`;
 }
 
+/**
+ * Controller Express: mengambil seluruh data galeri, diurutkan dari yang terbaru.
+ *
+ * @param {import('express').Request} req - Tidak memakai parameter khusus.
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 200 berisi daftar galeri, atau 500 bila gagal.
+ *   Efek samping: query baca ke tabel Galeri.
+ */
 exports.getAllGaleri = async (req, res) => {
   try {
     const galeri = await Galeri.findAll({
@@ -35,6 +59,18 @@ exports.getAllGaleri = async (req, res) => {
   }
 };
 
+/**
+ * Controller Express: menambah foto galeri baru. Wajib menyertakan file foto. Membuat
+ * record galeri dan mencatat aksi ke audit log. Bila terjadi error, file yang sudah diupload
+ * akan dihapus agar tidak menjadi sampah.
+ *
+ * @param {import('express').Request} req - req.body memuat title, description, category;
+ *   req.file berisi file foto hasil upload (wajib).
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 201 berisi data galeri baru bila sukses; 400 bila foto
+ *   tidak diupload; 500 untuk error server (file upload dihapus). Efek samping: membuat record
+ *   Galeri, menulis audit log, dan/atau menghapus file lokal saat gagal.
+ */
 exports.createGaleri = async (req, res) => {
   try {
     const { title, description, category } = req.body;
@@ -70,6 +106,18 @@ exports.createGaleri = async (req, res) => {
   }
 };
 
+/**
+ * Controller Express: memperbarui data galeri berdasarkan id. Field yang tidak dikirim akan
+ * mempertahankan nilai lama. Bila ada foto baru, foto lama dihapus dari penyimpanan. Aksi
+ * dicatat ke audit log. Bila galeri tidak ditemukan atau terjadi error, file baru dibersihkan.
+ *
+ * @param {import('express').Request} req - req.params.id ID galeri; req.body memuat title,
+ *   description, category (opsional); req.file foto baru (opsional).
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 200 berisi data terbaru bila sukses; 404 bila galeri tak
+ *   ada (file baru dihapus); 500 untuk error server (file baru dihapus). Efek samping: update
+ *   record Galeri, menghapus file lama bila diganti, dan menulis audit log.
+ */
 exports.updateGaleri = async (req, res) => {
   try {
     const { id } = req.params;
@@ -115,6 +163,15 @@ exports.updateGaleri = async (req, res) => {
   }
 };
 
+/**
+ * Controller Express: menghapus data galeri berdasarkan id beserta file fotonya dari
+ * penyimpanan. Aksi dicatat ke audit log.
+ *
+ * @param {import('express').Request} req - req.params.id ID galeri yang dihapus.
+ * @param {import('express').Response} res - Objek respons Express.
+ * @returns {Promise<void>} Mengirim 200 bila sukses; 404 bila galeri tak ada; 500 untuk error
+ *   server. Efek samping: menghapus record Galeri, menghapus file lokal, dan menulis audit log.
+ */
 exports.deleteGaleri = async (req, res) => {
   try {
     const { id } = req.params;

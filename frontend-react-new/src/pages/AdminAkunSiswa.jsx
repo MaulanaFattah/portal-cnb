@@ -13,6 +13,8 @@ import {
   createSiswa,
   updateSiswa,
   deleteSiswa,
+  promoteSiswa,
+  getArsipKelas,
   logout
 } from "../services/api";
 
@@ -26,7 +28,8 @@ const roleLabels = {
 const tabs = [
   { id: "relasi", label: "Relasi" },
   { id: "siswa", label: "Siswa" },
-  { id: "orangtua", label: "Orang Tua" }
+  { id: "orangtua", label: "Orang Tua" },
+  { id: "arsip", label: "Arsip Kelas" }
 ];
 
 const emptyStudentForm = {
@@ -49,14 +52,33 @@ const emptyAccountForm = {
   profession: ""
 };
 
+/**
+ * Membuat label kelas yang mudah dibaca dari objek kelas.
+ *
+ * Parameter: item - objek kelas ({ nama_kelas, tingkat, tahun_ajaran }).
+ * Mengembalikan: string gabungan, mis. "VI A - Tingkat 6 - 2024/2025".
+ */
 function classLabel(item = {}) {
   return [item.nama_kelas, item.tingkat ? `Tingkat ${item.tingkat}` : null, item.tahun_ajaran].filter(Boolean).join(" - ");
 }
 
+/**
+ * Mengambil nama kelas seorang siswa.
+ *
+ * Parameter: student - objek siswa.
+ * Mengembalikan: nama kelas; bila tidak ada, fallback "Kelas {id}" atau
+ * teks "Belum ada kelas".
+ */
 function getStudentClassName(student) {
   return student?.kelas?.nama_kelas || (student?.kelas_id ? `Kelas ${student.kelas_id}` : "Belum ada kelas");
 }
 
+/**
+ * Mengonversi angka Romawi menjadi bilangan bulat.
+ *
+ * Parameter: value - teks yang berisi angka Romawi (mis. "VII").
+ * Mengembalikan: nilai integer, atau null bila tidak valid/ kosong.
+ */
 function romanToInt(value) {
   const map = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 };
   const s = String(value || "").toUpperCase().replace(/[^IVXLCDM]/g, "");
@@ -74,6 +96,14 @@ function romanToInt(value) {
 // Urutan kelas harus berdasarkan nilai tingkat (1..9), bukan urutan alfabet
 // nama romawi (yang membuat IV muncul sebelum IX padahal 4 < 9 sudah benar,
 // tapi V/VI/VII jadi kacau saat dibandingkan sebagai teks).
+/**
+ * Menghitung peringkat (rank) kelas siswa untuk keperluan pengurutan.
+ *
+ * Parameter: student - objek siswa.
+ * Mengembalikan: angka tingkat (TK = 0, lalu 1..9). Mencoba berurutan dari
+ * field tingkat, angka pada nama kelas, lalu konversi angka Romawi; bila
+ * gagal mengembalikan nilai sangat besar agar berada di urutan terakhir.
+ */
 function getStudentClassRank(student) {
   const kelas = student?.kelas || {};
   const name = String(kelas.nama_kelas || "");
@@ -87,39 +117,91 @@ function getStudentClassRank(student) {
   return Number.MAX_SAFE_INTEGER;
 }
 
+/**
+ * Mengambil nama orang tua siswa.
+ *
+ * Parameter: student - objek siswa.
+ * Mengembalikan: nama ayah, lalu nama ibu, atau teks "Belum ada data orang tua".
+ */
 function getStudentParentName(student) {
   return student?.nama_ayah || student?.nama_ibu || "Belum ada data orang tua";
 }
 
+/**
+ * Menormalkan nomor telepon ke format lokal (diawali 0).
+ *
+ * Parameter: value - nomor telepon mentah (boleh mengandung non-digit/ +62).
+ * Mengembalikan: string berisi digit saja; awalan "62" diubah menjadi "0".
+ */
 function normalizePhoneNumber(value) {
   const digits = String(value || "").replace(/\D/g, "");
   if (digits.startsWith("62")) return `0${digits.slice(2)}`;
   return digits;
 }
 
+/**
+ * Membangun email portal otomatis berdasarkan NISN.
+ *
+ * Parameter:
+ *  - nisn: nomor induk siswa.
+ *  - type: "siswa" atau selain itu (dianggap orang tua).
+ * Mengembalikan: email mis. "<nisn>@cnb.sch.id" untuk siswa atau
+ * "<nisn>.ortu@cnb.sch.id" untuk orang tua; string kosong bila NISN kosong.
+ */
 function buildPortalEmail(nisn, type) {
   const cleanNisn = String(nisn || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
   if (!cleanNisn) return "";
   return type === "siswa" ? `${cleanNisn}@cnb.sch.id` : `${cleanNisn}.ortu@cnb.sch.id`;
 }
 
+/**
+ * Membuat kata sandi sementara acak.
+ *
+ * Parameter: prefix - awalan kata sandi (mis. "ORTU").
+ * Mengembalikan: string mis. "ORTU-AB12CD".
+ */
 function generateTemporaryPassword(prefix) {
   const random = Math.random().toString(36).slice(2, 8).toUpperCase();
   return `${prefix}-${random}`;
 }
 
+/**
+ * Mengambil daftar relasi portal (portalLinks) sebuah akun.
+ *
+ * Parameter: account - objek akun pengguna.
+ * Mengembalikan: array portalLinks; bila kosong, mencoba portalLink tunggal;
+ * bila tidak ada, array kosong.
+ */
 function getAccountPortalLinks(account) {
   const links = Array.isArray(account?.portalLinks) ? account.portalLinks : [];
   if (links.length > 0) return links;
   return account?.portalLink ? [account.portalLink] : [];
 }
 
+/**
+ * Menentukan nama default akun berdasarkan peran dan data siswa.
+ *
+ * Parameter:
+ *  - role: "orangtua" atau "siswa".
+ *  - student: objek siswa terkait.
+ * Mengembalikan: untuk orang tua memakai nama ayah/ibu atau "Orang Tua {nama}";
+ * untuk siswa memakai nama siswa. String kosong bila siswa tidak ada.
+ */
 function getDefaultAccountName(role, student) {
   if (!student) return "";
   if (role === "orangtua") return student.nama_ayah || student.nama_ibu || `Orang Tua ${student.nama}`;
   return student.nama || "";
 }
 
+/**
+ * Menentukan teks profesi/keterangan default akun berdasarkan peran.
+ *
+ * Parameter:
+ *  - role: "orangtua" atau "siswa".
+ *  - student: objek siswa terkait.
+ * Mengembalikan: untuk orang tua "Orang tua dari {nama} | No HP: ..."; untuk
+ * siswa "Siswa {nama kelas}". String kosong bila siswa tidak ada.
+ */
 function getDefaultProfession(role, student) {
   if (!student) return "";
   if (role === "orangtua") {
@@ -128,6 +210,13 @@ function getDefaultProfession(role, student) {
   return `Siswa ${getStudentClassName(student)}`;
 }
 
+/**
+ * Mengubah objek siswa menjadi struktur data form yang konsisten.
+ *
+ * Parameter: item - objek siswa (boleh sebagian).
+ * Mengembalikan: objek form siswa dengan field standar dan nilai default
+ * (mis. jenis_kelamin "L") agar aman dipakai sebagai controlled form.
+ */
 function toStudentFormData(item = {}) {
   return {
     nisn: item.nisn || "",
@@ -141,6 +230,18 @@ function toStudentFormData(item = {}) {
   };
 }
 
+/**
+ * Halaman Admin Manajemen Siswa & Orang Tua.
+ *
+ * Halaman ini memusatkan pengelolaan data siswa, akun portal siswa, dan akun
+ * portal orang tua dalam satu tempat. Fitur utama: melihat relasi siswa-orang
+ * tua, menambah/mengubah/menghapus data siswa, membuat/mengelola akun orang
+ * tua (satu akun dapat terhubung ke beberapa anak), reset kata sandi akun,
+ * proses Naik Kelas (promosi/pindah kelas massal), serta melihat Arsip Kelas.
+ *
+ * Peran/akses: hanya admin (berada di area dashboard admin dan memerlukan
+ * sesi login admin).
+ */
 function AdminAkunSiswa() {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
@@ -165,6 +266,27 @@ function AdminAkunSiswa() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Naik Kelas (item 3)
+  const [isPromoteOpen, setIsPromoteOpen] = useState(false);
+  const [promoteForm, setPromoteForm] = useState({ tahun_ajaran: "", kelas_tujuan_id: "" });
+  const [promoteSelected, setPromoteSelected] = useState([]);
+  const [promoteFilterClass, setPromoteFilterClass] = useState("all");
+  const [promoteSearch, setPromoteSearch] = useState("");
+  const [savingPromote, setSavingPromote] = useState(false);
+
+  // Arsip Kelas (item 5)
+  const [arsip, setArsip] = useState([]);
+  const [arsipLoading, setArsipLoading] = useState(false);
+
+  /**
+   * Memuat seluruh data yang dibutuhkan halaman secara paralel.
+   *
+   * Parameter: tidak ada.
+   * Efek: memanggil API getUsersByRole("siswa"), getUsersByRole("orangtua"),
+   * getSiswa(), dan getKelas() sekaligus; mengisi state users (gabungan akun
+   * siswa + orang tua), siswaList, dan kelas. Dipakai saat awal dan setelah
+   * setiap perubahan data.
+   */
   const loadData = async () => {
     const [siswaAccounts, parentAccounts, studentResult, kelasResult] = await Promise.all([
       getUsersByRole("siswa"),
@@ -177,14 +299,18 @@ function AdminAkunSiswa() {
     if (kelasResult.success) setKelas(kelasResult.data || []);
   };
 
+  // Memuat data awal halaman sekali saat komponen dipasang.
   useEffect(() => {
     (async () => {
       await loadData();
     })();
   }, []);
 
+  // Peta cepat id siswa -> objek siswa, untuk pencarian relasi yang efisien.
   const studentMap = useMemo(() => new Map(siswaList.map((student) => [String(student.id), student])), [siswaList]);
 
+  // Mengelompokkan akun (siswa/orang tua) per id siswa berdasarkan portalLinks,
+  // sehingga tiap siswa tahu akun siswa & akun orang tua yang terhubung.
   const accountsByStudent = useMemo(() => {
     const accountMap = new Map();
     users.forEach((account) => {
@@ -199,6 +325,8 @@ function AdminAkunSiswa() {
     return accountMap;
   }, [users]);
 
+  // Membentuk baris tabel orang tua: tiap akun orang tua beserta daftar siswa
+  // unik yang terhubung, diurutkan berdasarkan nama akun.
   const parentRows = useMemo(() => {
     return users
       .filter((account) => account.role === "orangtua")
@@ -212,6 +340,8 @@ function AdminAkunSiswa() {
       .sort((first, second) => (first.account.name || "").localeCompare(second.account.name || "", "id-ID"));
   }, [studentMap, users]);
 
+  // Opsi pilihan siswa untuk dialog akun, difilter berdasarkan kata kunci
+  // pencarian dan dibatasi maksimal 50 hasil agar ringan.
   const accountStudentOptions = useMemo(() => {
     const keyword = studentQuery.trim().toLowerCase();
     const list = keyword
@@ -223,6 +353,9 @@ function AdminAkunSiswa() {
       .slice(0, 50);
   }, [siswaList, studentQuery]);
 
+  // Saat menambah siswa baru, mendeteksi kemungkinan akun orang tua yang sudah
+  // ada (berdasarkan nomor HP yang sama dengan saudara kandung) agar bisa
+  // dipakai ulang alih-alih membuat akun baru.
   const reusableParentPreview = useMemo(() => {
     if (studentEditId) return null;
     const phone = normalizePhoneNumber(studentForm.no_telepon);
@@ -240,6 +373,8 @@ function AdminAkunSiswa() {
   }, [accountsByStudent, siswaList, studentEditId, studentForm.no_telepon]);
 
 
+  // Daftar siswa hasil filter pencarian, lalu diurutkan berdasarkan tingkat
+  // kelas, nama kelas, dan nama siswa.
   const filteredStudents = useMemo(() => {
     const keyword = search.trim().toLowerCase();
     return siswaList
@@ -265,6 +400,8 @@ function AdminAkunSiswa() {
       });
   }, [accountsByStudent, search, siswaList]);
 
+  // Mengelompokkan siswa hasil filter ke dalam grup per nama kelas untuk
+  // tampilan tabel relasi.
   const groupedStudentsByClass = useMemo(() => {
     const groups = new Map();
     filteredStudents.forEach((student) => {
@@ -276,6 +413,8 @@ function AdminAkunSiswa() {
   }, [filteredStudents]);
 
 
+  // Menghitung angka ringkasan (kartu statistik): total siswa, jumlah akun
+  // siswa, jumlah akun orang tua, dan jumlah siswa yang punya relasi orang tua.
   const summaryItems = useMemo(() => {
     const studentAccounts = users.filter((account) => account.role === "siswa" && getAccountPortalLinks(account).some((link) => link.siswa_id)).length;
     const parentLinkedStudentIds = new Set();
@@ -288,11 +427,132 @@ function AdminAkunSiswa() {
     ];
   }, [parentRows, siswaList.length, users]);
 
+  /**
+   * Keluar dari sesi admin.
+   * Efek: memanggil logout() dan mengarahkan ke halaman login admin.
+   */
   const handleLogout = () => {
     logout();
     navigate("/admin-login");
   };
 
+  // ===== Naik Kelas handlers =====
+  // Daftar siswa kandidat naik/pindah kelas (mengecualikan yang sudah lulus),
+  // difilter berdasarkan kelas asal dan kata kunci pencarian.
+  const promoteStudents = useMemo(() => {
+    const keyword = promoteSearch.trim().toLowerCase();
+    return siswaList.filter((item) => {
+      if (item.status === "lulus") return false;
+      const itemClassId = String(item.kelas_id || item.kelas?.id || "");
+      const matchesClass = promoteFilterClass === "all"
+        ? true
+        : (promoteFilterClass === "none" ? !itemClassId : itemClassId === String(promoteFilterClass));
+      const matchesKeyword = !keyword || [item.nama, item.nisn].some((value) => String(value || "").toLowerCase().includes(keyword));
+      return matchesClass && matchesKeyword;
+    });
+  }, [siswaList, promoteFilterClass, promoteSearch]);
+
+  /**
+   * Membuka dialog Naik Kelas dan mereset seluruh state terkait.
+   * Efek: mengosongkan form promosi, daftar terpilih, filter, dan pencarian,
+   * lalu menampilkan dialog.
+   */
+  const openPromoteDialog = () => {
+    setPromoteForm({ tahun_ajaran: "", kelas_tujuan_id: "" });
+    setPromoteSelected([]);
+    setPromoteFilterClass("all");
+    setPromoteSearch("");
+    setIsPromoteOpen(true);
+  };
+
+  /**
+   * Mencentang/membatalkan satu siswa pada daftar promosi.
+   * Parameter: id - id siswa.
+   * Efek: menambah/menghapus id dari state promoteSelected.
+   */
+  const togglePromoteStudent = (id) => {
+    setPromoteSelected((current) =>
+      current.includes(id) ? current.filter((value) => value !== id) : [...current, id]
+    );
+  };
+
+  /**
+   * Memilih/membatalkan semua siswa yang sedang tampil (sesuai filter).
+   * Efek: bila semua sudah terpilih maka dilepas, jika belum maka ditambahkan
+   * ke promoteSelected.
+   */
+  const toggleSelectAllPromote = () => {
+    const visibleIds = promoteStudents.map((item) => item.id);
+    const allSelected = visibleIds.length > 0 && visibleIds.every((id) => promoteSelected.includes(id));
+    if (allSelected) {
+      setPromoteSelected((current) => current.filter((id) => !visibleIds.includes(id)));
+    } else {
+      setPromoteSelected((current) => [...new Set([...current, ...visibleIds])]);
+    }
+  };
+
+  /**
+   * Menyimpan proses Naik Kelas untuk siswa yang dicentang.
+   * Parameter: event - event submit form (dicegah reload-nya).
+   * Efek: validasi minimal satu siswa; memanggil API promoteSiswa dengan
+   * kelas tujuan, tahun ajaran, dan daftar id siswa; menampilkan alert; bila
+   * sukses menutup dialog dan memuat ulang data. Mengubah state savingPromote.
+   */
+  const handlePromoteSubmit = async (event) => {
+    event.preventDefault();
+    if (promoteSelected.length === 0) {
+      alert("Centang minimal satu siswa yang akan naik/pindah kelas.");
+      return;
+    }
+
+    setSavingPromote(true);
+    const result = await promoteSiswa({
+      kelas_tujuan_id: promoteForm.kelas_tujuan_id,
+      tahun_ajaran: promoteForm.tahun_ajaran,
+      siswa_ids: promoteSelected
+    });
+    setSavingPromote(false);
+
+    alert(result.message);
+    if (result.success) {
+      setIsPromoteOpen(false);
+      await loadData();
+    }
+  };
+
+  // ===== Arsip Kelas handlers =====
+  /**
+   * Memuat data arsip kelas/kelulusan dari server.
+   * Efek: memanggil API getArsipKelas(); mengisi state arsip bila sukses,
+   * atau menampilkan alert pesan error. Mengubah state arsipLoading.
+   */
+  const loadArsip = async () => {
+    setArsipLoading(true);
+    const result = await getArsipKelas();
+    setArsipLoading(false);
+    if (result.success) setArsip(result.data || []);
+    else alert(result.message);
+  };
+
+  // Memuat arsip kelas hanya ketika tab "arsip" aktif.
+  useEffect(() => {
+    if (activeTab === "arsip") loadArsip();
+  }, [activeTab]);
+
+  /**
+   * Memformat tanggal arsip ke format lokal Indonesia.
+   * Parameter: value - tanggal (string/Date).
+   * Mengembalikan: teks tanggal "dd Mon yyyy" atau "-" bila kosong.
+   */
+  const formatTanggalArsip = (value) => {
+    if (!value) return "-";
+    return new Date(value).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+  };
+
+  /**
+   * Membuka dialog tambah siswa baru (mode buat).
+   * Efek: mereset editId, form siswa, dan kredensial; menampilkan dialog siswa.
+   */
   const openCreateStudentDialog = () => {
     setStudentEditId(null);
     setStudentForm(emptyStudentForm);
@@ -300,6 +560,11 @@ function AdminAkunSiswa() {
     setIsStudentDialogOpen(true);
   };
 
+  /**
+   * Membuka dialog ubah data siswa (mode edit).
+   * Parameter: student - objek siswa yang akan diedit.
+   * Efek: mengeset editId, mengisi form dari data siswa, dan menampilkan dialog.
+   */
   const openEditStudentDialog = (student) => {
     setStudentEditId(student.id);
     setStudentForm(toStudentFormData(student));
@@ -307,6 +572,9 @@ function AdminAkunSiswa() {
     setIsStudentDialogOpen(true);
   };
 
+  /**
+   * Menutup dialog siswa dan mereset state form terkait.
+   */
   const closeStudentDialog = () => {
     setStudentEditId(null);
     setStudentForm(emptyStudentForm);
@@ -314,11 +582,24 @@ function AdminAkunSiswa() {
     setIsSubmitting(false);
   };
 
+  /**
+   * Menangani perubahan input pada form siswa.
+   * Parameter: event - event input (memakai name & value).
+   * Efek: memperbarui field terkait pada studentForm.
+   */
   const handleStudentChange = (event) => {
     const { name, value } = event.target;
     setStudentForm((current) => ({ ...current, [name]: value }));
   };
 
+  /**
+   * Menyimpan data siswa (tambah baru atau perbarui).
+   * Parameter: event - event submit form (dicegah reload-nya).
+   * Efek: menyusun payload; bila tambah baru dan ada akun orang tua yang bisa
+   * dipakai ulang, memakai namanya; memanggil API updateSiswa atau createSiswa;
+   * menampilkan alert; bila sukses menampilkan kredensial (bila ada), menutup
+   * dialog, dan memuat ulang data. Mengubah state isSubmitting & credentials.
+   */
   const handleStudentSubmit = async (event) => {
     event.preventDefault();
     setIsSubmitting(true);
@@ -339,6 +620,12 @@ function AdminAkunSiswa() {
     }
   };
 
+  /**
+   * Menghapus data siswa setelah konfirmasi.
+   * Parameter: student - objek siswa yang akan dihapus.
+   * Efek: konfirmasi; memanggil API deleteSiswa (akun siswa ikut terhapus,
+   * akun orang tua dipertahankan); menampilkan alert; memuat ulang bila sukses.
+   */
   const handleStudentDelete = async (student) => {
     if (!confirm(`Yakin ingin menghapus data siswa ${student.nama}? Akun siswa ikut terhapus, akun orang tua tetap disimpan.`)) return;
     const result = await deleteSiswa(student.id);
@@ -346,6 +633,12 @@ function AdminAkunSiswa() {
     if (result.success) await loadData();
   };
 
+  /**
+   * Membuka dialog akun (siswa/orang tua) untuk buat baru atau edit.
+   * Parameter: objek opsi { role, student, account } (semua opsional).
+   * Efek: menentukan siswa & peran terpilih, menyiapkan email default,
+   * mengisi accountForm, dan menampilkan dialog akun.
+   */
   const openAccountDialog = ({ role = "orangtua", student = null, account = null } = {}) => {
     const selectedStudent = student || studentMap.get(String(account?.portalLink?.siswa_id || "")) || null;
     const selectedRole = account?.role || role;
@@ -364,6 +657,9 @@ function AdminAkunSiswa() {
     });
   };
 
+  /**
+   * Menutup dialog akun dan mereset state form akun.
+   */
   const closeAccountDialog = () => {
     setAccountDialog(null);
     setAccountForm(emptyAccountForm);
@@ -372,6 +668,12 @@ function AdminAkunSiswa() {
     setIsSubmitting(false);
   };
 
+  /**
+   * Memilih siswa untuk dihubungkan dengan akun pada dialog akun.
+   * Parameter: student - objek siswa terpilih.
+   * Efek: mengeset siswa pada accountDialog, mengisi kotak pencarian, dan
+   * mengisi default nama/email/profesi pada accountForm (hanya saat buat baru).
+   */
   const selectStudentForAccount = (student) => {
     setAccountDialog((current) => (current ? { ...current, student } : current));
     setStudentQuery(`${student.nama} - ${getStudentClassName(student)}`);
@@ -387,6 +689,13 @@ function AdminAkunSiswa() {
     });
   };
 
+  /**
+   * Menangani perubahan input pada form akun.
+   * Parameter: event - event input (memakai name & value).
+   * Efek: bila yang berubah adalah siswa_id, ikut memperbarui siswa terpilih
+   * dan default nama/profesi (saat buat baru); selain itu memperbarui field
+   * terkait pada accountForm.
+   */
   const handleAccountChange = (event) => {
     const { name, value } = event.target;
 
@@ -407,6 +716,15 @@ function AdminAkunSiswa() {
     setAccountForm((current) => ({ ...current, [name]: value }));
   };
 
+  /**
+   * Menyimpan akun (siswa/orang tua), buat baru atau perbarui.
+   * Parameter: event - event submit form (dicegah reload-nya).
+   * Efek: validasi siswa terpilih; mencegah satu siswa terhubung ke dua akun
+   * orang tua berbeda; menyusun payload (email & password default bila perlu);
+   * memanggil API updateUser atau createUser; menampilkan alert; bila sukses
+   * pada akun baru menyimpan kredensial untuk ditampilkan, menutup dialog, dan
+   * memuat ulang data. Mengubah state isSubmitting & resetCredential.
+   */
   const handleAccountSubmit = async (event) => {
     event.preventDefault();
     if (!accountForm.siswa_id) {
@@ -441,6 +759,13 @@ function AdminAkunSiswa() {
     }
   };
 
+  /**
+   * Menghapus sebuah akun (siswa/orang tua) setelah konfirmasi.
+   * Parameter: account - objek akun yang akan dihapus.
+   * Efek: menyusun pesan konfirmasi sesuai peran (akun orang tua menyertakan
+   * jumlah siswa terhubung); memanggil API deleteUser; alert; muat ulang bila
+   * sukses.
+   */
   const handleAccountDelete = async (account) => {
     const linkedCount = getAccountPortalLinks(account).filter((link) => link.siswa_id).length;
     const message = account.role === "orangtua"
@@ -452,18 +777,34 @@ function AdminAkunSiswa() {
     if (result.success) await loadData();
   };
 
+  /**
+   * Membuka dialog reset kata sandi untuk sebuah akun.
+   * Parameter: account - objek akun target.
+   * Efek: mengeset resetDialog dan mengosongkan nilai kata sandi & kredensial.
+   */
   const openResetDialog = (account) => {
     setResetCredential(null);
     setResetDialog(account);
     setResetPasswordValue("");
   };
 
+  /**
+   * Menutup dialog reset kata sandi dan mereset state terkait.
+   */
   const closeResetDialog = () => {
     setResetDialog(null);
     setResetPasswordValue("");
     setIsSubmitting(false);
   };
 
+  /**
+   * Menyimpan reset kata sandi akun.
+   * Parameter: event - event submit form (dicegah reload-nya).
+   * Efek: memanggil API resetUserPassword (memakai password manual bila diisi,
+   * jika kosong server membuat otomatis); menampilkan alert; bila sukses
+   * menyimpan kredensial baru untuk ditampilkan, menutup dialog, dan memuat
+   * ulang data. Mengubah state isSubmitting & resetCredential.
+   */
   const handleResetSubmit = async (event) => {
     event.preventDefault();
     setIsSubmitting(true);
@@ -481,6 +822,11 @@ function AdminAkunSiswa() {
     }
   };
 
+  /**
+   * Merender lencana status akun (aktif / belum ada).
+   * Parameter: account - objek akun (atau null).
+   * Mengembalikan: elemen <span> berlabel status sesuai keberadaan akun.
+   */
   const renderAccountStatus = (account) => (
     <span className={account ? "management-status linked" : "management-status missing"}>
       {account ? "Akun aktif" : "Belum ada akun"}
@@ -498,6 +844,7 @@ function AdminAkunSiswa() {
             <p>Kelola data siswa, orang tua, dan akun portal dalam satu halaman.</p>
           </div>
           <div className="dashboard-actions">
+            <button type="button" onClick={openPromoteDialog} className="btn primary">Naik Kelas</button>
             <Link to="/" className="btn secondary">Situs web</Link>
             <button type="button" onClick={handleLogout} className="btn primary">Keluar</button>
           </div>
@@ -558,11 +905,13 @@ function AdminAkunSiswa() {
                 {activeTab === "relasi" && "Daftar Siswa & Relasi Orang Tua"}
                 {activeTab === "siswa" && "Kelola Data Siswa"}
                 {activeTab === "orangtua" && "Kelola Akun Orang Tua"}
+                {activeTab === "arsip" && "Arsip Kelas & Kelulusan"}
               </h2>
               <p>
                 {activeTab === "relasi" && "Tampilan baca relasi siswa dan orang tua. Aksi ada di tab Siswa dan Orang Tua."}
                 {activeTab === "siswa" && "Tambah, ubah, hapus data siswa beserta akun siswanya."}
                 {activeTab === "orangtua" && "Kelola akun orang tua. Satu akun bisa terhubung ke beberapa siswa."}
+                {activeTab === "arsip" && "Riwayat perpindahan kelas, kenaikan kelas, dan kelulusan siswa."}
               </p>
             </div>
 
@@ -804,6 +1153,46 @@ function AdminAkunSiswa() {
               </div>
             )
           )}
+
+          {activeTab === "arsip" && (
+            <div className="table-responsive portal-management-table-wrap">
+              <table className="admin-table portal-management-table">
+                <thead>
+                  <tr>
+                    <th>No</th>
+                    <th>Nama Siswa</th>
+                    <th>Kelas Lama</th>
+                    <th>Kelas Baru</th>
+                    <th>Status</th>
+                    <th>Tahun Ajaran</th>
+                    <th>Tanggal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {arsipLoading ? (
+                    <tr><td colSpan="7" className="student-empty-state">Memuat arsip...</td></tr>
+                  ) : arsip.length === 0 ? (
+                    <tr><td colSpan="7" className="student-empty-state">Belum ada riwayat perpindahan atau kelulusan.</td></tr>
+                  ) : arsip.map((item, index) => {
+                    const lulus = item.status === "Lulus SD" || item.status === "Lulus SMP";
+                    return (
+                      <tr key={item.id}>
+                        <td data-label="No">{index + 1}</td>
+                        <td data-label="Nama Siswa"><strong>{item.siswa_nama}</strong></td>
+                        <td data-label="Kelas Lama">{item.kelas_lama_nama || "Tanpa Kelas"}</td>
+                        <td data-label="Kelas Baru">{lulus ? "-" : (item.kelas_baru_nama || "-")}</td>
+                        <td data-label="Status">
+                          <span className={`management-status ${lulus ? "linked" : ""}`}>{item.status || "Naik Kelas"}</span>
+                        </td>
+                        <td data-label="Tahun Ajaran">{item.tahun_ajaran || "-"}</td>
+                        <td data-label="Tanggal">{formatTanggalArsip(item.createdAt)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
       </main>
 
@@ -977,8 +1366,100 @@ function AdminAkunSiswa() {
           </section>
         </div>
       )}
+
+      {isPromoteOpen && (
+        <div className="management-modal-backdrop student-form-modal-backdrop" role="presentation" onClick={() => setIsPromoteOpen(false)}>
+          <section className="management-modal-card student-form-modal-card promote-modal-card" role="dialog" aria-modal="true" aria-labelledby="promote-dialog-title" onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="management-modal-close" onClick={() => setIsPromoteOpen(false)} aria-label="Tutup dialog naik kelas">&times;</button>
+            <div className="management-modal-header">
+              <span>Naik / Pindah Kelas</span>
+              <h2 id="promote-dialog-title">Naik Kelas</h2>
+              <p>Centang siswa lalu pilih kelas tujuan. Siswa kelas 6 otomatis <strong>Lulus SD</strong> dan kelas 9 otomatis <strong>Lulus SMP</strong> (tidak dipindah, langsung masuk Arsip Kelas). Siswa yang tidak dicentang tetap di kelas lama.</p>
+            </div>
+
+            <form className="student-dialog-form" onSubmit={handlePromoteSubmit}>
+              <div className="student-form-grid">
+                <div className="form-group">
+                  <label>Tahun Ajaran Baru</label>
+                  <input
+                    name="tahun_ajaran"
+                    value={promoteForm.tahun_ajaran}
+                    onChange={(e) => setPromoteForm((prev) => ({ ...prev, tahun_ajaran: e.target.value }))}
+                    placeholder="Contoh: 2026/2027"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Kelas Tujuan <span className="field-optional">untuk kelas 1-5 & 7-8</span></label>
+                  <select
+                    name="kelas_tujuan_id"
+                    value={promoteForm.kelas_tujuan_id}
+                    onChange={(e) => setPromoteForm((prev) => ({ ...prev, kelas_tujuan_id: e.target.value }))}
+                  >
+                    <option value="">Pilih kelas tujuan</option>
+                    {kelas.map((item) => <option key={item.id} value={item.id}>{classLabel(item)}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="promote-list-controls">
+                <select value={promoteFilterClass} onChange={(e) => setPromoteFilterClass(e.target.value)} aria-label="Filter kelas asal">
+                  <option value="all">Semua Kelas</option>
+                  {kelas.map((item) => <option key={item.id} value={String(item.id)}>{classLabel(item)}</option>)}
+                </select>
+                <input value={promoteSearch} onChange={(e) => setPromoteSearch(e.target.value)} placeholder="Cari nama / NIS..." />
+                <span className="promote-selected-count">{promoteSelected.length} dipilih</span>
+              </div>
+
+              <div className="promote-student-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>
+                        <input
+                          type="checkbox"
+                          aria-label="Pilih semua siswa terlihat"
+                          checked={promoteStudents.length > 0 && promoteStudents.every((item) => promoteSelected.includes(item.id))}
+                          onChange={toggleSelectAllPromote}
+                        />
+                      </th>
+                      <th>Nama Siswa</th>
+                      <th>NIS</th>
+                      <th>Kelas Saat Ini</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {promoteStudents.length === 0 ? (
+                      <tr><td colSpan="4" className="student-empty-state">Tidak ada siswa sesuai filter.</td></tr>
+                    ) : promoteStudents.map((item) => (
+                      <tr key={item.id}>
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={promoteSelected.includes(item.id)}
+                            onChange={() => togglePromoteStudent(item.id)}
+                            aria-label={`Pilih ${item.nama}`}
+                          />
+                        </td>
+                        <td><strong>{item.nama}</strong></td>
+                        <td>{item.nisn || "-"}</td>
+                        <td>{getStudentClassName(item)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="management-modal-actions student-dialog-actions">
+                <button type="button" className="cancel-btn" onClick={() => setIsPromoteOpen(false)}>Batal</button>
+                <button type="submit" className="save-btn" disabled={savingPromote}>{savingPromote ? "Menyimpan..." : "Simpan Perubahan"}</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
 
 export default AdminAkunSiswa;
+

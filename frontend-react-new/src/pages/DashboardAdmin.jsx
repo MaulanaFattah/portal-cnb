@@ -3,6 +3,18 @@ import { Link, useNavigate } from "react-router-dom";
 import AdminSidebar from "../components/AdminSidebar";
 import { getAdminDashboard, logout } from "../services/api";
 
+/**
+ * Halaman Dashboard Administrator.
+ *
+ * Halaman ini adalah beranda area admin yang menampilkan ringkasan statistik
+ * sekolah (total guru, siswa, administrator, kepala sekolah, dan jumlah login
+ * hari ini) beserta info aktivitas terbaru. Data diambil dari backend saat
+ * halaman dibuka.
+ *
+ * Peran/akses: hanya admin (area dashboard admin, butuh sesi login admin).
+ * Bila pengambilan data gagal/sesi tidak valid, pengguna diarahkan kembali ke
+ * halaman login admin.
+ */
 function DashboardAdmin() {
     const navigate = useNavigate();
 
@@ -15,7 +27,14 @@ function DashboardAdmin() {
         loginHariIni: 0
     });
 
+    // Mengambil data ringkasan dashboard saat komponen dipasang. Bila gagal,
+    // menampilkan alert lalu mengarahkan ke halaman login admin.
     useEffect(() => {
+        /**
+         * Memuat data ringkasan dashboard dari server.
+         * Efek: memanggil API getAdminDashboard(); bila gagal menampilkan alert
+         * dan redirect ke "/admin-login"; bila sukses mengisi state dashboard.
+         */
         async function fetchDashboard() {
             const result = await getAdminDashboard();
 
@@ -31,6 +50,10 @@ function DashboardAdmin() {
         fetchDashboard();
     }, [navigate]);
 
+    /**
+     * Keluar dari sesi admin.
+     * Efek: memanggil logout() lalu mengarahkan ke halaman beranda ("/").
+     */
     const handleLogout = () => {
         logout();
         navigate("/");

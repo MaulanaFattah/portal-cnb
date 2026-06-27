@@ -13,10 +13,18 @@ const emptyKelasForm = {
   nama_kelas: "",
   tingkat: "",
   wali_kelas: "",
-  tahun_ajaran: "",
-  jumlah_siswa: 0
+  tahun_ajaran: ""
 };
 
+/**
+ * Halaman Admin Kelas.
+ *
+ * Halaman ini dipakai admin untuk mengelola data kelas: nama kelas, tingkat,
+ * wali kelas, dan tahun ajaran. Jumlah siswa per kelas dihitung otomatis dari
+ * data siswa. Admin dapat menambah, mengubah, dan menghapus kelas.
+ *
+ * Peran/akses: hanya admin (area dashboard admin, butuh sesi login admin).
+ */
 function AdminKelas() {
   const navigate = useNavigate();
   const [kelas, setKelas] = useState([]);
@@ -24,26 +32,46 @@ function AdminKelas() {
 
   const [formData, setFormData] = useState(emptyKelasForm);
 
+  /**
+   * Memuat daftar kelas dari server.
+   * Efek: memanggil API getKelas(); mengisi state kelas bila sukses.
+   */
   const loadKelas = async () => {
     const result = await getKelas();
     if (result.success) setKelas(result.data);
   };
 
+  // Memuat data kelas sekali saat komponen dipasang.
   useEffect(() => {
     (async () => {
       await loadKelas();
     })();
   }, []);
 
+  /**
+   * Menangani perubahan input pada form kelas.
+   * Parameter: e - event input (memakai name & value).
+   * Efek: memperbarui field terkait pada formData.
+   */
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  /**
+   * Mengembalikan form ke kondisi kosong (mode tambah).
+   * Efek: mereset editId dan formData ke nilai default.
+   */
   const resetForm = () => {
     setEditId(null);
     setFormData(emptyKelasForm);
   };
 
+  /**
+   * Menyimpan data kelas (tambah baru atau perbarui).
+   * Parameter: e - event submit form (dicegah reload-nya).
+   * Efek: memanggil API updateKelas (bila editId) atau createKelas; alert;
+   * bila sukses mereset form dan memuat ulang daftar kelas.
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -61,17 +89,26 @@ function AdminKelas() {
     loadKelas();
   };
 
+  /**
+   * Mengisi form dengan data kelas terpilih untuk diubah (mode edit).
+   * Parameter: item - objek kelas.
+   * Efek: mengeset editId dan mengisi formData dari item.
+   */
   const handleEdit = (item) => {
     setEditId(item.id);
     setFormData({
       nama_kelas: item.nama_kelas || "",
       tingkat: item.tingkat || "",
       wali_kelas: item.wali_kelas || "",
-      tahun_ajaran: item.tahun_ajaran || "",
-      jumlah_siswa: item.jumlah_siswa || 0
+      tahun_ajaran: item.tahun_ajaran || ""
     });
   };
 
+  /**
+   * Menghapus data kelas setelah konfirmasi.
+   * Parameter: id - id kelas.
+   * Efek: konfirmasi; memanggil API deleteKelas; alert; memuat ulang daftar.
+   */
   const handleDelete = async (id) => {
     if (!confirm("Yakin ingin menghapus data kelas ini?")) return;
     const result = await deleteKelas(id);
@@ -79,6 +116,10 @@ function AdminKelas() {
     loadKelas();
   };
 
+  /**
+   * Keluar dari sesi admin.
+   * Efek: memanggil logout() lalu mengarahkan ke halaman login admin.
+   */
   const handleLogout = () => {
     logout();
     navigate("/admin-login");
@@ -92,7 +133,7 @@ function AdminKelas() {
         <div className="dashboard-header">
           <div>
             <h1>Kelas</h1>
-            <p>Kelola nama kelas, tingkat, wali kelas, dan tahun ajaran.</p>
+            <p>Kelola nama kelas, tingkat, wali kelas, dan tahun ajaran. Jumlah siswa dihitung otomatis dari data siswa.</p>
           </div>
 
           <div className="dashboard-actions">
@@ -150,16 +191,6 @@ function AdminKelas() {
                   value={formData.tahun_ajaran}
                   onChange={handleChange}
                   required
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Jumlah Siswa</label>
-                <input
-                  type="number"
-                  name="jumlah_siswa"
-                  value={formData.jumlah_siswa}
-                  onChange={handleChange}
                 />
               </div>
 

@@ -15,16 +15,35 @@ const initialForm = {
   confirmPassword: ""
 };
 
+/**
+ * Halaman Registrasi Kepala Sekolah - halaman publik.
+ * Akses: umum (calon kepala sekolah mendaftar; akun menunggu verifikasi admin).
+ * Fungsi halaman: form registrasi kepala sekolah (nama, email, jenjang, NIP, telepon,
+ * kata sandi). Mengirim data ke server lalu mengarahkan ke halaman login kepala sekolah.
+ */
 function RegisterKepalaSekolah() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState(initialForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  /**
+   * Menangani perubahan input/select pada form registrasi.
+   * @param {Event} event Event perubahan (membawa name & value).
+   * Efek state: memperbarui field terkait pada formData.
+   */
   const handleChange = (event) => {
     const { name, value } = event.target;
     setFormData((current) => ({ ...current, [name]: value }));
   };
 
+  /**
+   * Memproses registrasi kepala sekolah.
+   * @param {Event} event Event submit form (dicegah default-nya).
+   * Validasi: konfirmasi kata sandi harus cocok.
+   * Memanggil API: registerKepalaSekolah({...}).
+   * Efek state/efek: setIsSubmitting; alert bila gagal; bila sukses mereset form dan
+   * navigate ke "/login-kepala-sekolah".
+   */
   const handleSubmit = async (event) => {
     event.preventDefault();
 

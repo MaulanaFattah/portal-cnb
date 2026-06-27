@@ -28,6 +28,13 @@ const statusFilters = [
   { value: "all", label: "Semua" }
 ];
 
+/**
+ * Memformat tanggal-waktu ke format lokal Indonesia (tanggal + jam).
+ *
+ * Parameter: value - tanggal (string/Date).
+ * Mengembalikan: teks tanggal & waktu, "-" bila kosong, atau nilai asli bila
+ * tidak bisa diparse.
+ */
 function formatDate(value) {
   if (!value) return "-";
   const date = new Date(value);
@@ -35,17 +42,37 @@ function formatDate(value) {
   return date.toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" });
 }
 
+/**
+ * Memetakan status permintaan ke kelas CSS lencana.
+ *
+ * Parameter: status - "completed", "rejected", atau lainnya.
+ * Mengembalikan: "approved", "rejected", atau "pending" (default).
+ */
 function getStatusClass(status) {
   if (status === "completed") return "approved";
   if (status === "rejected") return "rejected";
   return "pending";
 }
 
+/**
+ * Membuat teks akun yang cocok otomatis dengan permintaan.
+ *
+ * Parameter: item - objek permintaan reset.
+ * Mengembalikan: "Nama (email)" bila ada matchedUser, atau "Belum cocok
+ * otomatis".
+ */
 function getMatchedAccountText(item) {
   if (!item.matchedUser) return "Belum cocok otomatis";
   return `${item.matchedUser.name} (${item.matchedUser.email})`;
 }
 
+/**
+ * Membuat teks ringkas siapa yang memproses permintaan.
+ *
+ * Parameter: item - objek permintaan reset.
+ * Mengembalikan: keterangan sesuai status (selesai/ditolak menyebut pemroses
+ * bila ada; pending = "Menunggu tindakan admin").
+ */
 function getProcessedText(item) {
   if (item.status === "completed") {
     return item.processedBy ? `Reset oleh ${item.processedBy.name}` : "Reset selesai";
@@ -56,6 +83,16 @@ function getProcessedText(item) {
   return "Menunggu tindakan admin";
 }
 
+/**
+ * Halaman Admin Permintaan Reset Password.
+ *
+ * Halaman ini dipakai admin untuk meninjau permintaan reset kata sandi dari
+ * guru, siswa, dan orang tua. Admin mengecek kecocokan identitas, lalu membuat
+ * kata sandi sementara (manual atau otomatis) atau menolak permintaan disertai
+ * alasan. Menyediakan ringkasan jumlah per status dan filter status.
+ *
+ * Peran/akses: hanya admin (area dashboard admin, butuh sesi login admin).
+ */
 function AdminResetPasswordRequests() {
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
@@ -66,6 +103,11 @@ function AdminResetPasswordRequests() {
   const [pageNotice, setPageNotice] = useState(null);
   const [dialog, setDialog] = useState(null);
 
+  /**
+   * Memuat semua permintaan reset dari server (versi yang dapat dipakai ulang).
+   * Efek: mengubah state loading; memanggil API getPasswordResetRequests("all");
+   * mengisi state requests. Dibungkus useCallback agar referensinya stabil.
+   */
   const loadRequests = useCallback(async () => {
     setLoading(true);
     const result = await getPasswordResetRequests("all");
@@ -73,6 +115,8 @@ function AdminResetPasswordRequests() {
     setLoading(false);
   }, []);
 
+  // Memuat data awal saat komponen dipasang. Memakai flag isActive agar tidak
+  // memperbarui state setelah komponen dilepas (unmount).
   useEffect(() => {
     let isActive = true;
 
@@ -89,6 +133,8 @@ function AdminResetPasswordRequests() {
     };
   }, []);
 
+  // Menghitung ringkasan jumlah permintaan per status (pending/completed/
+  // rejected) beserta total, dipakai untuk kartu ringkasan & badge filter.
   const summary = useMemo(() => {
     return requests.reduce(
       (accumulator, item) => ({
@@ -100,30 +146,60 @@ function AdminResetPasswordRequests() {
     );
   }, [requests]);
 
+  // Daftar permintaan hasil filter berdasarkan status aktif.
   const filteredRequests = useMemo(() => {
     if (status === "all") return requests;
     return requests.filter((item) => item.status === status);
   }, [requests, status]);
 
+  /**
+   * Membuka dialog reset password untuk satu permintaan.
+   * Parameter: item - objek permintaan.
+   * Efek: menghapus notifikasi halaman dan mengeset dialog mode "reset".
+   */
   const openResetDialog = (item) => {
     setPageNotice(null);
     setDialog({ type: "reset", item, password: "" });
   };
 
+  /**
+   * Membuka dialog penolakan untuk satu permintaan.
+   * Parameter: item - objek permintaan.
+   * Efek: menghapus notifikasi halaman dan mengeset dialog mode "reject"
+   * dengan alasan default.
+   */
   const openRejectDialog = (item) => {
     setPageNotice(null);
     setDialog({ type: "reject", item, reason: "Data tidak cocok dengan akun sekolah" });
   };
 
+  /**
+   * Menutup dialog aktif (kecuali sedang memproses aksi).
+   * Efek: mengeset dialog menjadi null bila actionLoading false.
+   */
   const closeDialog = () => {
     if (!actionLoading) setDialog(null);
   };
 
+  /**
+   * Menangani perubahan input pada dialog (password atau reason).
+   * Parameter: event - event input (memakai name & value).
+   * Efek: memperbarui field terkait pada state dialog.
+   */
   const handleDialogChange = (event) => {
     const { name, value } = event.target;
     setDialog((current) => ({ ...current, [name]: value }));
   };
 
+  /**
+   * Menyelesaikan permintaan dengan membuat kata sandi sementara.
+   * Parameter: event - event submit form (dicegah reload-nya).
+   * Efek: memanggil API processPasswordResetRequest (memakai password manual
+   * bila diisi, jika kosong server membuat otomatis); bila gagal menampilkan
+   * notifikasi error; bila sukses menyimpan kredensial untuk ditampilkan,
+   * menutup dialog, menampilkan notifikasi sukses, dan memuat ulang data.
+   * Mengubah state actionLoading.
+   */
   const handleComplete = async (event) => {
     event.preventDefault();
     if (!dialog?.item) return;
@@ -154,6 +230,14 @@ function AdminResetPasswordRequests() {
     loadRequests();
   };
 
+  /**
+   * Menolak sebuah permintaan reset password.
+   * Parameter: event - event submit form (dicegah reload-nya).
+   * Efek: memanggil API rejectPasswordResetRequest dengan alasan (default bila
+   * kosong); bila gagal menampilkan notifikasi error; bila sukses menutup
+   * dialog, menampilkan notifikasi sukses, dan memuat ulang data. Mengubah
+   * state actionLoading.
+   */
   const handleReject = async (event) => {
     event.preventDefault();
     if (!dialog?.item) return;
@@ -173,6 +257,10 @@ function AdminResetPasswordRequests() {
     loadRequests();
   };
 
+  /**
+   * Keluar dari sesi admin.
+   * Efek: memanggil logout() lalu mengarahkan ke halaman login admin.
+   */
   const handleLogout = () => {
     logout();
     navigate("/admin-login");

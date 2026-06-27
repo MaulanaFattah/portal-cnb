@@ -1,6 +1,16 @@
 import schoolLogo from "../assets/logo-transparent.png";
 import { Link, NavLink } from "react-router-dom";
 
+/**
+ * Komponen Navbar.
+ *
+ * Peran: menampilkan bilah navigasi utama (header) situs publik. Berisi brand
+ * (logo & nama sekolah) yang menautkan ke beranda, menu navigasi utama
+ * (Beranda, Pengumuman, Galeri, PPDB, Kontak) menggunakan NavLink agar tautan aktif
+ * dapat ditandai, serta tombol "Masuk" menuju halaman login.
+ *
+ * @returns {JSX.Element} Elemen header navigasi situs.
+ */
 function Navbar() {
   return (
     <header className="header">

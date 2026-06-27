@@ -37,6 +37,64 @@ import DashboardSiswa from "./pages/DashboardSiswa";
 import DashboardOrangTua from "./pages/DashboardOrangTua";
 import DashboardKepalaSekolah from "./pages/DashboardKepalaSekolah";
 
+/**
+ * Komponen App.
+ *
+ * Peran: komponen akar aplikasi yang mengatur seluruh routing menggunakan
+ * react-router-dom. Membungkus aplikasi dengan <BrowserRouter>, menyertakan
+ * <ScrollToTop /> agar setiap perpindahan rute mulai dari atas, lalu mendefinisikan
+ * seluruh <Route> di dalam <Routes>.
+ *
+ * Peta routing (path -> komponen):
+ *  Halaman publik:
+ *   - "/"                         -> Home (beranda)
+ *   - "/profil"                   -> Profil (profil sekolah)
+ *   - "/kegiatan"                 -> Kegiatan (daftar kegiatan)
+ *   - "/pengumuman"               -> Pengumuman (daftar pengumuman)
+ *   - "/galeri"                   -> Galeri (galeri foto)
+ *   - "/fasilitas"                -> Fasilitas (daftar fasilitas)
+ *   - "/ppdb"                     -> PPDB (informasi PPDB)
+ *   - "/form-ppdb"                -> FormPPDB (formulir pendaftaran PPDB)
+ *   - "/kontak"                   -> Kontak (halaman kontak)
+ *
+ *  Autentikasi & registrasi:
+ *   - "/login"                    -> Login (login umum)
+ *   - "/admin-login"              -> AdminLogin (login administrator)
+ *   - "/login-guru"               -> LoginGuru (login guru)
+ *   - "/register-guru"            -> RegisterGuru (registrasi guru)
+ *   - "/login-siswa"              -> LoginSiswa (login siswa)
+ *   - "/login-orangtua"           -> LoginOrangTua (login orang tua)
+ *   - "/login-kepala-sekolah"     -> LoginKepalaSekolah (login kepala sekolah)
+ *   - "/register-kepala-sekolah"  -> RegisterKepalaSekolah (registrasi kepala sekolah)
+ *   - "/lupa-password"            -> LupaPassword (permintaan reset kata sandi)
+ *   - "/change-password"          -> ChangePassword (ubah kata sandi)
+ *
+ *  Dashboard per peran:
+ *   - "/dashboard-admin"          -> DashboardAdmin (dasbor administrator)
+ *   - "/dashboard-guru"           -> DashboardGuru (dasbor guru)
+ *   - "/dashboard-siswa"          -> DashboardSiswa (dasbor siswa)
+ *   - "/dashboard-orangtua"       -> DashboardOrangTua (dasbor orang tua)
+ *   - "/dashboard-kepala-sekolah" -> DashboardKepalaSekolah (dasbor kepala sekolah)
+ *
+ *  Modul administrasi:
+ *   - "/admin/kegiatan"           -> AdminKegiatan (kelola kegiatan)
+ *   - "/admin/pengumuman"         -> AdminPengumuman (kelola pengumuman)
+ *   - "/admin/galeri"             -> AdminGaleri (kelola galeri)
+ *   - "/admin/fasilitas"          -> AdminFasilitas (kelola fasilitas)
+ *   - "/admin/ppdb"               -> AdminPPDB (kelola pendaftaran PPDB)
+ *   - "/admin/kelas"              -> AdminKelas (kelola kelas)
+ *   - "/admin/siswa"              -> AdminAkunSiswa (kelola siswa & orang tua)
+ *   - "/admin/akun-siswa"         -> AdminAkunSiswa (alias kelola siswa & orang tua)
+ *   - "/admin/profil-sekolah"     -> AdminProfilSekolah (kelola profil sekolah)
+ *   - "/admin/verifikasi-guru"    -> AdminVerifikasiGuru (verifikasi pendaftaran guru)
+ *   - "/admin/reset-password"     -> AdminResetPasswordRequests (kelola permintaan reset password)
+ *   - "/admin/kepala-sekolah"     -> AdminKepalaSekolah (kelola kepala sekolah)
+ *
+ * Catatan: "/admin/siswa" dan "/admin/akun-siswa" sama-sama memetakan ke
+ * komponen AdminAkunSiswa.
+ *
+ * @returns {JSX.Element} Pohon routing aplikasi yang terbungkus BrowserRouter.
+ */
 function App() {
   return (
     <BrowserRouter>

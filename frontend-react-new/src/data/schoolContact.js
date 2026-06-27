@@ -4,5 +4,7 @@ export const schoolContact = {
   phone: "+62 815-9216-559",
   email: "info@ciptanusabakti.sch.id",
   operationalDays: "Senin - Jumat",
-  operationalHours: "07.00 - 16.00 WIB"
+  operationalHours: "07.00 - 16.00 WIB",
+  instagram: "https://www.instagram.com/yaspendcnb",
+  facebook: "https://www.facebook.com/share/1HBhQnQh5R/"
 };

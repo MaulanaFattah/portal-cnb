@@ -6,11 +6,19 @@ import { getGaleri, resolveMediaUrl } from "../services/api";
 
 const ITEMS_PER_PAGE = 6;
 
+/**
+ * Halaman Galeri - halaman publik.
+ * Akses: umum (tidak perlu login).
+ * Fungsi halaman: menampilkan dokumentasi foto sekolah dari API publik dengan paginasi
+ * sederhana (6 item per halaman).
+ */
 function Galeri() {
   const [galeri, setGaleri] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
 
+  // Efek pemuatan awal: mengambil daftar galeri dari API saat mount; setLoading(false)
+  // dijalankan di blok finally.
   useEffect(() => {
     (async () => {
       try {
@@ -25,6 +33,11 @@ function Galeri() {
   const totalPages = Math.max(1, Math.ceil(galeri.length / ITEMS_PER_PAGE));
   const currentItems = galeri.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
+  /**
+   * Berpindah ke halaman galeri tertentu dan menggulir tampilan ke atas.
+   * @param {number} targetPage Nomor halaman tujuan.
+   * Efek state: setPage(targetPage); efek samping: window.scrollTo ke atas.
+   */
   const goToPage = (targetPage) => {
     setPage(targetPage);
     window.scrollTo({ top: 0, behavior: "smooth" });

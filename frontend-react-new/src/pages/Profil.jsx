@@ -11,9 +11,17 @@ const fallbackProfile = {
   struktur_sekolah: "Kepala sekolah, wakil kepala sekolah, guru, wali kelas, dan tenaga kependidikan."
 };
 
+/**
+ * Halaman Profil Sekolah - halaman publik.
+ * Akses: umum (tidak perlu login).
+ * Fungsi halaman: menampilkan visi, misi, sejarah, dan struktur sekolah. Data diambil
+ * dari API profil sekolah dengan fallback statis bila gagal/kosong.
+ */
 function Profil() {
   const [profile, setProfile] = useState(fallbackProfile);
 
+  // Efek pemuatan awal: mengambil data profil sekolah dari API dan menggabungkannya
+  // dengan fallback bila berhasil.
   useEffect(() => {
     (async () => {
       const result = await getProfilSekolah();

@@ -16,6 +16,12 @@ const PortalAccountLink = db.PortalAccountLink;
 
 const STUDENT_PROFILE_FIELDS = ["nama", "nisn", "no_telepon", "alamat", "jenis_kelamin", "email", "foto"];
 
+/**
+ * Menyaring objek user menjadi bentuk aman untuk dikirim ke klien (tanpa password/field sensitif).
+ *
+ * @param {Object} user - Instance/objek User yang memiliki id, name, email, role, profession.
+ * @returns {{id:number, name:string, email:string, role:string, profession:string}} Data user yang aman dipublikasikan.
+ */
 function safeUser(user) {
   return {
     id: user.id,
@@ -26,20 +32,49 @@ function safeUser(user) {
   };
 }
 
+/**
+ * Menormalkan alamat email menjadi bentuk standar (trim + huruf kecil) untuk pencocokan yang konsisten.
+ *
+ * @param {*} email - Nilai email mentah (boleh undefined/null).
+ * @returns {string} Email yang sudah di-trim dan di-lowercase (string kosong bila input kosong).
+ */
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
 }
 
+/**
+ * Mengubah nilai apa pun menjadi string lowercase yang sudah di-trim. Utilitas umum untuk perbandingan teks.
+ *
+ * @param {*} value - Nilai mentah yang akan dinormalkan.
+ * @returns {string} String hasil trim + lowercase (string kosong bila input kosong).
+ */
 function safeLower(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+/**
+ * Menambahkan filter rentang tanggal pada objek "where" Sequelize berdasarkan parameter dari dan sampai.
+ * Mendukung filter penuh (between), hanya batas bawah (gte), atau hanya batas atas (lte).
+ *
+ * @param {Object} where - Objek kondisi where Sequelize yang akan dimodifikasi langsung (mutasi).
+ * @param {string} [dari] - Tanggal awal (inklusif), format "YYYY-MM-DD".
+ * @param {string} [sampai] - Tanggal akhir (inklusif), format "YYYY-MM-DD".
+ * @returns {void} Memodifikasi objek where secara langsung; tidak mengembalikan nilai.
+ */
 function formatDateFilter(where, dari, sampai) {
   if (dari && sampai) where.tanggal = { [Op.between]: [dari, sampai] };
   else if (dari) where.tanggal = { [Op.gte]: dari };
   else if (sampai) where.tanggal = { [Op.lte]: sampai };
 }
 
+/**
+ * Menghitung ringkasan statistik kehadiran dari sekumpulan baris absensi: total, jumlah per status
+ * (hadir/izin/sakit/alpha), dan total tidak hadir. Juga menyusun teks keterangan ringkas.
+ *
+ * @param {Array<Object>} rows - Daftar baris absensi, masing-masing memiliki field status.
+ * @returns {{hadir:number, izin:number, sakit:number, alpha:number, tidak_hadir:number, total:number, keterangan:string}}
+ *   Objek ringkasan kehadiran beserta teks keterangan ("x izin • y sakit • z alpha").
+ */
 function summarizeAttendance(rows) {
   const summary = rows.reduce(
     (accumulator, row) => {
@@ -55,11 +90,23 @@ function summarizeAttendance(rows) {
   return summary;
 }
 
+/**
+ * Mengambil seluruh data kelas dan memetakannya berdasarkan id untuk pencarian cepat (lookup) data kelas.
+ *
+ * @returns {Promise<Map<number, Object>>} Map dengan key id kelas (number) dan value objek kelas (JSON).
+ */
 async function getClassMap() {
   const kelas = await Kelas.findAll();
   return new Map(kelas.map((item) => [Number(item.id), item.toJSON()]));
 }
 
+/**
+ * Menebak jenjang (sd/smp) sebuah kelas berdasarkan pola teks pada tingkat dan nama kelasnya.
+ * Mencocokkan pola SMP (smp, VII-IX, 7-9) lalu pola SD (sd, 1-6, angka romawi I-VI).
+ *
+ * @param {Object} kelas - Objek kelas yang memiliki field tingkat dan nama_kelas.
+ * @returns {("sd"|"smp"|null)} Jenjang hasil tebakan, atau null bila tidak dapat ditentukan.
+ */
 function inferClassJenjang(kelas) {
   const text = `${kelas?.tingkat || ""} ${kelas?.nama_kelas || ""}`.toLowerCase();
   if (/(smp|vii|viii|ix|\b7\b|\b8\b|\b9\b)/.test(text)) return "smp";
@@ -67,12 +114,29 @@ function inferClassJenjang(kelas) {
   return null;
 }
 
+/**
+ * Menentukan apakah sebuah kelas termasuk dalam jenjang tertentu. Dipakai untuk membatasi data sesuai
+ * cakupan (scope) jenjang kepala sekolah. Bila jenjang tidak ditentukan, semua kelas dianggap cocok.
+ *
+ * @param {Object} kelas - Objek kelas yang akan diperiksa.
+ * @param {("sd"|"smp"|null)} jenjang - Jenjang target pembatasan; null/false berarti tanpa pembatasan.
+ * @returns {boolean} true bila kelas cocok dengan jenjang (atau tanpa pembatasan), false bila tidak.
+ */
 function matchesJenjangByClass(kelas, jenjang) {
   if (!jenjang) return true;
   const classJenjang = inferClassJenjang(kelas);
   return classJenjang ? classJenjang === jenjang : false;
 }
 
+/**
+ * Menentukan cakupan (scope) data berdasarkan peran user. Admin memiliki akses penuh tanpa batasan jenjang.
+ * Kepala sekolah dibatasi pada jenjang profilnya yang berstatus aktif; bila profil tidak ada atau belum
+ * memiliki jenjang, akses diblokir.
+ *
+ * @param {Object} user - Objek user yang sedang login (memiliki id, email, role).
+ * @returns {Promise<{jenjang:(string|null), profile:(Object|null), blocked?:boolean, message?:string}>}
+ *   Objek scope: jenjang & profil bila valid, atau {blocked:true, message} bila akses kepala sekolah ditolak.
+ */
 async function resolvePrincipalScope(user) {
   if (user.role === "admin") return { jenjang: null, profile: null };
 
@@ -94,12 +158,26 @@ async function resolvePrincipalScope(user) {
   return { jenjang: profile.jenjang, profile };
 }
 
+/**
+ * Melengkapi data siswa dengan objek kelasnya berdasarkan kelas_id, memakai map kelas yang sudah disiapkan.
+ *
+ * @param {Object|null} siswa - Instance/objek siswa (boleh null).
+ * @param {Map<number, Object>} classMap - Map id kelas ke objek kelas (lihat getClassMap).
+ * @returns {Object|null} Objek siswa (JSON) dengan tambahan field "kelas", atau null bila siswa null.
+ */
 function attachClass(siswa, classMap) {
   if (!siswa) return null;
   const data = siswa.toJSON ? siswa.toJSON() : siswa;
   return { ...data, kelas: classMap.get(Number(data.kelas_id)) || null };
 }
 
+/**
+ * Menemukan data siswa yang tertaut ke akun user portal (siswa atau orang tua) melalui tabel PortalAccountLink.
+ *
+ * @param {Object} user - Objek user yang sedang login (memakai user.id).
+ * @param {("siswa"|"orangtua")} linkType - Jenis keterkaitan akun ke siswa.
+ * @returns {Promise<Object|null>} Instance Siswa yang tertaut, atau null bila tidak ada tautan/model tidak tersedia.
+ */
 async function resolveStudentForUser(user, linkType) {
   if (!PortalAccountLink) return null;
   const link = await PortalAccountLink.findOne({ where: { user_id: user.id, link_type: linkType } });
@@ -107,6 +185,16 @@ async function resolveStudentForUser(user, linkType) {
   return Siswa.findByPk(link.siswa_id);
 }
 
+/**
+ * Menyusun payload absensi seorang siswa khusus dari sumber wali kelas. Mengambil baris absensi (dengan filter
+ * tanggal opsional), menyaring agar hanya satu baris terbaru per tanggal, melengkapi data kelas dan guru pencatat,
+ * lalu menyertakan ringkasan kehadiran. Dipakai oleh dashboard siswa dan orang tua.
+ *
+ * @param {Object} siswa - Instance siswa yang absensinya diambil (memakai siswa.id).
+ * @param {Object} query - Objek req.query. Memakai query.dari dan query.sampai untuk filter rentang tanggal.
+ * @returns {Promise<{scope:string, summary:Object, rows:Array<Object>}>} Payload absensi berisi cakupan,
+ *   ringkasan kehadiran, dan daftar baris absensi yang sudah dilengkapi data siswa/kelas/guru.
+ */
 async function getAttendancePayload(siswa, query) {
   const where = { siswa_id: siswa.id, tipe_guru: "wali_kelas" };
   formatDateFilter(where, query.dari, query.sampai);
@@ -141,6 +229,14 @@ async function getAttendancePayload(siswa, query) {
   };
 }
 
+/**
+ * Menyediakan data dashboard untuk akun siswa: identitas user, data siswa beserta kelas, informasi sekolah,
+ * pengumuman terbaru, serta penanda apakah profil siswa masih perlu dilengkapi.
+ *
+ * @param {import('express').Request} req - Request Express. Memakai req.user (akun siswa yang sedang login).
+ * @param {import('express').Response} res - Response Express.
+ * @returns {Promise<void>} Mengirim HTTP 200 berisi data dashboard siswa; 500 bila terjadi kesalahan.
+ */
 exports.getSiswaDashboard = async (req, res) => {
   try {
     const siswa = await resolveStudentForUser(req.user, "siswa");
@@ -164,6 +260,16 @@ exports.getSiswaDashboard = async (req, res) => {
   }
 };
 
+/**
+ * Memperbarui profil siswa yang sedang login. Hanya field profil yang diizinkan yang diproses, dan field email
+ * sengaja diabaikan (tidak boleh diubah dari sini). Bila nama berubah, nama pada akun User ikut diperbarui.
+ *
+ * @param {import('express').Request} req - Request Express. Memakai req.user (akun siswa) dan req.body
+ *   (field profil: nama, nisn, no_telepon, alamat, jenis_kelamin, email, foto — email diabaikan).
+ * @param {import('express').Response} res - Response Express.
+ * @returns {Promise<void>} Efek samping: memperbarui record Siswa dan (opsional) nama User. Mengirim HTTP 200
+ *   dengan data siswa terbaru; 404 bila data siswa tidak ditemukan untuk akun ini; 500 bila terjadi kesalahan.
+ */
 exports.updateSiswaProfile = async (req, res) => {
   try {
     const siswa = await resolveStudentForUser(req.user, "siswa");
@@ -192,6 +298,15 @@ exports.updateSiswaProfile = async (req, res) => {
   }
 };
 
+/**
+ * Mengambil data absensi siswa yang sedang login (sumber wali kelas) beserta ringkasannya, dengan filter
+ * rentang tanggal opsional.
+ *
+ * @param {import('express').Request} req - Request Express. Memakai req.user (akun siswa) dan req.query.dari/sampai.
+ * @param {import('express').Response} res - Response Express.
+ * @returns {Promise<void>} Mengirim HTTP 200 berisi payload absensi; 404 bila data siswa tidak ditemukan;
+ *   500 bila terjadi kesalahan.
+ */
 exports.getSiswaAbsensi = async (req, res) => {
   try {
     const siswa = await resolveStudentForUser(req.user, "siswa");
@@ -204,6 +319,14 @@ exports.getSiswaAbsensi = async (req, res) => {
   }
 };
 
+/**
+ * Menyediakan data dashboard untuk akun orang tua: identitas orang tua, data anak (siswa) beserta kelas,
+ * informasi sekolah, pengumuman terbaru, serta penanda apakah profil masih perlu dilengkapi.
+ *
+ * @param {import('express').Request} req - Request Express. Memakai req.user (akun orang tua yang sedang login).
+ * @param {import('express').Response} res - Response Express.
+ * @returns {Promise<void>} Mengirim HTTP 200 berisi data dashboard orang tua; 500 bila terjadi kesalahan.
+ */
 exports.getOrangTuaDashboard = async (req, res) => {
   try {
     const siswa = await resolveStudentForUser(req.user, "orangtua");
@@ -234,6 +357,17 @@ exports.getOrangTuaDashboard = async (req, res) => {
   }
 };
 
+/**
+ * Memperbarui profil orang tua yang sedang login sekaligus sebagian data terkait pada record anak (siswa).
+ * Nama orang tua diset ke field nama_ayah atau nama_ibu sesuai parent_type, dan nomor telepon/alamat anak
+ * ikut diperbarui bila dikirim. Nama pada akun User juga diperbarui.
+ *
+ * @param {import('express').Request} req - Request Express. Memakai req.user (akun orang tua) dan req.body
+ *   (name, parent_type untuk menentukan ayah/ibu, no_telepon, alamat).
+ * @param {import('express').Response} res - Response Express.
+ * @returns {Promise<void>} Efek samping: memperbarui nama User dan sebagian field Siswa. Mengirim HTTP 200 dengan
+ *   data user & siswa terbaru; 404 bila data anak tidak ditemukan; 500 bila terjadi kesalahan.
+ */
 exports.updateOrangTuaProfile = async (req, res) => {
   try {
     const siswa = await resolveStudentForUser(req.user, "orangtua");
@@ -263,6 +397,15 @@ exports.updateOrangTuaProfile = async (req, res) => {
   }
 };
 
+/**
+ * Mengambil data absensi anak (siswa) dari akun orang tua yang sedang login beserta ringkasannya, dengan filter
+ * rentang tanggal opsional.
+ *
+ * @param {import('express').Request} req - Request Express. Memakai req.user (akun orang tua) dan req.query.dari/sampai.
+ * @param {import('express').Response} res - Response Express.
+ * @returns {Promise<void>} Mengirim HTTP 200 berisi payload absensi anak; 404 bila data anak tidak ditemukan;
+ *   500 bila terjadi kesalahan.
+ */
 exports.getOrangTuaAbsensi = async (req, res) => {
   try {
     const siswa = await resolveStudentForUser(req.user, "orangtua");
@@ -275,6 +418,18 @@ exports.getOrangTuaAbsensi = async (req, res) => {
   }
 };
 
+/**
+ * Memperbarui profil kepala sekolah yang sedang login. Hanya boleh diakses role kepala_sekolah dan hanya bila
+ * scope-nya tidak diblokir. Memvalidasi nama wajib ada, memperbarui field profil tertentu, menyinkronkan nama
+ * pada akun User, lalu mencatat audit log.
+ *
+ * @param {import('express').Request} req - Request Express. Memakai req.user (akun kepala sekolah) dan req.body
+ *   (nama, no_telepon, alamat, foto).
+ * @param {import('express').Response} res - Response Express.
+ * @returns {Promise<void>} Efek samping: memperbarui profil KepalaSekolah, nama User, dan menulis audit log
+ *   "principal.profile.update". Mengirim HTTP 200 dengan data terbaru; 403 bila bukan kepala sekolah atau scope
+ *   diblokir; 400 bila nama kosong; 500 bila terjadi kesalahan.
+ */
 exports.updateKepalaSekolahProfile = async (req, res) => {
   try {
     if (req.user.role !== "kepala_sekolah") {
@@ -320,6 +475,19 @@ exports.updateKepalaSekolahProfile = async (req, res) => {
   }
 };
 
+/**
+ * Menyediakan data dashboard monitoring untuk kepala sekolah (atau admin). Membatasi seluruh data sesuai jenjang
+ * kepala sekolah: kelas, guru (dari GuruProfile yang sudah disetujui), siswa, dan absensi wali kelas. Menghitung
+ * ringkasan monitoring (jumlah siswa, guru wali kelas/mapel, kelas, pengumuman, kegiatan, dan statistik kehadiran).
+ * Mendukung filter rentang tanggal dan kelas tertentu, serta mencatat audit log saat ekspor laporan diminta.
+ *
+ * @param {import('express').Request} req - Request Express. Memakai req.user (akun) dan req.query.dari, req.query.sampai,
+ *   req.query.kelas_id (filter kelas, divalidasi terhadap jenjang), req.query.export_type (jenis ekspor untuk audit).
+ * @param {import('express').Response} res - Response Express.
+ * @returns {Promise<void>} Efek samping: menulis audit log "report.export.{type}" bila export_type diisi.
+ *   Mengirim HTTP 200 berisi data dashboard lengkap; 403 bila scope diblokir atau kelas di luar jenjang;
+ *   500 bila terjadi kesalahan.
+ */
 exports.getKepalaSekolahDashboard = async (req, res) => {
   try {
     const { dari, sampai, kelas_id, export_type } = req.query;

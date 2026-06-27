@@ -27,6 +27,12 @@ const roleOptions = [
   }
 ];
 
+/**
+ * Menentukan peran awal yang valid berdasarkan parameter URL.
+ * @param {string} value Nilai peran dari query string.
+ * @returns {string} Peran yang valid bila cocok dengan roleOptions, jika tidak "siswa".
+ * Efek: murni.
+ */
 function getInitialRole(value) {
   return roleOptions.some((role) => role.value === value) ? value : "siswa";
 }
@@ -39,6 +45,12 @@ const emptyFields = {
   kepala_email: ""
 };
 
+/**
+ * Halaman Lupa Kata Sandi - halaman publik.
+ * Akses: umum (untuk semua peran: siswa, orang tua, guru, kepala sekolah).
+ * Fungsi halaman: memilih jenis akun (atau dikunci via query ?role=), mengisi data
+ * verifikasi sesuai peran, lalu mengirim permintaan reset kata sandi ke admin.
+ */
 function LupaPassword() {
   const [searchParams] = useSearchParams();
   const roleParam = searchParams.get("role");
@@ -50,16 +62,30 @@ function LupaPassword() {
 
   const selectedRole = roleOptions.find((role) => role.value === formData.role) || roleOptions[0];
 
+  /**
+   * Mengganti peran terpilih dan mereset field form.
+   * @param {string} role Peran baru yang dipilih.
+   * Efek state: setMessage(null) dan setFormData ke peran baru dengan field kosong.
+   */
   const handleRoleChange = (role) => {
     setMessage(null);
     setFormData({ role, ...emptyFields });
   };
 
+  /**
+   * Menangani perubahan input pada form verifikasi.
+   * @param {Event} event Event perubahan input (membawa name & value).
+   * Efek state: memperbarui field terkait pada formData.
+   */
   const handleChange = (event) => {
     const { name, value } = event.target;
     setFormData((current) => ({ ...current, [name]: value }));
   };
 
+  /**
+   * Menyusun payload permintaan reset sesuai peran yang dipilih.
+   * @returns {object} Payload berisi role dan identitas (nisn/email/no_telepon). Efek: murni.
+   */
   const buildPayload = () => {
     if (formData.role === "siswa") {
       return { role: "siswa", nisn: formData.nisn };
@@ -80,6 +106,12 @@ function LupaPassword() {
     return { role: "guru", email: formData.guru_email };
   };
 
+  /**
+   * Mengirim permintaan reset kata sandi ke server.
+   * @param {Event} event Event submit form (dicegah default-nya).
+   * Memanggil API: requestPasswordReset(buildPayload()).
+   * Efek state: setLoading, setMessage (sukses/gagal); bila sukses mengosongkan field form.
+   */
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);

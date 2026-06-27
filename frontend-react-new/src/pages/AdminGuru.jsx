@@ -9,6 +9,15 @@ import {
   logout
 } from "../services/api";
 
+/**
+ * Halaman Admin Guru.
+ *
+ * Halaman ini dipakai admin untuk mengelola data guru: menambah, mengubah,
+ * dan menghapus data (NIP, nama, kontak, mata pelajaran, pendidikan, alamat,
+ * foto, status aktif/non-aktif, dll).
+ *
+ * Peran/akses: hanya admin (area dashboard admin, butuh sesi login admin).
+ */
 function AdminGuru() {
   const navigate = useNavigate();
   const [guru, setGuru] = useState([]);
@@ -28,21 +37,36 @@ function AdminGuru() {
     status: "aktif"
   });
 
+  /**
+   * Memuat daftar guru dari server.
+   * Efek: memanggil API getGuru(); mengisi state guru bila sukses.
+   */
   const loadGuru = async () => {
     const result = await getGuru();
     if (result.success) setGuru(result.data);
   };
 
+  // Memuat data guru sekali saat komponen dipasang.
   useEffect(() => {
     (async () => {
       await loadGuru();
     })();
   }, []);
 
+  /**
+   * Menangani perubahan input teks/select/textarea pada form guru.
+   * Parameter: e - event input (memakai name & value).
+   * Efek: memperbarui field terkait pada formData.
+   */
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  /**
+   * Menangani pemilihan foto guru dan mengonversinya ke data URL (base64).
+   * Parameter: e - event input file.
+   * Efek: membaca file dengan FileReader lalu menyimpan hasilnya ke formData.foto.
+   */
   const handleImage = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -54,6 +78,10 @@ function AdminGuru() {
     reader.readAsDataURL(file);
   };
 
+  /**
+   * Mengembalikan form ke kondisi kosong (mode tambah).
+   * Efek: mereset editId dan seluruh field formData ke nilai default.
+   */
   const resetForm = () => {
     setEditId(null);
     setFormData({
@@ -71,6 +99,12 @@ function AdminGuru() {
     });
   };
 
+  /**
+   * Menyimpan data guru (tambah baru atau perbarui).
+   * Parameter: e - event submit form (dicegah reload-nya).
+   * Efek: memanggil API updateGuru (bila editId) atau createGuru; menampilkan
+   * alert; bila sukses mereset form dan memuat ulang daftar guru.
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -88,11 +122,21 @@ function AdminGuru() {
     loadGuru();
   };
 
+  /**
+   * Mengisi form dengan data guru terpilih untuk diubah (mode edit).
+   * Parameter: item - objek guru.
+   * Efek: mengeset editId dan menyalin data guru ke formData.
+   */
   const handleEdit = (item) => {
     setEditId(item.id);
     setFormData({ ...item, foto: item.foto || "" });
   };
 
+  /**
+   * Menghapus data guru setelah konfirmasi.
+   * Parameter: id - id guru.
+   * Efek: konfirmasi; memanggil API deleteGuru; alert; memuat ulang daftar.
+   */
   const handleDelete = async (id) => {
     if (!confirm("Yakin ingin menghapus data guru ini?")) return;
     const result = await deleteGuru(id);
@@ -100,6 +144,10 @@ function AdminGuru() {
     loadGuru();
   };
 
+  /**
+   * Keluar dari sesi admin.
+   * Efek: memanggil logout() lalu mengarahkan ke halaman login admin.
+   */
   const handleLogout = () => {
     logout();
     navigate("/admin-login");
@@ -239,7 +287,7 @@ function AdminGuru() {
                     <img src={item.foto || schoolLogo} alt={item.nama} />
                     <div>
                       <h4>{item.nama}</h4>
-                      <p>{item.nip} â€¢ {item.mata_pelajaran || "Belum ada mapel"}</p>
+                      <p>{item.nip} • {item.mata_pelajaran || "Belum ada mapel"}</p>
                     </div>
                     <div className="admin-action">
                       <button onClick={() => handleEdit(item)}>Ubah</button>

@@ -10,34 +10,63 @@ import { exportExcel } from "../utils/exportExcel";
 
 const MENU_ITEMS = [
   { id: "dashboard", label: "Dasbor" },
+  { id: "profil", label: "Profil Orang Tua" },
   { id: "data-siswa", label: "Data Siswa" },
   { id: "kehadiran", label: "Kehadiran Siswa" }
 ];
 
 const emptySummary = { hadir: 0, tidak_hadir: 0, izin: 0, sakit: 0, alpha: 0, total: 0 };
 
+/**
+ * Mengubah objek Date menjadi string format "YYYY-MM-DD" untuk input bertipe date.
+ * @param {Date} [date=new Date()] Tanggal yang akan dikonversi (default: hari ini).
+ * @returns {string} Tanggal format "YYYY-MM-DD". Efek: murni.
+ */
 function toDateInputValue(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
+/**
+ * Mengembalikan tanggal hari ini dalam format "YYYY-MM-DD".
+ * @returns {string} Tanggal hari ini. Efek: murni.
+ */
 function todayISO() {
   return toDateInputValue();
 }
 
+/**
+ * Mengembalikan tanggal awal (tanggal 1) bulan berjalan dalam format "YYYY-MM-DD".
+ * @returns {string} Tanggal awal bulan. Efek: murni.
+ */
 function firstDayOfMonthISO() {
   const date = new Date();
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
+/**
+ * Memformat tanggal menjadi teks lokal Indonesia (contoh: "05 Januari 2024").
+ * @param {string|Date} value Nilai tanggal.
+ * @returns {string} Teks tanggal terformat, atau "-" jika kosong. Efek: murni.
+ */
 function formatDate(value) {
   if (!value) return "-";
   return new Date(value).toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" });
 }
 
+/**
+ * Membuat nama kelas CSS untuk badge status absensi.
+ * @param {string} status Kode status (mis. "hadir").
+ * @returns {string} String className. Efek: murni.
+ */
 function statusClass(status) {
   return `attend-status attend-${status}`;
 }
 
+/**
+ * Mengelompokkan baris absensi berdasarkan tanggal.
+ * @param {Array<{tanggal:string}>} rows Baris absensi.
+ * @returns {Array<{tanggal:string, items:Array}>} Daftar grup per tanggal. Efek: murni.
+ */
 function groupByDate(rows) {
   const map = new Map();
   rows.forEach((row) => {
@@ -47,6 +76,13 @@ function groupByDate(rows) {
   return [...map.entries()].map(([tanggal, items]) => ({ tanggal, items }));
 }
 
+/**
+ * Halaman Dashboard Orang Tua (portal orang tua/wali).
+ * Akses: pengguna dengan peran Orang Tua/Wali yang sudah login.
+ * Fungsi halaman: menampilkan ringkasan & pengumuman, mengelola profil orang tua,
+ * melihat data anak (siswa) yang tertaut, serta melihat dan mengekspor absensi utama
+ * anak dari wali kelas. Bila sesi tidak valid, diarahkan ke "/login-orangtua".
+ */
 function DashboardOrangTua() {
   const navigate = useNavigate();
   const [activeMenu, setActiveMenu] = useState("dashboard");
@@ -54,13 +90,21 @@ function DashboardOrangTua() {
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState(null);
   const [editing, setEditing] = useState(false);
+  const [expandedAnnouncements, setExpandedAnnouncements] = useState([]);
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({ name: "", no_telepon: "", alamat: "", email: "" });
   const [absensi, setAbsensi] = useState({ summary: emptySummary, rows: [] });
   const [absensiLoading, setAbsensiLoading] = useState(false);
   const [filter, setFilter] = useState({ dari: firstDayOfMonthISO(), sampai: todayISO() });
 
+  // Efek pemuatan awal: mengambil data dashboard orang tua saat mount dan mengisi form profil.
   useEffect(() => {
+    /**
+     * Memuat data dashboard orang tua dari server dan menginisialisasi state.
+     * Memanggil API: getOrangTuaDashboard().
+     * Efek state: bila gagal -> alert + navigate ke "/login-orangtua"; bila sukses ->
+     * setDashboard, setProfileForm, dan setLoading(false).
+     */
     const load = async () => {
       const result = await getOrangTuaDashboard();
       if (!result.success) {
@@ -83,16 +127,43 @@ function DashboardOrangTua() {
     load();
   }, [navigate]);
 
+  /**
+   * Melakukan logout orang tua dan kembali ke beranda.
+   * Memanggil: logout() lalu navigate ke "/".
+   */
   const handleLogout = () => {
     logout();
     navigate("/");
   };
 
+  /**
+   * Membuka/menutup (toggle) tampilan isi pengumuman.
+   * @param {number|string} id ID pengumuman.
+   * Efek state: menambah/menghapus id dari expandedAnnouncements.
+   */
+  const toggleAnnouncement = (id) => {
+    setExpandedAnnouncements((current) =>
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+    );
+  };
+
+  /**
+   * Menangani perubahan input pada form profil orang tua.
+   * @param {Event} event Event perubahan input (membawa name & value).
+   * Efek state: memperbarui field terkait pada profileForm.
+   */
   const handleProfileChange = (event) => {
     const { name, value } = event.target;
     setProfileForm((previous) => ({ ...previous, [name]: value }));
   };
 
+  /**
+   * Menyimpan perubahan profil orang tua ke server.
+   * @param {Event} event Event submit form (dicegah default-nya).
+   * Memanggil API: updateOrangTuaProfile(profileForm).
+   * Efek state: setSavingProfile, setNotice; bila sukses keluar dari mode edit dan
+   * memperbarui data user & siswa pada state dashboard.
+   */
   const handleSaveProfile = async (event) => {
     event.preventDefault();
     setSavingProfile(true);
@@ -111,6 +182,11 @@ function DashboardOrangTua() {
     }
   };
 
+  /**
+   * Memuat data absensi anak dari server sesuai rentang tanggal pada filter.
+   * Memanggil API: getOrangTuaAbsensi(filter).
+   * Efek state: setAbsensiLoading, setNotice (bila error), dan setAbsensi dengan hasil.
+   */
   const loadAbsensi = async () => {
     setAbsensiLoading(true);
     setNotice(null);
@@ -123,12 +199,17 @@ function DashboardOrangTua() {
     setAbsensi(result.data || { summary: emptySummary, rows: [] });
   };
 
+  /**
+   * Mengekspor absensi anak yang sedang ditampilkan ke berkas Excel (.xls).
+   * Tidak melakukan apa-apa bila absensi.rows kosong.
+   * Memanggil: exportExcel({...}). Efek: memicu unduhan berkas; tidak mengubah state.
+   */
   const exportAbsensi = () => {
     if (!absensi.rows.length) return;
     exportExcel({
       filename: `absensi-anak-${filter.dari}-${filter.sampai}.xls`,
       title: "Absensi Utama Anak",
-      subtitle: `${siswa?.nama || "Anak"} â€¢ Guru Wali Kelas â€¢ ${filter.dari} sampai ${filter.sampai}`,
+      subtitle: `${siswa?.nama || "Anak"} • Guru Wali Kelas • ${filter.dari} sampai ${filter.sampai}`,
       summary: [
         { label: "Hadir", value: absensi.summary.hadir || 0 },
         { label: "Izin", value: absensi.summary.izin || 0 },
@@ -148,6 +229,7 @@ function DashboardOrangTua() {
     });
   };
 
+  // Absensi dikelompokkan per tanggal untuk ditampilkan terpisah pada tiap hari.
   const groupedAbsensi = useMemo(() => groupByDate(absensi.rows), [absensi.rows]);
 
   if (loading) {
@@ -166,48 +248,83 @@ function DashboardOrangTua() {
   const announcements = dashboard.pengumumanTerbaru || [];
   const siswa = dashboard.siswa;
 
-  const renderDashboard = () => (
-    <section className="teacher-panel">
-      <div className="teacher-panel-header">
-        <span>Dasbor</span>
-        <h1>Informasi Sekolah</h1>
-        <p>Pantau perkembangan anak dan informasi terbaru dari sekolah.</p>
-      </div>
+  /**
+   * Merender panel Dasbor orang tua: ringkasan profil anak dan pengumuman terbaru.
+   * @returns {JSX.Element} Panel dasbor.
+   */
+  const renderDashboard = () => {
+    const parentInitial = (dashboard.user?.name || "O").trim().charAt(0) || "O";
 
-      <div className="teacher-grid two-columns">
-        <article className="teacher-card">
-          <div className="teacher-card-title">
-            <span>Profil Orang Tua</span>
-            <strong>{siswa?.kelas?.nama_kelas || "Kelas -"}</strong>
-          </div>
-          <h2>{dashboard.user?.name}</h2>
-          <p>{dashboard.user?.email}</p>
-          <div className="teacher-profile-list">
-            <div><span>Anak</span><strong>{siswa?.nama || "Belum tertaut"}</strong></div>
-            <div><span>No. HP</span><strong>{siswa?.no_telepon || "-"}</strong></div>
-          </div>
-        </article>
+    return (
+      <section className="teacher-panel">
+        <div className="teacher-panel-header">
+          <span>Dasbor</span>
+          <h1>Informasi Sekolah</h1>
+          <p>Pantau perkembangan anak dan informasi terbaru dari sekolah.</p>
+        </div>
 
-        <article className="teacher-card announcement-card">
-          <h3>Pengumuman Terbaru</h3>
-          {announcements.length === 0 ? (
-            <p className="teacher-empty">Belum ada pengumuman terbaru.</p>
-          ) : (
-            <div className="teacher-announcement-list">
-              {announcements.map((item) => (
-                <div className="teacher-announcement" key={item.id}>
-                  <span>{formatDate(item.date)}</span>
-                  <strong>{item.title}</strong>
-                  <p>{item.content}</p>
-                </div>
-              ))}
+        <div className="teacher-profile-overview">
+          <article className="teacher-card profile-card teacher-profile-card">
+            <div className="teacher-card-title">
+              <span>Ringkasan Profil</span>
+              <strong>{siswa?.kelas?.nama_kelas || "Orang Tua"}</strong>
             </div>
-          )}
-        </article>
-      </div>
-    </section>
-  );
 
+            <div className="teacher-profile-head">
+              <div className="teacher-profile-avatar" aria-hidden="true">
+                <span>{parentInitial}</span>
+              </div>
+              <div className="teacher-profile-identity">
+                <h2>{dashboard.user?.name}</h2>
+                <p>Orang Tua / Wali</p>
+              </div>
+            </div>
+
+            <div className="teacher-profile-list">
+              <div><span>Anak</span><strong>{siswa?.nama || "Belum tertaut"}</strong></div>
+              <div><span>Kelas</span><strong>{siswa?.kelas?.nama_kelas || "-"}</strong></div>
+              <div><span>No. HP</span><strong>{siswa?.no_telepon || "-"}</strong></div>
+            </div>
+          </article>
+        </div>
+
+        <div className="teacher-grid">
+          <article className="teacher-card announcement-card">
+            <h3>Pengumuman Terbaru</h3>
+            {announcements.length === 0 ? (
+              <p className="teacher-empty">Belum ada pengumuman terbaru.</p>
+            ) : (
+              <div className="teacher-announcement-list">
+                {announcements.map((item) => {
+                  const isOpen = expandedAnnouncements.includes(item.id);
+                  return (
+                    <div className={`teacher-announcement${isOpen ? " expanded" : ""}`} key={item.id}>
+                      <span>{formatDate(item.date)}</span>
+                      <strong>{item.title}</strong>
+                      <p>{item.content}</p>
+                      <button
+                        type="button"
+                        className="teacher-announcement-toggle"
+                        onClick={() => toggleAnnouncement(item.id)}
+                        aria-expanded={isOpen}
+                      >
+                        {isOpen ? "Tutup" : "Selengkapnya"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </article>
+        </div>
+      </section>
+    );
+  };
+
+  /**
+   * Merender panel Profil Orang Tua: mode tampilan (baca) atau mode edit (form kontak).
+   * @returns {JSX.Element} Panel profil orang tua.
+   */
   const renderProfilOrangTua = () => (
     <section className="teacher-panel">
       <div className="teacher-panel-header compact">
@@ -219,7 +336,8 @@ function DashboardOrangTua() {
       {editing ? (
         <form className="profile-layout" onSubmit={handleSaveProfile}>
           <div className="profile-photo-card">
-            <div className="profile-photo"><span>Foto</span></div>
+            <div className="profile-photo"><span>{dashboard.user?.name?.slice(0, 1) || "O"}</span></div>
+            <span className="teacher-role-pill">Orang Tua / Wali</span>
           </div>
           <div className="profile-fields">
             <label className="teacher-field">Nama
@@ -243,13 +361,18 @@ function DashboardOrangTua() {
       ) : (
         <div className="profile-layout">
           <div className="profile-photo-card">
-            <div className="profile-photo"><span>Foto</span></div>
+            <div className="profile-photo"><span>{dashboard.user?.name?.slice(0, 1) || "O"}</span></div>
+            <span className="teacher-role-pill">Orang Tua / Wali</span>
           </div>
           <div className="profile-readonly">
-            <div><span>Nama</span><strong>{dashboard.user?.name}</strong></div>
+            <div><span>Nama</span><strong>{dashboard.user?.name || "-"}</strong></div>
+            <div><span>Email</span><strong>{dashboard.user?.email || "-"}</strong></div>
             <div><span>No. HP</span><strong>{siswa?.no_telepon || "-"}</strong></div>
-            <div><span>Alamat</span><strong>{siswa?.alamat || "-"}</strong></div>
-            <div><span>Email</span><strong>{dashboard.user?.email}</strong></div>
+            <div className="wide"><span>Alamat</span><strong>{siswa?.alamat || "-"}</strong></div>
+            <div><span>Hubungan dengan Siswa</span><strong>Orang Tua / Wali</strong></div>
+            <div><span>Nama Siswa Terkait</span><strong>{siswa?.nama || "Belum tertaut"}</strong></div>
+            <div><span>Kelas Siswa</span><strong>{siswa?.kelas?.nama_kelas || "-"}</strong></div>
+            <div><span>Status Akun</span><strong>Aktif</strong></div>
             <div className="teacher-actions-row">
               <button type="button" className="teacher-primary" onClick={() => setEditing(true)}>Ubah</button>
             </div>
@@ -259,6 +382,10 @@ function DashboardOrangTua() {
     </section>
   );
 
+  /**
+   * Merender panel Data Siswa: profil anak yang tertaut dengan akun orang tua.
+   * @returns {JSX.Element} Panel data siswa.
+   */
   const renderDataSiswa = () => (
     <section className="teacher-panel">
       <div className="teacher-panel-header compact">
@@ -292,6 +419,10 @@ function DashboardOrangTua() {
     </section>
   );
 
+  /**
+   * Merender panel Kehadiran: filter periode, ringkasan, dan tabel absensi anak per tanggal.
+   * @returns {JSX.Element} Panel kehadiran.
+   */
   const renderKehadiran = () => (
     <section className="teacher-panel">
       <div className="teacher-panel-header compact">
@@ -331,7 +462,7 @@ function DashboardOrangTua() {
       <div className="attend-cards parent-attendance-cards">
         <div className="attend-card hadir"><span>HADIR</span><strong>{absensi.summary.hadir}</strong></div>
         <div className="attend-card tidak"><span>TIDAK HADIR</span><strong>{absensi.summary.tidak_hadir}</strong></div>
-        <div className="attend-card keterangan"><span>KETERANGAN</span><strong>IZIN {absensi.summary.izin} â€¢ SAKIT {absensi.summary.sakit} â€¢ ALPHA {absensi.summary.alpha}</strong></div>
+        <div className="attend-card keterangan"><span>KETERANGAN</span><strong>IZIN {absensi.summary.izin} • SAKIT {absensi.summary.sakit} • ALPHA {absensi.summary.alpha}</strong></div>
       </div>
 
       {groupedAbsensi.length === 0 ? (
@@ -362,15 +493,15 @@ function DashboardOrangTua() {
     </section>
   );
 
+  /**
+   * Menentukan panel yang dirender berdasarkan menu aktif (activeMenu).
+   * @returns {JSX.Element} Panel profil/data-siswa/kehadiran, atau default dasbor.
+   */
   const renderActivePanel = () => {
+    if (activeMenu === "profil") return renderProfilOrangTua();
     if (activeMenu === "data-siswa") return renderDataSiswa();
     if (activeMenu === "kehadiran") return renderKehadiran();
-    return (
-      <>
-        {renderProfilOrangTua()}
-        {renderDashboard()}
-      </>
-    );
+    return renderDashboard();
   };
 
   return (
