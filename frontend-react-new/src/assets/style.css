@@ -10876,3 +10876,36 @@ main,
   font-weight: 800;
   color: #dc2626;
 }
+
+/* ============================================================
+   Halaman Pengumuman: ringkas konten + tombol Selengkapnya
+   ============================================================ */
+.announcement-text {
+  white-space: pre-line;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.announcement-text.expanded {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
+.announcement-more-btn {
+  margin-top: 8px;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: #1F3A24;
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.announcement-more-btn:hover {
+  opacity: 0.75;
+}

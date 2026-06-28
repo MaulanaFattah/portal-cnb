@@ -28,6 +28,18 @@ function formatTanggal(value) {
 function Pengumuman() {
   const [pengumuman, setPengumuman] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [expandedIds, setExpandedIds] = useState([]);
+
+  /**
+   * Membuka/menutup tampilan penuh konten sebuah pengumuman (toggle "Selengkapnya").
+   * @param {number} id ID pengumuman yang di-toggle.
+   * Efek state: menamb/menghapus id pada expandedIds.
+   */
+  const toggleExpanded = (id) => {
+    setExpandedIds((current) =>
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+    );
+  };
 
   // Efek pemuatan awal: mengambil daftar pengumuman dari API saat mount; setLoading(false)
   // dijalankan di blok finally agar status memuat selalu berakhir.
@@ -60,21 +72,32 @@ function Pengumuman() {
             ) : pengumuman.length === 0 ? (
               <p className="empty-text">Belum ada pengumuman.</p>
             ) : (
-              pengumuman.map((item) => (
+              pengumuman.map((item) => {
+                const isOpen = expandedIds.includes(item.id);
+                return (
                 <article className="announcement-card" key={item.id}>
                   <div>
                     <span className="announcement-label">
                       {item.category || "Pengumuman"}
                     </span>
                     <h3>{item.title}</h3>
-                    <p>{item.content}</p>
+                    <p className={`announcement-text${isOpen ? " expanded" : ""}`}>{item.content}</p>
+                    <button
+                      type="button"
+                      className="announcement-more-btn"
+                      onClick={() => toggleExpanded(item.id)}
+                      aria-expanded={isOpen}
+                    >
+                      {isOpen ? "Tutup" : "Selengkapnya"}
+                    </button>
                   </div>
 
                   <span className="announcement-date">
                     {formatTanggal(item.date)}
                   </span>
                 </article>
-              ))
+                );
+              })
             )}
           </div>
         </section>
