@@ -730,7 +730,12 @@ exports.requestPasswordReset = async (req, res) => {
 
     let identity = null;
     if (role === "siswa") {
-      if (!nisn) return res.status(400).json({ success: false, message: "NISN siswa wajib diisi" });
+      if (!nisn) return res.status(400).json({ success: false, message: "NIS siswa wajib diisi" });
+      // Pastikan NIS benar-benar terdaftar di data siswa sebelum membuat permintaan reset.
+      const siswaTerdaftar = await Siswa.findOne({ where: { nisn } });
+      if (!siswaTerdaftar) {
+        return res.status(404).json({ success: false, message: "NIS tidak terdaftar. Silakan periksa kembali NIS Anda." });
+      }
       identity = await findStudentResetIdentity(nisn);
     }
 

@@ -138,8 +138,10 @@ function DashboardGuru() {
   const [savedAttendanceErrors, setSavedAttendanceErrors] = useState({});
   const [rekapMode, setRekapMode] = useState("homeroom");
   const [savingAbsensi, setSavingAbsensi] = useState(false);
-  const [profileForm, setProfileForm] = useState({ name: "", email: "" });
+  const [missingStudentIds, setMissingStudentIds] = useState([]);
+  const [profileForm, setProfileForm] = useState({ name: "", email: "", no_telepon: "", alamat: "", jenis_kelamin: "", foto: "" });
   const [savingProfile, setSavingProfile] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
   const [rekapLoading, setRekapLoading] = useState(false);
   const [rekap, setRekap] = useState({ summary: emptySummary, rows: [] });
   const [rekapFilter, setRekapFilter] = useState({
@@ -185,7 +187,14 @@ function DashboardGuru() {
         jadwal_id: defaultRekapMode === "subject" ? firstJadwalId : "",
         mapel: defaultRekapMode === "subject" ? firstJadwal?.mapel || "" : ""
       }));
-      setProfileForm({ name: data.user?.name || "", email: data.user?.email || "" });
+      setProfileForm({
+        name: data.user?.name || "",
+        email: data.user?.email || "",
+        no_telepon: data.guruProfile?.no_telepon || "",
+        alamat: data.guruProfile?.alamat || "",
+        jenis_kelamin: data.guruProfile?.jenis_kelamin || "",
+        foto: data.guruProfile?.foto || ""
+      });
       setDashboard(data);
       setLoading(false);
     };
@@ -373,6 +382,19 @@ function DashboardGuru() {
   };
 
   /**
+   * Membaca file foto yang dipilih guru dan mengonversinya ke data URL (base64)
+   * untuk disimpan pada profileForm.foto.
+   * @param {Event} event Event input file.
+   */
+  const handleFoto = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => setProfileForm((current) => ({ ...current, foto: reader.result }));
+    reader.readAsDataURL(file);
+  };
+
+  /**
    * Menyimpan perubahan nama profil guru ke server.
    * @param {Event} event Event submit form profil (dicegah default-nya).
    * Memanggil API: updateGuruProfile({ name }).
@@ -383,11 +405,28 @@ function DashboardGuru() {
     event.preventDefault();
     setSavingProfile(true);
     setNotice(null);
-    const result = await updateGuruProfile({ name: profileForm.name });
+    const result = await updateGuruProfile({
+      name: profileForm.name,
+      no_telepon: profileForm.no_telepon,
+      alamat: profileForm.alamat,
+      jenis_kelamin: profileForm.jenis_kelamin,
+      foto: profileForm.foto
+    });
     setSavingProfile(false);
     setNotice({ type: result.success ? "success" : "error", text: result.message });
     if (result.success) {
-      setDashboard((current) => current ? { ...current, user: { ...current.user, name: profileForm.name } } : current);
+      setEditingProfile(false);
+      setDashboard((current) => current ? {
+        ...current,
+        user: { ...current.user, name: profileForm.name },
+        guruProfile: current.guruProfile ? {
+          ...current.guruProfile,
+          no_telepon: profileForm.no_telepon,
+          alamat: profileForm.alamat,
+          jenis_kelamin: profileForm.jenis_kelamin,
+          foto: profileForm.foto
+        } : current.guruProfile
+      } : current);
     }
   };
 
@@ -419,6 +458,9 @@ function DashboardGuru() {
    * Efek state: memperbarui attendanceEntryBuckets pada konteks absensi aktif.
    */
   const handleEntry = (id, field, value) => {
+    if (field === "status" && value) {
+      setMissingStudentIds((previous) => previous.filter((studentId) => Number(studentId) !== Number(id)));
+    }
     setAttendanceEntryBuckets((previous) => {
       const currentEntries = previous[attendanceContextKey] || {};
       return {
@@ -441,17 +483,27 @@ function DashboardGuru() {
    */
   const handleSubmitAbsensi = async (event) => {
     event.preventDefault();
-    setSavingAbsensi(true);
     setNotice(null);
-    const selectedEntries = siswaList
-      .map((siswa) => entries[siswa.id])
-      .filter((entry) => entry?.status);
 
-    if (selectedEntries.length === 0) {
-      setSavingAbsensi(false);
-      setNotice({ type: "error", text: "Pilih status absensi minimal satu siswa sebelum menyimpan." });
+    if (siswaList.length === 0) {
+      setNotice({ type: "error", text: "Belum ada siswa untuk kelas absensi ini." });
       return;
     }
+
+    // Validasi: SEMUA siswa wajib memiliki status kehadiran sebelum disimpan.
+    const missingIds = siswaList
+      .filter((siswa) => !entries[siswa.id]?.status)
+      .map((siswa) => siswa.id);
+
+    if (missingIds.length > 0) {
+      setMissingStudentIds(missingIds);
+      setNotice({ type: "error", text: "Semua data kehadiran siswa wajib diisi sebelum absensi disimpan." });
+      return;
+    }
+
+    setMissingStudentIds([]);
+    setSavingAbsensi(true);
+    const selectedEntries = siswaList.map((siswa) => entries[siswa.id]);
 
     const result = await submitAbsensiGuru({
       tanggal,
@@ -825,22 +877,26 @@ function DashboardGuru() {
               <tbody>
                 {siswaList.length === 0 ? (
                   <tr><td colSpan="5" className="teacher-empty-cell">Belum ada siswa untuk kelas absensi ini.</td></tr>
-                ) : siswaList.map((siswa, index) => (
-                  <tr key={siswa.id}>
+                ) : siswaList.map((siswa, index) => {
+                  const isMissing = missingStudentIds.includes(siswa.id);
+                  return (
+                  <tr key={siswa.id} className={isMissing ? "attendance-missing-row" : ""}>
                     <td>{index + 1}</td>
                     <td>{siswa.nama}</td>
                     <td>{siswa.nisn}</td>
                     <td>
-                      <select value={entries[siswa.id]?.status || ""} onChange={(event) => handleEntry(siswa.id, "status", event.target.value)}>
+                      <select className={isMissing ? "attendance-missing-select" : ""} value={entries[siswa.id]?.status || ""} onChange={(event) => handleEntry(siswa.id, "status", event.target.value)}>
                         <option value="">Pilih status</option>
                         {ABSENSI_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                       </select>
+                      {isMissing && <span className="attendance-missing-flag">Wajib diisi</span>}
                     </td>
                     <td>
                       <input value={entries[siswa.id]?.keterangan || ""} onChange={(event) => handleEntry(siswa.id, "keterangan", event.target.value)} placeholder="Contoh: sakit demam" />
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -1023,14 +1079,14 @@ function DashboardGuru() {
    */
   const renderProfil = () => {
     const statusAkun = profile?.verification_status === "approved" ? "Aktif" : (profile?.verification_status || "-");
-    const jkLabel = profile?.jenis_kelamin === "P" ? "Perempuan" : profile?.jenis_kelamin === "L" ? "Laki-laki" : "-";
+    const jkLabel = profileForm.jenis_kelamin === "P" ? "Perempuan" : profileForm.jenis_kelamin === "L" ? "Laki-laki" : "-";
     const waliLabel = isWali ? (profile?.kelas?.nama_kelas || "Ya") : "Bukan wali kelas";
     const details = [
       ["Nama", dashboard.user?.name || "-"],
       ["NIP / NUPTK", profile?.nip || profile?.nuptk || "-"],
       ["Email", dashboard.user?.email || "-"],
-      ["No. HP", profile?.no_telepon || "-"],
-      ["Alamat", profile?.alamat || "-"],
+      ["No. HP", profileForm.no_telepon || "-"],
+      ["Alamat", profileForm.alamat || "-"],
       ["Jenis Kelamin", jkLabel],
       ["Mata Pelajaran", displaySubject || "-"],
       ["Wali Kelas", waliLabel],
@@ -1042,24 +1098,78 @@ function DashboardGuru() {
         <div className="teacher-panel-header compact">
           <span>Profil</span>
           <h1>Profil Guru</h1>
-          <p>Data pribadi guru. Halaman ini hanya untuk melihat data, perubahan data utama dilakukan oleh admin.</p>
+          <p>Data pribadi guru. Anda dapat mengubah nama, no. HP, alamat, jenis kelamin, dan foto. Data utama (NIP, email, mapel, kelas) diatur oleh admin.</p>
         </div>
 
-        <div className="profile-layout">
-          <div className="profile-photo-card">
-            <div className="profile-photo"><span>{teacherInitial}</span></div>
-            <span className="teacher-role-pill">{roleLabel}</span>
-          </div>
-
-          <div className="profile-readonly">
-            {details.map(([label, value]) => (
-              <div className={label === "Alamat" ? "wide" : ""} key={label}>
-                <span>{label}</span>
-                <strong>{value}</strong>
+        {editingProfile ? (
+          <form className="profile-layout" onSubmit={handleSaveProfile}>
+            <div className="profile-photo-card">
+              <div className="profile-photo">
+                {profileForm.foto ? <img src={profileForm.foto} alt="Foto guru" /> : <span>{teacherInitial}</span>}
               </div>
-            ))}
+              <label className="profile-photo-btn">
+                Ubah Foto
+                <input type="file" accept="image/*" onChange={handleFoto} hidden />
+              </label>
+            </div>
+
+            <div className="profile-fields">
+              <label className="teacher-field">Nama
+                <input name="name" value={profileForm.name} onChange={handleProfileChange} required />
+              </label>
+              <label className="teacher-field">NIP / NUPTK
+                <input value={profile?.nip || profile?.nuptk || "-"} readOnly disabled />
+              </label>
+              <label className="teacher-field">Email
+                <input type="email" name="email" value={profileForm.email} readOnly disabled />
+              </label>
+              <label className="teacher-field">No. HP
+                <input name="no_telepon" value={profileForm.no_telepon} onChange={handleProfileChange} placeholder="08xxxxxxxxxx" />
+              </label>
+              <label className="teacher-field">Alamat
+                <input name="alamat" value={profileForm.alamat} onChange={handleProfileChange} placeholder="Alamat tempat tinggal" />
+              </label>
+              <label className="teacher-field">Jenis Kelamin
+                <select name="jenis_kelamin" value={profileForm.jenis_kelamin} onChange={handleProfileChange}>
+                  <option value="">Pilih</option>
+                  <option value="L">Laki-laki</option>
+                  <option value="P">Perempuan</option>
+                </select>
+              </label>
+              <label className="teacher-field">Mata Pelajaran
+                <input value={displaySubject || "-"} readOnly disabled />
+              </label>
+
+              <div className="teacher-actions-row">
+                <button type="button" className="teacher-secondary" onClick={() => setEditingProfile(false)}>Batal</button>
+                <button className="teacher-primary" type="submit" disabled={savingProfile}>
+                  {savingProfile ? "Menyimpan..." : "Simpan"}
+                </button>
+              </div>
+            </div>
+          </form>
+        ) : (
+          <div className="profile-layout">
+            <div className="profile-photo-card">
+              <div className="profile-photo">
+                {profileForm.foto ? <img src={profileForm.foto} alt="Foto guru" /> : <span>{teacherInitial}</span>}
+              </div>
+              <span className="teacher-role-pill">{roleLabel}</span>
+            </div>
+
+            <div className="profile-readonly">
+              {details.map(([label, value]) => (
+                <div className={label === "Alamat" ? "wide" : ""} key={label}>
+                  <span>{label}</span>
+                  <strong>{value}</strong>
+                </div>
+              ))}
+              <div className="teacher-actions-row">
+                <button type="button" className="teacher-primary" onClick={() => setEditingProfile(true)}>Edit Profil</button>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </section>
     );
   };

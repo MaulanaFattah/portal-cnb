@@ -36,6 +36,11 @@ module.exports = (sequelize) => {
       subject: { type: DataTypes.STRING, allowNull: true, field: "mata_pelajaran" },
       // Enum jenjang yang diampu: "sd" atau "smp" (opsional)
       jenjang: { type: DataTypes.ENUM("sd", "smp"), allowNull: true, field: "jenjang" },
+      // Data pribadi yang dapat diedit guru sendiri lewat halaman Profil Guru
+      no_telepon: { type: DataTypes.STRING, allowNull: true, field: "no_telepon" },
+      alamat: { type: DataTypes.TEXT, allowNull: true, field: "alamat" },
+      jenis_kelamin: { type: DataTypes.ENUM("L", "P"), allowNull: true, field: "jenis_kelamin" },
+      foto: { type: DataTypes.TEXT, allowNull: true, field: "foto" },
       // Penanda apakah guru ini berperan sebagai wali kelas (default false), dipetakan ke "wali_kelas"
       is_homeroom: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "wali_kelas" },
       // Foreign key opsional ke "kelas": kelas yang diampu/diwalikan (boleh kosong)

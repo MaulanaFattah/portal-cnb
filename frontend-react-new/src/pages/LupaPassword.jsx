@@ -8,7 +8,7 @@ const roleOptions = [
   {
     value: "siswa",
     label: "Siswa",
-    description: "Masukkan NISN siswa yang terdaftar."
+    description: "Masukkan NIS siswa yang terdaftar."
   },
   {
     value: "orangtua",
@@ -171,11 +171,11 @@ function LupaPassword() {
 
               {formData.role === "siswa" && (
                 <div className="form-group">
-                  <label>NISN Siswa</label>
+                  <label>NIS Siswa</label>
                   <input
                     type="text"
                     name="nisn"
-                    placeholder="Masukkan NISN siswa"
+                    placeholder="Masukkan NIS siswa"
                     value={formData.nisn}
                     onChange={handleChange}
                     inputMode="numeric"

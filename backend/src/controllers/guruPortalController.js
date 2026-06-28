@@ -688,6 +688,13 @@ exports.submitAbsensi = async (req, res) => {
       normalizedEntries.push({ ...entry, siswa_id: siswaId, status });
     }
 
+    // Validasi: seluruh siswa aktif di kelas wajib memiliki status kehadiran.
+    const providedStudentIds = new Set(normalizedEntries.map((entry) => entry.siswa_id));
+    const semuaLengkap = students.length > 0 && students.every((item) => providedStudentIds.has(Number(item.id)));
+    if (!semuaLengkap) {
+      return res.status(400).json({ success: false, message: "Semua data kehadiran siswa wajib diisi sebelum absensi disimpan." });
+    }
+
     let saved = 0;
 
     for (const entry of normalizedEntries) {
@@ -1055,6 +1062,18 @@ exports.updateProfile = async (req, res) => {
     await req.user.update({ name });
 
     const profile = await GuruProfile.findOne({ where: { user_id: req.user.id } });
+
+    // Simpan data pribadi guru (no. HP, alamat, jenis kelamin, foto) bila profilnya ada.
+    if (profile) {
+      const profileUpdates = {};
+      if (req.body.no_telepon !== undefined) profileUpdates.no_telepon = req.body.no_telepon || null;
+      if (req.body.alamat !== undefined) profileUpdates.alamat = req.body.alamat || null;
+      if (req.body.jenis_kelamin !== undefined) {
+        profileUpdates.jenis_kelamin = ["L", "P"].includes(req.body.jenis_kelamin) ? req.body.jenis_kelamin : null;
+      }
+      if (req.body.foto !== undefined) profileUpdates.foto = req.body.foto || null;
+      if (Object.keys(profileUpdates).length) await profile.update(profileUpdates);
+    }
 
     await logAudit(req, {
       action: "teacher.profile.update",
