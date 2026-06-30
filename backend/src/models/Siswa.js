@@ -45,18 +45,23 @@ module.exports = (sequelize) => {
       email: { type: DataTypes.STRING, allowNull: true },
       // Foto siswa (path atau base64), opsional
       foto: { type: DataTypes.TEXT, allowNull: true },
-      // Enum status siswa: aktif / lulus / pindah / keluar (default "aktif")
-      status: { type: DataTypes.ENUM("aktif", "lulus", "pindah", "keluar"), defaultValue: "aktif" },
+      // Enum status siswa: aktif / lulus / pindah / keluar / berhenti (default "aktif")
+      status: { type: DataTypes.ENUM("aktif", "lulus", "pindah", "keluar", "berhenti"), defaultValue: "aktif" },
+      // Nomor registrasi / ID sementara untuk login sebelum NIS resmi terbit
+      nomor_registrasi: { type: DataTypes.STRING, allowNull: true },
       // Timestamp pembuatan baris, dipetakan ke kolom "dibuat_pada"
       createdAt: { type: DataTypes.DATE, allowNull: false, field: "dibuat_pada" },
       // Timestamp pembaruan terakhir, dipetakan ke kolom "diperbarui_pada"
-      updatedAt: { type: DataTypes.DATE, allowNull: false, field: "diperbarui_pada" }
+      updatedAt: { type: DataTypes.DATE, allowNull: false, field: "diperbarui_pada" },
+      // Timestamp soft delete (paranoid). Null = belum dihapus.
+      deletedAt: { type: DataTypes.DATE, allowNull: true, field: "dihapus_pada" }
     },
     {
       tableName: "siswa",
       freezeTableName: true,
       underscored: true,
-      timestamps: true
+      timestamps: true,
+      paranoid: true
     }
   );
 };

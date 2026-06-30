@@ -515,6 +515,19 @@ exports.promoteSiswa = async (req, res) => {
       return res.status(404).json({ success: false, message: "Data siswa tidak ditemukan" });
     }
 
+    // Validasi kapasitas kelas tujuan (jika ditentukan).
+    if (kelasTujuan.kapasitas) {
+      const currentCount = await Siswa.count({ where: { kelas_id: kelasTujuan.id, status: "aktif" }, transaction });
+      const incoming = siswaList.filter((s) => Number(s.kelas_id) !== Number(kelasTujuan.id)).length;
+      if (currentCount + incoming > Number(kelasTujuan.kapasitas)) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: `Kapasitas kelas ${kelasTujuan.nama_kelas} tidak mencukupi (kapasitas ${kelasTujuan.kapasitas}, saat ini ${currentCount}, akan masuk ${incoming}).`
+        });
+      }
+    }
+
     const classMap = await getClassMap();
     const historyRows = [];
     let moved = 0;
@@ -630,5 +643,49 @@ exports.getArsipKelas = async (req, res) => {
       message: "Gagal mengambil arsip kelas",
       error: error.message
     });
+  }
+};
+
+/**
+ * Memperbarui NIS (NISN) seorang siswa, dipakai setelah NIS resmi terbit untuk
+ * menggantikan nomor registrasi/ID sementara. Memvalidasi NIS berupa angka dan
+ * unik antar siswa. Aksi dicatat ke audit log.
+ *
+ * @param {import('express').Request} req - req.params.id (id siswa); req.body.nisn (NIS baru).
+ * @param {import('express').Response} res - Response Express.
+ * @returns {Promise<void>} HTTP 200 dengan data terbaru; 400 bila NIS tidak valid;
+ *   404 bila siswa tak ada; 409 bila NIS sudah dipakai; 500 bila gagal.
+ */
+exports.updateNIS = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const nisn = String(req.body.nisn || "").trim();
+
+    if (!nisn || !/^\d+$/.test(nisn)) {
+      return res.status(400).json({ success: false, message: "NIS harus berupa angka yang valid" });
+    }
+
+    const siswa = await Siswa.findByPk(id);
+    if (!siswa) {
+      return res.status(404).json({ success: false, message: "Data siswa tidak ditemukan" });
+    }
+
+    const existing = await Siswa.findOne({ where: { nisn, id: { [Op.ne]: id } } });
+    if (existing) {
+      return res.status(409).json({ success: false, message: "NIS sudah dipakai siswa lain" });
+    }
+
+    const oldNisn = siswa.nisn;
+    await siswa.update({ nisn });
+    await logAudit(req, {
+      action: "student.update_nis",
+      entityType: "student",
+      entityId: siswa.id,
+      metadata: { old_nisn: oldNisn, new_nisn: nisn }
+    });
+
+    res.json({ success: true, message: "NIS siswa berhasil diperbarui", data: siswa });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Gagal memperbarui NIS siswa", error: error.message });
   }
 };

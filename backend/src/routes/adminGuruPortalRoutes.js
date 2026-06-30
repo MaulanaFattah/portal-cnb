@@ -31,6 +31,14 @@ const { verifyToken, onlyAdmin } = require("../middlewares/authMiddleware");
 router.get("/registrations", verifyToken, onlyAdmin, guruPortalController.getGuruRegistrations);
 
 /**
+ * POST /accounts
+ * Otorisasi  : verifyToken + onlyAdmin
+ * Controller : guruPortalController.createGuruAccount
+ * Fungsi     : Admin membuat akun guru langsung (registrasi mandiri dinonaktifkan).
+ */
+router.post("/accounts", verifyToken, onlyAdmin, guruPortalController.createGuruAccount);
+
+/**
  * PUT /registrations/:userId
  * Method      : PUT
  * Parameter   : :userId -> ID akun pengguna (guru) yang akan diverifikasi.

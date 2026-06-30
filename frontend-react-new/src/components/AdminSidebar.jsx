@@ -13,6 +13,7 @@ const menu = [
   ["/admin/galeri", "Galeri"],
   ["/admin/fasilitas", "Fasilitas"],
   ["/admin/ppdb", "PPDB"],
+  ["/admin/guru", "Guru"],
   ["/admin/verifikasi-guru", "Verifikasi Guru"],
   ["/admin/kepala-sekolah", "Kepala Sekolah"],
   ["/admin/reset-password", "Reset Password"],

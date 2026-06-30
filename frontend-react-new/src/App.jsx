@@ -9,6 +9,7 @@ import Galeri from "./pages/Galeri";
 import Fasilitas from "./pages/Fasilitas";
 import PPDB from "./pages/PPDB";
 import FormPPDB from "./pages/FormPPDB";
+import PerbaikiBerkasPPDB from "./pages/PerbaikiBerkasPPDB";
 import Kontak from "./pages/Kontak";
 import Login from "./pages/Login";
 import AdminLogin from "./pages/AdminLogin";
@@ -30,6 +31,7 @@ import AdminKelas from "./pages/AdminKelas";
 import AdminAkunSiswa from "./pages/AdminAkunSiswa";
 import AdminProfilSekolah from "./pages/AdminProfilSekolah";
 import AdminVerifikasiGuru from "./pages/AdminVerifikasiGuru";
+import AdminDataGuru from "./pages/AdminDataGuru";
 import AdminResetPasswordRequests from "./pages/AdminResetPasswordRequests";
 import AdminKepalaSekolah from "./pages/AdminKepalaSekolah";
 import DashboardGuru from "./pages/DashboardGuru";
@@ -108,6 +110,7 @@ function App() {
         <Route path="/fasilitas" element={<Fasilitas />} />
         <Route path="/ppdb" element={<PPDB />} />
         <Route path="/form-ppdb" element={<FormPPDB />} />
+        <Route path="/perbaiki-berkas" element={<PerbaikiBerkasPPDB />} />
         <Route path="/kontak" element={<Kontak />} />
         <Route path="/login" element={<Login />} />
         <Route path="/admin-login" element={<AdminLogin />} />
@@ -134,6 +137,7 @@ function App() {
         <Route path="/admin/akun-siswa" element={<AdminAkunSiswa />} />
         <Route path="/admin/profil-sekolah" element={<AdminProfilSekolah />} />
         <Route path="/admin/verifikasi-guru" element={<AdminVerifikasiGuru />} />
+        <Route path="/admin/guru" element={<AdminDataGuru />} />
         <Route path="/admin/reset-password" element={<AdminResetPasswordRequests />} />
         <Route path="/admin/kepala-sekolah" element={<AdminKepalaSekolah />} />
       </Routes>

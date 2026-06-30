@@ -24,16 +24,21 @@ module.exports = (sequelize) => {
       tahun_ajaran: { type: DataTypes.STRING, allowNull: false },
       // Jumlah siswa pada kelas ini (default 0), umumnya diperbarui mengikuti data siswa
       jumlah_siswa: { type: DataTypes.INTEGER, defaultValue: 0 },
+      // Kapasitas maksimum siswa pada kelas ini (null = tidak dibatasi)
+      kapasitas: { type: DataTypes.INTEGER, allowNull: true },
       // Timestamp pembuatan baris, dipetakan ke kolom "dibuat_pada"
       createdAt: { type: DataTypes.DATE, allowNull: false, field: "dibuat_pada" },
       // Timestamp pembaruan terakhir, dipetakan ke kolom "diperbarui_pada"
-      updatedAt: { type: DataTypes.DATE, allowNull: false, field: "diperbarui_pada" }
+      updatedAt: { type: DataTypes.DATE, allowNull: false, field: "diperbarui_pada" },
+      // Timestamp soft delete (paranoid). Null = belum dihapus.
+      deletedAt: { type: DataTypes.DATE, allowNull: true, field: "dihapus_pada" }
     },
     {
       tableName: "kelas",
       freezeTableName: true,
       underscored: true,
-      timestamps: true
+      timestamps: true,
+      paranoid: true
     }
   );
 };

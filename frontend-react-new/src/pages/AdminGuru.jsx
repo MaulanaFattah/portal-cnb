@@ -30,8 +30,11 @@ function AdminGuru() {
     no_telepon: "",
     mata_pelajaran: "",
     pendidikan_terakhir: "",
+    jabatan: "",
+    jenjang: "",
     foto: "",
     alamat: "",
+    tempat_lahir: "",
     tanggal_lahir: "",
     jenis_kelamin: "L",
     status: "aktif"
@@ -91,8 +94,11 @@ function AdminGuru() {
       no_telepon: "",
       mata_pelajaran: "",
       pendidikan_terakhir: "",
+      jabatan: "",
+      jenjang: "",
       foto: "",
       alamat: "",
+      tempat_lahir: "",
       tanggal_lahir: "",
       jenis_kelamin: "L",
       status: "aktif"
@@ -223,6 +229,25 @@ function AdminGuru() {
               </div>
 
               <div className="form-group">
+                <label>Jabatan</label>
+                <input type="text" name="jabatan" value={formData.jabatan} onChange={handleChange} placeholder="mis. Guru Kelas, Guru Mapel, Kepala TU" />
+              </div>
+
+              <div className="form-group">
+                <label>Jenjang</label>
+                <select name="jenjang" value={formData.jenjang} onChange={handleChange}>
+                  <option value="">Pilih jenjang</option>
+                  <option value="sd">Guru SD</option>
+                  <option value="smp">Guru SMP</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Tempat Lahir</label>
+                <input type="text" name="tempat_lahir" value={formData.tempat_lahir} onChange={handleChange} />
+              </div>
+
+              <div className="form-group">
                 <label>Tanggal Lahir</label>
                 <input type="date" name="tanggal_lahir" value={formData.tanggal_lahir} onChange={handleChange} />
               </div>
@@ -245,6 +270,7 @@ function AdminGuru() {
                 <select name="status" value={formData.status} onChange={handleChange}>
                   <option value="aktif">Aktif</option>
                   <option value="non-aktif">Non-Aktif</option>
+                  <option value="resign">Resign</option>
                 </select>
               </div>
 
@@ -288,6 +314,7 @@ function AdminGuru() {
                     <div>
                       <h4>{item.nama}</h4>
                       <p>{item.nip} • {item.mata_pelajaran || "Belum ada mapel"}</p>
+                      <p>{item.jabatan || "-"}{item.jenjang ? ` • Guru ${item.jenjang.toUpperCase()}` : ""} • {item.status}</p>
                     </div>
                     <div className="admin-action">
                       <button onClick={() => handleEdit(item)}>Ubah</button>

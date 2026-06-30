@@ -673,3 +673,82 @@ exports.rejectPasswordResetRequest = async (req, res) => {
     return res.status(500).json({ success: false, message: "Gagal menolak permintaan reset password" });
   }
 };
+
+/**
+ * Controller Express (admin): laporan ringkas sistem. Mengagregasi data PPDB,
+ * Siswa (per status), Guru (per status), mutasi/riwayat kelas, dan absensi
+ * untuk ditampilkan pada modul Laporan.
+ *
+ * @param {import('express').Request} req - Request Express.
+ * @param {import('express').Response} res - Response Express.
+ * @returns {Promise<void>} HTTP 200 berisi objek laporan; 500 bila gagal.
+ */
+exports.getReports = async (req, res) => {
+  try {
+    const PPDB = db.PPDB;
+    const Guru = db.Guru;
+    const RiwayatKelas = db.RiwayatKelas;
+    const AbsensiSiswa = db.AbsensiSiswa;
+
+    const [ppdbAll, siswaAll, guruAll, mutasiTotal, absensiTotal] = await Promise.all([
+      PPDB.findAll(),
+      Siswa.findAll(),
+      Guru.findAll(),
+      RiwayatKelas.count(),
+      AbsensiSiswa.count()
+    ]);
+
+    const countStatus = (rows, status) => rows.filter((row) => row.status === status).length;
+
+    return res.json({
+      success: true,
+      message: "Laporan sistem berhasil diambil",
+      data: {
+        ppdb: {
+          total: ppdbAll.length,
+          pending: countStatus(ppdbAll, "pending"),
+          diterima: countStatus(ppdbAll, "diterima"),
+          ditolak: countStatus(ppdbAll, "ditolak"),
+          daftar_ulang: ppdbAll.filter((row) => row.status_daftar_ulang === "sudah").length
+        },
+        siswa: {
+          total: siswaAll.length,
+          aktif: countStatus(siswaAll, "aktif"),
+          lulus: countStatus(siswaAll, "lulus"),
+          pindah: countStatus(siswaAll, "pindah"),
+          keluar: countStatus(siswaAll, "keluar"),
+          berhenti: countStatus(siswaAll, "berhenti")
+        },
+        guru: {
+          total: guruAll.length,
+          aktif: countStatus(guruAll, "aktif"),
+          non_aktif: countStatus(guruAll, "non-aktif"),
+          resign: countStatus(guruAll, "resign")
+        },
+        mutasi_kelas: mutasiTotal,
+        absensi_tercatat: absensiTotal
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Gagal mengambil laporan sistem", error: error.message });
+  }
+};
+
+/**
+ * Controller Express (admin): mengambil riwayat audit (audit log) terbaru untuk
+ * keperluan jejak: verifikasi PPDB, perpindahan kelas, update NIS, guru resign, dll.
+ *
+ * @param {import('express').Request} req - req.query.limit (default 100).
+ * @param {import('express').Response} res - Response Express.
+ * @returns {Promise<void>} HTTP 200 berisi daftar audit log; 500 bila gagal.
+ */
+exports.getAuditLogs = async (req, res) => {
+  try {
+    const AuditLog = db.AuditLog;
+    const limit = Math.min(Number(req.query.limit) || 100, 500);
+    const logs = await AuditLog.findAll({ order: [["createdAt", "DESC"]], limit });
+    return res.json({ success: true, message: "Riwayat audit berhasil diambil", data: logs });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Gagal mengambil riwayat audit", error: error.message });
+  }
+};

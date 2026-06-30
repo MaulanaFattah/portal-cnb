@@ -29,6 +29,9 @@ const { verifyToken, onlyAdmin } = require("../middlewares/authMiddleware");
  */
 router.get("/dashboard", verifyToken, onlyAdmin, adminController.dashboard);
 
+router.get("/reports", verifyToken, onlyAdmin, adminController.getReports);
+router.get("/audit-logs", verifyToken, onlyAdmin, adminController.getAuditLogs);
+
 /**
  * GET /users
  * Method      : GET

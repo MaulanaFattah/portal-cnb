@@ -1,11 +1,47 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { checkPPDBStatus } from "../services/api";
 
-const STATUS_LABEL = { pending: "Menunggu Verifikasi", diterima: "Diterima", ditolak: "Ditolak" };
+const STATUS_LABEL = {
+  pending: "Menunggu Verifikasi",
+  diterima: "Diterima",
+  ditolak: "Ditolak",
+  revisi_berkas: "Berkas Perlu Diperbaiki"
+};
 const LEVEL_LABEL = { tk: "TK", sd: "SD", smp: "SMP" };
+
+/**
+ * Label ramah untuk tiap key berkas pendaftaran PPDB.
+ */
+const DOCUMENT_LABEL = {
+  berkas_akta: "Akta Kelahiran",
+  berkas_kk: "Kartu Keluarga",
+  berkas_ktp_ortu: "KTP Orang Tua/Wali",
+  foto_siswa: "Pas Foto Calon Siswa",
+  berkas_raport: "Raport Terakhir",
+  berkas_surat_pindah: "Surat Pindahan"
+};
+
+/**
+ * Label ramah untuk tiap key DATA (biodata) pendaftaran PPDB.
+ */
+const DATA_LABEL = {
+  nama_lengkap: "Nama Lengkap",
+  nisn: "NISN",
+  nik: "NIK",
+  no_kk: "No. Kartu Keluarga",
+  tempat_lahir: "Tempat Lahir",
+  tanggal_lahir: "Tanggal Lahir",
+  jenis_kelamin: "Jenis Kelamin",
+  agama: "Agama",
+  alamat: "Alamat",
+  nama_orang_tua: "Nama Orang Tua/Wali",
+  no_telepon: "No. HP Orang Tua",
+  nama_ayah: "Nama Ayah",
+  nama_ibu: "Nama Ibu"
+};
 
 /**
  * Komponen kartu "Cek Status Pendaftaran" PPDB (dipakai di dalam halaman PPDB).
@@ -14,6 +50,7 @@ const LEVEL_LABEL = { tk: "TK", sd: "SD", smp: "SMP" };
  * berkas pendaftaran.
  */
 function PPDBStatusCheck() {
+  const navigate = useNavigate();
   const [form, setForm] = useState({ nama_lengkap: "", email: "" });
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -78,6 +115,48 @@ function PPDBStatusCheck() {
           </div>
           <p className="ppdb-status-level">Jenjang tujuan: {LEVEL_LABEL[result.target_jenjang] || "-"}</p>
           <p className="ppdb-status-note">{result.catatan}</p>
+
+          {result.status === "revisi_berkas" && (
+            <div className="ppdb-status-revisi">
+              {Array.isArray(result.berkas_revisi) && result.berkas_revisi.length > 0 && (
+                <>
+                  <p className="ppdb-status-revisi-title">Berkas yang harus diperbaiki:</p>
+                  <ul className="ppdb-status-revisi-list">
+                    {result.berkas_revisi.map((key) => (
+                      <li key={key}>{DOCUMENT_LABEL[key] || key}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              {Array.isArray(result.data_revisi) && result.data_revisi.length > 0 && (
+                <>
+                  <p className="ppdb-status-revisi-title">Data yang harus diperbaiki:</p>
+                  <ul className="ppdb-status-revisi-list">
+                    {result.data_revisi.map((key) => (
+                      <li key={key}>{DATA_LABEL[key] || key}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => navigate("/perbaiki-berkas", {
+                  state: {
+                    email: result.email || form.email,
+                    nama_lengkap: result.nama_lengkap,
+                    target_jenjang: result.target_jenjang,
+                    jenis_pendaftaran: result.jenis_pendaftaran,
+                    berkas_revisi: result.berkas_revisi || [],
+                    data_revisi: result.data_revisi || [],
+                    data_values: result.data_values || {}
+                  }
+                })}
+              >
+                Perbaiki Sekarang
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

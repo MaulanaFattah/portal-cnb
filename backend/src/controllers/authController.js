@@ -405,6 +405,16 @@ async function findKepalaSekolahResetIdentity(email) {
  *   User & GuruProfile dalam transaksi dan menulis audit log.
  */
 exports.registerGuru = async (req, res) => {
+  // Registrasi guru mandiri DIAKTIFKAN kembali. Akun guru baru dibuat dengan
+  // status "pending" dan menunggu verifikasi admin sebelum dapat login.
+  return exports.registerGuruLegacy(req, res);
+};
+
+/**
+ * (Dinonaktifkan) Implementasi lama registrasi guru mandiri. Tidak lagi dipakai
+ * karena akun guru sekarang dibuat oleh admin. Dipertahankan untuk referensi.
+ */
+exports.registerGuruLegacy = async (req, res) => {
   const transaction = await db.sequelize.transaction();
 
   try {

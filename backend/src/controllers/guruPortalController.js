@@ -1091,3 +1091,95 @@ exports.updateProfile = async (req, res) => {
     return res.status(500).json({ success: false, message: "Gagal memperbarui profil guru", error: error.message });
   }
 };
+
+/**
+ * Controller Express (admin): membuat akun guru langsung oleh administrator
+ * (menggantikan registrasi mandiri). Membuat User(role guru) + GuruProfile yang
+ * langsung berstatus "approved" sehingga guru bisa login tanpa verifikasi ulang.
+ *
+ * @param {import('express').Request} req - req.body: name/nama, email, password,
+ *   wali_kelas/is_homeroom, guru_mata_pelajaran/is_subject_teacher, mata_pelajaran/subject,
+ *   kelas_wali_id/kelas_id, jenjang. req.user.id sebagai penyetuju.
+ * @param {import('express').Response} res - Response Express.
+ * @returns {Promise<void>} 201 berisi data akun & profil; 400 validasi gagal; 409 email
+ *   terdaftar; 500 error. Efek samping: membuat User & GuruProfile dalam transaksi + audit log.
+ */
+exports.createGuruAccount = async (req, res) => {
+  const transaction = await db.sequelize.transaction();
+  try {
+    const name = String(req.body.name || req.body.nama || "").trim();
+    const email = normalizeEmail(req.body.email);
+    const password = req.body.password || req.body.kata_sandi;
+    const isHomeroom = toBoolean(req.body.wali_kelas) || toBoolean(req.body.is_homeroom) || req.body.teacher_type === "wali_kelas";
+    const subjectList = normalizeSubjectInput(req.body.mata_pelajaran ?? req.body.subjects ?? req.body.subject);
+    const isSubjectTeacher = toBoolean(req.body.guru_mata_pelajaran) || toBoolean(req.body.is_subject_teacher) || subjectList.length > 0;
+    const kelasId = Number(req.body.kelas_wali_id || req.body.kelas_id || 0);
+    const jenjang = ["sd", "smp"].includes(String(req.body.jenjang || "").toLowerCase()) ? String(req.body.jenjang).toLowerCase() : null;
+
+    if (!name || !email || !password) {
+      await transaction.rollback();
+      return res.status(400).json({ success: false, message: "Nama, email, dan kata sandi wajib diisi" });
+    }
+    if (String(password).length < 6) {
+      await transaction.rollback();
+      return res.status(400).json({ success: false, message: "Kata sandi minimal 6 karakter" });
+    }
+    if (!isHomeroom && !isSubjectTeacher) {
+      await transaction.rollback();
+      return res.status(400).json({ success: false, message: "Pilih minimal satu peran guru" });
+    }
+    if (isHomeroom && !kelasId) {
+      await transaction.rollback();
+      return res.status(400).json({ success: false, message: "Kelas wajib dipilih untuk wali kelas" });
+    }
+    if (isSubjectTeacher && !subjectList.length) {
+      await transaction.rollback();
+      return res.status(400).json({ success: false, message: "Minimal satu mata pelajaran wajib diisi untuk guru mata pelajaran" });
+    }
+
+    const existing = await User.findOne({ where: { email }, transaction });
+    if (existing) {
+      await transaction.rollback();
+      return res.status(409).json({ success: false, message: "Email sudah terdaftar" });
+    }
+
+    const legacyType = isSubjectTeacher ? "mapel" : "wali_kelas";
+    const user = await User.create({
+      name,
+      email,
+      password: await bcrypt.hash(password, 10),
+      role: "guru",
+      profession: [isHomeroom ? "Wali Kelas" : null, isSubjectTeacher ? subjectList.join(", ") : null].filter(Boolean).join(" + ") || "Guru",
+      must_change_password: true
+    }, { transaction });
+
+    const profile = await GuruProfile.create({
+      user_id: user.id,
+      teacher_type: legacyType,
+      subject: isSubjectTeacher ? subjectList.join(", ") : null,
+      jenjang,
+      is_homeroom: isHomeroom,
+      kelas_id: isHomeroom ? kelasId : null,
+      verification_status: "approved",
+      approved_by: req.user.id,
+      approved_at: new Date()
+    }, { transaction });
+
+    await logAudit(req, {
+      action: "teacher.account.create",
+      entityType: "teacher_profile",
+      entityId: profile.id,
+      metadata: { userId: user.id, isHomeroom, subjects: subjectList }
+    }, { transaction });
+
+    await transaction.commit();
+    return res.status(201).json({
+      success: true,
+      message: "Akun guru berhasil dibuat. Guru dapat langsung login.",
+      data: { user: safeUser(user), guruProfile: profile }
+    });
+  } catch (error) {
+    await transaction.rollback();
+    return res.status(500).json({ success: false, message: "Gagal membuat akun guru", error: error.message });
+  }
+};

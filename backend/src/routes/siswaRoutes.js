@@ -52,6 +52,7 @@ router.get("/arsip-kelas", verifyToken, onlyAdmin, siswaController.getArsipKelas
  * Fungsi      : Memproses kenaikan kelas (promote) untuk siswa.
  */
 router.post("/naik-kelas", verifyToken, onlyAdmin, siswaController.promoteSiswa);
+router.put("/:id/nis", verifyToken, onlyAdmin, siswaController.updateNIS);
 
 /**
  * POST /

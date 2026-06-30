@@ -47,17 +47,25 @@ async function columnExists(table, column) {
 async function migrate() {
   await sequelize.authenticate();
 
-  // Idempoten: jika kolom jenjang sudah ada, hentikan migrasi.
+  // Idempoten untuk tabel profil_guru.
   if (await columnExists("profil_guru", "jenjang")) {
-    console.log("Kolom jenjang sudah ada");
-    return;
+    console.log("Kolom jenjang sudah ada di profil_guru");
+  } else {
+    await sequelize.query(
+      "ALTER TABLE `profil_guru` ADD COLUMN `jenjang` ENUM('sd','smp') NULL AFTER `mata_pelajaran`"
+    );
+    console.log("Kolom jenjang berhasil ditambahkan ke profil_guru");
   }
 
-  // Tambahkan kolom jenjang (boleh NULL) tepat setelah kolom mata_pelajaran.
-  await sequelize.query(
-    "ALTER TABLE `profil_guru` ADD COLUMN `jenjang` ENUM('sd','smp') NULL AFTER `mata_pelajaran`"
-  );
-  console.log("Kolom jenjang berhasil ditambahkan");
+  // Idempoten untuk tabel master guru.
+  if (await columnExists("guru", "jenjang")) {
+    console.log("Kolom jenjang sudah ada di guru");
+  } else {
+    await sequelize.query(
+      "ALTER TABLE `guru` ADD COLUMN `jenjang` ENUM('sd','smp') NULL AFTER `jabatan`"
+    );
+    console.log("Kolom jenjang berhasil ditambahkan ke guru");
+  }
 }
 
 // Jalankan migrasi; cetak error (jika ada) lalu pastikan koneksi DB ditutup.

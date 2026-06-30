@@ -31,6 +31,20 @@ const { verifyToken, onlyAdmin } = require("../middlewares/authMiddleware");
 router.get("/", verifyToken, onlyAdmin, ppdbController.getAllPPDB);
 
 /**
+ * GET /rekap
+ * Otorisasi : verifyToken + onlyAdmin
+ * Fungsi    : Rekapitulasi PPDB (total, per status, daftar ulang, per jenjang).
+ */
+router.get("/rekap", verifyToken, onlyAdmin, ppdbController.getRekap);
+
+/**
+ * PUT /:id/daftar-ulang
+ * Otorisasi : verifyToken + onlyAdmin
+ * Fungsi    : Memperbarui status daftar ulang pendaftar PPDB.
+ */
+router.put("/:id/daftar-ulang", verifyToken, onlyAdmin, ppdbController.setDaftarUlang);
+
+/**
  * POST /status
  * Method      : POST
  * Otorisasi   : Publik (tanpa token)
@@ -38,6 +52,15 @@ router.get("/", verifyToken, onlyAdmin, ppdbController.getAllPPDB);
  * Fungsi      : Mengecek status pendaftaran PPDB berdasarkan data yang dikirim.
  */
 router.post("/status", ppdbController.checkStatus);
+
+/**
+ * POST /resubmit
+ * Method      : POST
+ * Otorisasi   : Publik (tanpa token)
+ * Controller  : ppdbController.resubmitBerkas
+ * Fungsi      : Mengunggah ulang berkas pendaftaran saat status "revisi_berkas".
+ */
+router.post("/resubmit", ppdbController.resubmitBerkas);
 
 /**
  * POST /

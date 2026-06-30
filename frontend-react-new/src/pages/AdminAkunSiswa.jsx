@@ -12,6 +12,7 @@ import {
   resetUserPassword,
   createSiswa,
   updateSiswa,
+  updateSiswaNIS,
   deleteSiswa,
   promoteSiswa,
   getArsipKelas,
@@ -261,6 +262,8 @@ function AdminAkunSiswa() {
   const [isStudentListOpen, setIsStudentListOpen] = useState(false);
 
   const [resetDialog, setResetDialog] = useState(null);
+  const [nisDialog, setNisDialog] = useState(null);
+  const [nisValue, setNisValue] = useState("");
   const [resetPasswordValue, setResetPasswordValue] = useState("");
   const [resetCredential, setResetCredential] = useState(null);
 
@@ -631,6 +634,50 @@ function AdminAkunSiswa() {
     const result = await deleteSiswa(student.id);
     alert(result.message);
     if (result.success) await loadData();
+  };
+
+  /**
+   * Membuka dialog Update NIS untuk seorang siswa.
+   * Parameter: student - objek siswa.
+   * Efek: mengeset nisDialog; mengisi nilai awal kosong bila NIS masih ID
+   * sementara (sama dengan nomor registrasi), atau NIS saat ini bila sudah resmi.
+   */
+  const openNisDialog = (student) => {
+    setNisDialog(student);
+    const isTemporary = student.nomor_registrasi && String(student.nisn) === String(student.nomor_registrasi);
+    setNisValue(isTemporary ? "" : (student.nisn || ""));
+  };
+
+  /**
+   * Menutup dialog Update NIS dan mereset state terkait.
+   */
+  const closeNisDialog = () => {
+    setNisDialog(null);
+    setNisValue("");
+    setIsSubmitting(false);
+  };
+
+  /**
+   * Menyimpan NIS resmi siswa (menggantikan ID sementara/nomor registrasi).
+   * Parameter: event - event submit form (dicegah reload-nya).
+   * Efek: validasi NIS harus angka; memanggil API updateSiswaNIS; alert; bila
+   * sukses menutup dialog dan memuat ulang data.
+   */
+  const handleNisSubmit = async (event) => {
+    event.preventDefault();
+    const nisn = nisValue.trim();
+    if (!/^\d+$/.test(nisn)) {
+      alert("NIS harus berupa angka.");
+      return;
+    }
+    setIsSubmitting(true);
+    const result = await updateSiswaNIS(nisDialog.id, { nisn });
+    setIsSubmitting(false);
+    alert(result.message);
+    if (result.success) {
+      closeNisDialog();
+      await loadData();
+    }
   };
 
   /**
@@ -1037,13 +1084,22 @@ function AdminAkunSiswa() {
                           {cls.map((student, index) => {
                             const accounts = accountsByStudent.get(String(student.id)) || {};
                             const studentAccount = accounts.siswa;
+                            // Update NIS hanya untuk kelas awal hasil PPDB:
+                            // kelas 1 SD (tingkat 1) dan kelas 1 SMP (tingkat 7),
+                            // karena mereka masih memakai ID sementara/nomor registrasi.
+                            const canUpdateNIS = [1, 7].includes(getStudentClassRank(student));
                             return (
                               <tr key={student.id}>
                                 <td data-label="No">{index + 1}</td>
                                 <td data-label="Siswa">
                                   <div className="management-table-cell">
                                     <strong>{student.nama}</strong>
-                                    <span>NIS: {student.nisn || "-"}</span>
+                                    <span>
+                                      NIS: {student.nisn || "-"}
+                                      {student.nomor_registrasi && student.nisn && String(student.nisn) === String(student.nomor_registrasi) && (
+                                        <span className="management-status missing" style={{ marginLeft: "0.4rem" }}>ID sementara</span>
+                                      )}
+                                    </span>
                                   </div>
                                 </td>
                                 <td data-label="Akun Siswa">
@@ -1054,9 +1110,10 @@ function AdminAkunSiswa() {
                                 </td>
                                 <td data-label="Aksi">
                                   <div className="admin-action compact management-table-actions">
-                                    <button type="button" onClick={() => openEditStudentDialog(student)}>Ubah</button>
-                                    {studentAccount && <button type="button" onClick={() => openResetDialog(studentAccount)}>Reset</button>}
-                                    <button type="button" onClick={() => handleStudentDelete(student)}>Hapus</button>
+                                    <button type="button" className="act-btn act-edit" onClick={() => openEditStudentDialog(student)}>Ubah</button>
+                                    {canUpdateNIS && <button type="button" className="act-btn act-nis" onClick={() => openNisDialog(student)}>Update NIS</button>}
+                                    {studentAccount && <button type="button" className="act-btn act-reset" onClick={() => openResetDialog(studentAccount)}>Reset</button>}
+                                    <button type="button" className="act-btn act-delete" onClick={() => handleStudentDelete(student)}>Hapus</button>
                                   </div>
                                 </td>
                               </tr>
@@ -1361,6 +1418,41 @@ function AdminAkunSiswa() {
               <div className="management-modal-actions">
                 <button type="button" className="cancel-btn" onClick={closeResetDialog}>Batal</button>
                 <button type="submit" className="save-btn" disabled={isSubmitting}>{isSubmitting ? "Memproses..." : "Atur Ulang"}</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+
+      {nisDialog && (
+        <div className="management-modal-backdrop" role="presentation" onClick={closeNisDialog}>
+          <section className="management-modal-card small" role="dialog" aria-modal="true" aria-labelledby="nis-dialog-title" onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="management-modal-close" onClick={closeNisDialog} aria-label="Tutup dialog update NIS">&times;</button>
+            <div className="management-modal-header">
+              <span>Update NIS</span>
+              <h2 id="nis-dialog-title">{nisDialog.nama}</h2>
+              <p>Masukkan NIS resmi siswa untuk menggantikan ID sementara. NIS harus berupa angka.</p>
+            </div>
+
+            <form className="management-dialog-form single" onSubmit={handleNisSubmit}>
+              <div className="form-group">
+                <label>NIS Saat Ini</label>
+                <input type="text" value={nisDialog.nisn || "-"} readOnly disabled />
+              </div>
+              <div className="form-group">
+                <label>NIS Resmi Baru</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={nisValue}
+                  onChange={(event) => setNisValue(event.target.value)}
+                  placeholder="Contoh: 1234567890"
+                  autoFocus
+                />
+              </div>
+              <div className="management-modal-actions">
+                <button type="button" className="cancel-btn" onClick={closeNisDialog}>Batal</button>
+                <button type="submit" className="save-btn" disabled={isSubmitting}>{isSubmitting ? "Menyimpan..." : "Simpan NIS"}</button>
               </div>
             </form>
           </section>

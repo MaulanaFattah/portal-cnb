@@ -300,6 +300,8 @@ function AdminVerifikasiGuru() {
     navigate("/admin-login");
   };
 
+  // Gabungan data guru: master guru (punya NIP/jenjang/jabatan) digabung dengan
+  // akun guru (User + profil) untuk menandai apakah guru sudah punya akun.
   // Daftar guru mapel yang sudah disetujui (untuk pilihan pada form jadwal).
   const approvedMapel = accounts.filter((item) => item.guruProfile?.verification_status === "approved" && isSubjectTeacherProfile(item.guruProfile));
   // Opsi mapel untuk guru yang sedang dipilih pada form tambah jadwal.
@@ -325,7 +327,7 @@ function AdminVerifikasiGuru() {
             <p>Setujui registrasi guru dan atur jadwal guru mata pelajaran.</p>
           </div>
           <div className="dashboard-actions">
-            <Link to="/" className="btn secondary">Situs web</Link>
+            <Link to="/admin/guru" className="btn secondary">Data Guru</Link>
             <button onClick={handleLogout} className="btn primary">Keluar</button>
           </div>
         </div>
@@ -340,7 +342,7 @@ function AdminVerifikasiGuru() {
                 <div className="verify-card-head">
                   <div>
                     <h4>{item.name}</h4>
-                    <p>{item.email} • {roleSummary(itemDraft)}</p>
+                    <p>{item.email} • {roleSummary(itemDraft)}{profile.jenjang ? ` • Guru ${String(profile.jenjang).toUpperCase()}` : ""}</p>
                   </div>
                   <span className={`status-badge ${profile.verification_status}`}>{profile.verification_status}</span>
                 </div>

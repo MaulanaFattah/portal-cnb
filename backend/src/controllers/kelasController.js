@@ -19,6 +19,10 @@ function buildKelasPayload(body) {
     if (body[field] !== undefined) payload[field] = body[field];
   });
 
+  if (body.kapasitas !== undefined && body.kapasitas !== "") {
+    payload.kapasitas = Number(body.kapasitas) || null;
+  }
+
   return payload;
 }
 

@@ -652,6 +652,28 @@ export async function checkPPDBStatus(data) {
 }
 
 /**
+ * Mengunggah ulang berkas pendaftaran PPDB saat status "revisi_berkas".
+ *
+ * Endpoint : POST {API_URL}/ppdb/resubmit
+ * Method   : POST
+ * Header    : Content-Type: application/json (endpoint publik, tanpa token)
+ * Parameter : `data` berisi { email, nama_lengkap, berkas: { <key>: dataUrl } }.
+ *
+ * @param {Object} data - Identitas pendaftar dan berkas baru (base64 data URL).
+ * @returns {Promise<Object>} Respons JSON backend (status perbaikan berkas).
+ */
+export async function resubmitPPDBBerkas(data) {
+  const response = await fetch(`${API_URL}/ppdb/resubmit`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
+/**
  * Memperbarui data/status pendaftaran PPDB berdasarkan id (oleh admin).
  *
  * Endpoint : PUT {API_URL}/ppdb/{id}
@@ -1080,6 +1102,60 @@ export async function promoteSiswa(data) {
 export async function getArsipKelas() {
   const token = localStorage.getItem("token");
   const response = await fetch(`${API_URL}/siswa/arsip-kelas`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.json();
+}
+
+export async function updateSiswaNIS(id, data) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/siswa/${id}/nis`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
+export async function getRekapPPDB() {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/ppdb/rekap`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.json();
+}
+
+export async function setPPDBDaftarUlang(id, data) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/ppdb/${id}/daftar-ulang`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
+export async function createGuruAccount(data) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/admin-guru/accounts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
+export async function getReports() {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/admin/reports`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.json();
+}
+
+export async function getAuditLogs(limit = 100) {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/admin/audit-logs?limit=${limit}`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return response.json();
